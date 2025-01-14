@@ -16,9 +16,15 @@ impl Camera {
     /// - [parent] - DbgId of parent entitie
     /// - `conf` - configuration parameters
     pub fn new(parent: DbgId, conf: CameraConf) -> Self {
+        log::
         Self {
             dbg: DbgId::new(parent, "Camera"),
             conf: conf
         }
+    }
+    ///
+    /// Receive frames from USB camera
+    pub fn read(&self) -> Vec<Vec<f64>> {
+        todo!("{}.read | To be implemented", self.dbg)
     }
 }
