@@ -1,1 +1,3 @@
-pub struct CameraConf {}
+pub struct CameraConf {
+    
+}
