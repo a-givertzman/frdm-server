@@ -1,8 +1,11 @@
+use crate::domain::dbg::dbgid::DbgId;
+
 ///
 /// # Description to the [Camera] class
 /// - Connecting to the USB Camra
 /// - Receive frames from the `Camera`
 pub struct Camera {
+    dbg: DbgId,
     conf: CameraConf,
 }
 //
@@ -15,7 +18,7 @@ impl Camera {
     pub fn new(parent: DbgId, conf: CameraConf) -> Self {
         Self {
             dbg: DbgId::new(parent, "Camera"),
-            conf:
+            conf: conf
         }
     }
 }
