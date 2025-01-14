@@ -1,5 +1,5 @@
 use crate::domain::dbg::dbgid::DbgId;
-
+use super::camera_conf::CameraConf;
 ///
 /// # Description to the [Camera] class
 /// - Connecting to the USB Camra
@@ -15,11 +15,12 @@ impl Camera {
     /// Returns [Camera] new instance
     /// - [parent] - DbgId of parent entitie
     /// - `conf` - configuration parameters
-    pub fn new(parent: DbgId, conf: CameraConf) -> Self {
-        log::
+    pub fn new(parent: &DbgId, conf: CameraConf) -> Self {
+        let dbg = DbgId::new(&parent, "Camera");
+        log::debug!("{}.new | parent: {}", dbg, parent);
         Self {
-            dbg: DbgId::new(parent, "Camera"),
-            conf: conf
+            dbg,
+            conf,
         }
     }
     ///
