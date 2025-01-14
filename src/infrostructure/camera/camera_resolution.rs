@@ -1,5 +1,4 @@
 use serde::Deserialize;
-
 ///
 /// The resolution of the camera
 #[derive(Clone, Debug, Deserialize)]

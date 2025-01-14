@@ -4,7 +4,7 @@ use super::camera_conf::CameraConf;
 /// # Description to the [Camera] class
 /// - Connecting to the IP Camra
 /// - Receive frames from the `Camera`
-pub struct Camera {
+pub struct Camera{
     dbg: DbgId,
     conf: CameraConf,
 }
