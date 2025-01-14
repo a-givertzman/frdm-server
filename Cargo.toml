@@ -16,3 +16,8 @@ api-tools = { git = "https://github.com/a-givertzman/rust-api-tools.git", tag = 
 #
 # Collections
 indexmap = "^2.7"
+#
+# Serde
+serde = { version = "^1.0", features = ["derive"] }
+serde_yaml = "^0.9"
+serde_json = "^1.0"
