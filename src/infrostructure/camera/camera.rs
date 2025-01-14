@@ -2,7 +2,7 @@ use crate::domain::dbg::dbgid::DbgId;
 use super::camera_conf::CameraConf;
 ///
 /// # Description to the [Camera] class
-/// - Connecting to the USB Camra
+/// - Connecting to the IP Camra
 /// - Receive frames from the `Camera`
 pub struct Camera {
     dbg: DbgId,
@@ -24,7 +24,7 @@ impl Camera {
         }
     }
     ///
-    /// Receive frames from USB camera
+    /// Receive frames from IP camera
     pub fn read(&self) -> Vec<Vec<f64>> {
         todo!("{}.read | To be implemented", self.dbg)
     }
