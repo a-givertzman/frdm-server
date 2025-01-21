@@ -1,4 +1,4 @@
 //!
-//! Communication with external wirld
+//! Communication with external world
 //! 
 pub mod camera;
