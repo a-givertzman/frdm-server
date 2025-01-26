@@ -1,5 +1,7 @@
 use std::net::SocketAddr;
 use sal_sync::services::conf::conf_tree::ConfTree;
+use crate::conf::service_config::ServiceConfig;
+
 use super::camera_resolution::CameraResolution;
 use serde::Deserialize;
 use log::{trace, debug};
@@ -33,6 +35,16 @@ impl CameraConf {
         let self_id = format!("CameraConf({})", conf_tree.key);
         let mut self_conf = ServiceConfig::new(&self_id, conf_tree.clone());
         trace!("{}.new | self_conf: {:?}", self_id, self_conf);
-        
+        let sufix = self_conf.sufix();
+        let self_fps = self_conf.get_param_value("fps").unwrap().as_str().unwrap().parse().unwrap();
+        debug!("{}.new | fps: {:?}", self_id, self_fps);
+        let resolution = CameraResolution::new(parent, conf_tree);
+        let self_address: SocketAddr = self_conf.get_param_value("address").unwrap().as_str().unwrap().parse().unwrap();
+        debug!("{}.new | address: {:?}", self_id, self_address);
+        Self { 
+            fps: (self_fps), 
+            resolution: (resolution), 
+            address: (self_address), 
+        }
     }
 }
