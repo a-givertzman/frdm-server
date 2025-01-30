@@ -30,13 +30,21 @@ mod camera {
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
-        let resolution: CameraResolution = serde_yaml::from_str(r"
-            width: 1200
-            height: 800
-        ").unwrap();
-        log::debug!("{}.read | resolution: {:?}", dbg, resolution);
-        // Camera::new(&dbg, CameraConf {});
+        let conf: serde_yaml::Value = serde_yaml::from_str(r#"
+            service Camera Camera1:
+                fps: 30
+                address: 192.168.10.12:2020
+                resolution: 
+                    width: 1200
+                    height: 800
+        "#).unwrap();
+        let conf = CameraConf::from_yaml(&dbg, &conf);
+        log::debug!("{}.read | conf: {:#?}", dbg, conf);
+        let camera = Camera::new(conf);
         // assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
+        for frame in camera {
+            log::debug!("frame: {:?}", frame);
+        }
         test_duration.exit();
     }
 }

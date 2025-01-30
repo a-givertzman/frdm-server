@@ -1,11 +1,16 @@
+use std::sync::mpsc;
+
+use sal_sync::services::entity::name::Name;
+
 use crate::domain::dbg::dbgid::DbgId;
-use super::camera_conf::CameraConf;
+use super::{camera_conf::CameraConf, pimage::PImage};
 ///
 /// # Description to the [Camera] class
 /// - Connecting to the IP Camra
 /// - Receive frames from the `Camera`
 pub struct Camera {
     dbg: DbgId,
+    name: Name,
     conf: CameraConf,
 }
 //
@@ -15,17 +20,58 @@ impl Camera {
     /// Returns [Camera] new instance
     /// - [parent] - DbgId of parent entitie
     /// - `conf` - configuration parameters
-    pub fn new(parent: &DbgId, conf: CameraConf) -> Self {
-        let dbg = DbgId::new(&parent, "Camera");
-        log::debug!("{}.new | parent: {}", dbg, parent);
+    pub fn new(conf: CameraConf) -> Self {
+        let dbg = DbgId::root(&conf.name.join());
+        log::debug!("{}.new | : ", dbg);
         Self {
             dbg,
+            name: conf.name.clone(),
             conf,
         }
     }
     ///
     /// Receive frames from IP camera
-    pub fn read(&self) -> Vec<Vec<f64>> {
+    pub fn read(&self) -> mpsc::Receiver<PImage> {
         todo!("{}.read | To be implemented", self.dbg)
+    }
+}
+///
+/// Camera Iterator
+pub struct CameraIntoIterator {
+    camera: Camera,
+    frames: Vec<PImage>,
+}
+//
+//
+impl CameraIntoIterator {
+    fn pop_first(&mut self) -> Option<PImage> {
+        if self.frames.is_empty() {
+            None
+        } else {
+            Some(self.frames.remove(0))
+        }
+    }
+}
+//
+//
+impl IntoIterator for Camera {
+    type Item = PImage;
+
+    type IntoIter = CameraIntoIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        CameraIntoIterator {
+            camera: self,
+            frames: vec![PImage {}, PImage {}, PImage {}, PImage {}] //cv::read_frames_from_file
+        }
+    }
+}
+//
+//
+impl Iterator for CameraIntoIterator {
+    type Item = PImage;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.pop_first()
     }
 }

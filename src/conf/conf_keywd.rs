@@ -55,15 +55,15 @@ pub struct ConfKeywdValue {
 ///
 /// keyword konsists of 3 fields:
 /// ```
-/// | prefix |  kind  |  name               |
-/// |        |        |                     |
-/// |--------|--------|---------------------|
-/// | opt    | requir |  requir             |
-/// |--------|--------|---------------------|
-/// |        | task   | Task1               |
-/// |        | service| ApiClient           |
-/// | in     | queue  | in-queue            |
-/// | out    | queue  | out-queue           |
+/// | prefix |  kind  |  name      |  Sufix     |
+/// |        |        |            |            |
+/// |--------|--------|------------|------------|
+/// | opt    | requir |  requir    |  opt       |
+/// |--------|--------|------------|------------|
+/// |        | task   | Task       | Task12     |
+/// |        | service| ApiClient  | ApiClient3 |
+/// | in     | queue  | in-queue   |            |
+/// | out    | queue  | out-queue  |            |
 /// ````
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
 pub enum ConfKeywd {
