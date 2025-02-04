@@ -11,7 +11,7 @@ impl DbgId {
     /// Returns [DbgId] new instance without parent
     pub fn root(me: impl Into<String>) -> Self {
         Self {
-            val: format!("{}", me.into()),
+            val: me.into(),
             // parent: Box::new(parent.clone),
         }
     }
@@ -32,15 +32,15 @@ impl Display for DbgId {
 }
 //
 //
-impl Into<String> for DbgId {
-    fn into(self) -> String {
-        self.val.clone()
+impl From<DbgId> for String {
+    fn from(value: DbgId) -> Self {
+        value.val.clone()
     }
 }
 //
 //
-impl Into<String> for &DbgId {
-    fn into(self) -> String {
-        self.val.clone()
+impl From<&DbgId> for String {
+    fn from(value: &DbgId) -> String {
+        value.val.clone()
     }
 }

@@ -1,8 +1,9 @@
 mod domain;
 mod infrostructure;
-use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
+mod conf;
 #[cfg(test)]
 mod test;
+use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 ///
 /// Appliacation entri point
 fn main() {
