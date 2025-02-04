@@ -21,7 +21,7 @@ impl Camera {
     /// - [parent] - DbgId of parent entitie
     /// - `conf` - configuration parameters
     pub fn new(conf: CameraConf) -> Self {
-        let dbg = DbgId::root(&conf.name.join());
+        let dbg = DbgId::root(conf.name.join());
         log::debug!("{}.new | : ", dbg);
         Self {
             dbg,

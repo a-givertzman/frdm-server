@@ -1,10 +1,7 @@
 use std::{fs, net::SocketAddr};
 use sal_sync::services::{conf::conf_tree::ConfTree, entity::{dbg_id::DbgId, name::Name}};
-use serde::Deserialize;
 use crate::conf::service_config::ServiceConfig;
-
 use super::camera_resolution::CameraResolution;
-
 use log::{trace, debug};
 ///
 /// Configuration parameters for ip [Camera] class
@@ -58,7 +55,7 @@ impl CameraConf {
     pub(crate) fn from_yaml(parent: impl Into<String>, value: &serde_yaml::Value) -> CameraConf {
         match value.as_mapping().unwrap().into_iter().next() {
             Some((key, value)) => {
-                Self::new(parent, &mut ConfTree::new(key.as_str().unwrap(), value.clone()))
+                Self::new(parent, &ConfTree::new(key.as_str().unwrap(), value.clone()))
             }
             None => {
                 panic!("CameraConf.from_yaml | Format error or empty conf: {:#?}", value)
