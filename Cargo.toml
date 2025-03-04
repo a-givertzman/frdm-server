@@ -35,5 +35,9 @@ strum = "^0.26"
 strum_macros = "^0.26"
 #
 #
+# OpenCV
+opencv = "^0.94"
+#
+#
 # [build-dependencies]
 # cc = "^1.1"

@@ -1,7 +1,5 @@
 use std::sync::mpsc;
-
 use sal_sync::services::entity::name::Name;
-
 use crate::domain::dbg::dbgid::DbgId;
 use super::{camera_conf::CameraConf, pimage::PImage};
 ///
@@ -44,6 +42,9 @@ pub struct CameraIntoIterator {
 //
 //
 impl CameraIntoIterator {
+    pub fn push_frame(&mut self, frame: PImage) {
+        self.frames.push(frame);
+    }
     fn pop_first(&mut self) -> Option<PImage> {
         if self.frames.is_empty() {
             None
@@ -56,13 +57,11 @@ impl CameraIntoIterator {
 //
 impl IntoIterator for Camera {
     type Item = PImage;
-
     type IntoIter = CameraIntoIterator;
-
     fn into_iter(self) -> Self::IntoIter {
         CameraIntoIterator {
             camera: self,
-            frames: vec![PImage {}, PImage {}, PImage {}, PImage {}] //cv::read_frames_from_file
+            frames: vec![] //cv::read_frames_from_file
         }
     }
 }
@@ -70,7 +69,6 @@ impl IntoIterator for Camera {
 //
 impl Iterator for CameraIntoIterator {
     type Item = PImage;
-
     fn next(&mut self) -> Option<Self::Item> {
         self.pop_first()
     }
