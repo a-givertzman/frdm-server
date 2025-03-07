@@ -5,7 +5,7 @@ use super::camera_resolution::CameraResolution;
 use log::{trace, debug};
 ///
 /// Configuration parameters for ip [Camera] class
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CameraConf {
     pub name: Name,
     /// frames per second

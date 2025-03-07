@@ -3,7 +3,7 @@ use sal_sync::services::conf::conf_tree::ConfTree;
 use serde::Deserialize;
 ///
 /// The resolution of the camera
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct CameraResolution {
     /// width parametr of camera
     pub width: usize,

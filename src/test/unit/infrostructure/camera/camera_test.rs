@@ -1,7 +1,8 @@
 #[cfg(test)]
 
 mod camera {
-    use std::{sync::Once, time::{Duration, Instant}};
+    use std::{net::SocketAddr, os::linux::net::SocketAddrExt, sync::Once, time::{Duration, Instant}};
+    use sal_sync::services::conf::conf_tree::ConfTree;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use opencv::{
@@ -31,36 +32,81 @@ mod camera {
         init_each();
         let dbg = DbgId::root("test");
         log::debug!("\n{}", dbg);
-        let test_duration = TestDuration::new(&dbg, Duration::from_secs(10));
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
-        let conf: serde_yaml::Value = serde_yaml::from_str(r#"
-            service Camera Camera1:
-                fps: 30
-                address: 192.168.10.12:2020
-                resolution: 
-                    width: 1200
-                    height: 800
-        "#).unwrap();
-        let conf = CameraConf::from_yaml(&dbg, &conf);
-        log::debug!("{}.read | conf: {:#?}", dbg, conf);
-        let camera = Camera::new(conf);
-        let mut camera_iter = camera.into_iter();
-        // assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
-        let mut cap = videoio::VideoCapture::from_file("src/video/video_test.mp4", videoio::CAP_ANY).unwrap();
-        loop{
-            let mut frame = Mat::default();
-            cap.read(&mut frame).unwrap();
-            if frame.empty() {
-                break;
-            }
-            camera_iter.push_frame(PImage::new(frame));
-        }
-        while let Some(frame) = camera_iter.next() {
-            highgui::imshow("Video", &frame.frame);
-            if highgui::wait_key(30).unwrap() == 'q' as i32 {
-                break;
-            }
+        let test_data = [
+            (
+                1,
+                serde_yaml::from_str(r#"
+                service Camera Camera1:
+                    fps: 30
+                    resolution: 
+                        width: 1200
+                        height: 800
+                    address: 192.168.10.12:2020
+                "#).unwrap(),
+                CameraConf {
+                    name: "/test/Camera1".into(),
+                    fps: 30,
+                    resolution: CameraResolution {
+                        width: 1200,
+                        height: 800,
+                    },
+                    address: "192.168.10.12:2020".parse().unwrap(),
+                }        
+            ),
+        ];
+        for (step,yaml, target) in test_data {
+            let result = CameraConf::from_yaml(&dbg, &yaml);
+            assert_eq!(result,target,"step {} \nresult: {:?}\ntarget: {:?}",step, result, target);
         }
         test_duration.exit();
+    }
+    ///
+    /// 
+    #[test]
+    fn video(){
+        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        init_once();
+        init_each();
+        let dbg = DbgId::root("test");
+        log::debug!("\n{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
+        test_duration.run().unwrap();
+        let test_data = [
+            (
+                1,
+                videoio::VideoCapture::from_file("src/video/video_test.mp4", videoio::CAP_ANY).unwrap(),
+                Camera::new(CameraConf{
+                    name: "/test/Camera1".into(),
+                    fps: 30,
+                    resolution: CameraResolution {
+                        width: 1200,
+                        height: 800,
+                    },
+                    address: "192.168.10.12:2020".parse().unwrap(),
+                }).into_iter(),
+                214,
+            ),
+        ];
+        for (step, mut video, mut camera, target) in test_data {
+            loop{
+                let mut frame = Mat::default();
+                video.read(&mut frame).unwrap();
+                if frame.empty() {
+                    break;
+                }
+                camera.push_frame(PImage::new(frame));
+            }
+            let result = camera.count();
+            assert_eq!(result, target);
+        }
+        // while let Some(frame) = camera.next() {
+        //     highgui::imshow("Video", &frame.frame);
+        //     if highgui::wait_key(30).unwrap() == 'q' as i32 {
+        //         break;
+        //     }
+        // }
+        // test_duration.exit();
     }
 }
