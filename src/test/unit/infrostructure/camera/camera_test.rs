@@ -62,8 +62,8 @@ mod camera {
         }
         test_duration.exit();
     }
-    ///
-    /// 
+    //
+    //
     #[test]
     fn video(){
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
@@ -71,7 +71,7 @@ mod camera {
         init_each();
         let dbg = DbgId::root("test");
         log::debug!("\n{}", dbg);
-        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(10));
         test_duration.run().unwrap();
         let test_data = [
             (
@@ -90,7 +90,7 @@ mod camera {
             ),
         ];
         for (step, mut video, mut camera, target) in test_data {
-            loop{
+            loop {
                 let mut frame = Mat::default();
                 video.read(&mut frame).unwrap();
                 if frame.empty() {
@@ -101,12 +101,6 @@ mod camera {
             let result = camera.count();
             assert_eq!(result, target);
         }
-        // while let Some(frame) = camera.next() {
-        //     highgui::imshow("Video", &frame.frame);
-        //     if highgui::wait_key(30).unwrap() == 'q' as i32 {
-        //         break;
-        //     }
-        // }
-        // test_duration.exit();
+        test_duration.exit();
     }
 }

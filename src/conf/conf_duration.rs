@@ -64,15 +64,15 @@ pub struct ConfDuration {
 // 
 impl ConfDuration {
     ///
-    /// New instance if ConfDuration
+    /// New instance of ConfDuration
     pub fn new(value: u64, unit: ConfDurationUnit) -> Self {
         Self {
             value,
             unit,
         }
     }
-    ///
-    /// 
+    //
+    // 
     pub fn toDuration(&self) -> Duration {
         match self.unit {
             ConfDurationUnit::Nanos => Duration::from_nanos(self.value),

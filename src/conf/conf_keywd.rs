@@ -4,9 +4,8 @@ use std::str::FromStr;
 use log::{trace, warn};
 use regex::RegexBuilder;
 use serde::Deserialize;
-
-///
-/// 
+//
+// 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub enum ConfKind {
     Task,
@@ -42,8 +41,8 @@ impl ToString for ConfKind {
         }.to_string()
     }
 }
-///
-/// 
+//
+// 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub struct ConfKeywdValue {
     pub prefix: String,
