@@ -69,14 +69,13 @@ mod camera {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = DbgId::root("test");
+        let dbg = DbgId::root("camera_test");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(&dbg, Duration::from_secs(10));
         test_duration.run().unwrap();
         let test_data = [
             (
                 1,
-                videoio::VideoCapture::from_file("src/video/video_test.mp4", videoio::CAP_ANY).unwrap(),
                 Camera::new(CameraConf{
                     name: "/test/Camera1".into(),
                     fps: 30,
@@ -85,21 +84,27 @@ mod camera {
                         height: 800,
                     },
                     address: "192.168.10.12:2020".parse().unwrap(),
-                }).into_iter(),
-                214,
+                }).read("src/video/video_test.mp4"),
+                videoio::VideoCapture::from_file("src/video/video_test.mp4", videoio::CAP_ANY).unwrap(),
             ),
         ];
-        for (step, mut video, mut camera, target) in test_data {
-            loop {
-                let mut frame = Mat::default();
-                video.read(&mut frame).unwrap();
-                if frame.empty() {
-                    break;
+        for (step, camera, mut target_video) in test_data {
+            match camera {
+                Ok(mut camera) => {
+                    loop {
+                        let mut target = Mat::default();
+                        while let Ok(read) = target_video.read(&mut target) {
+                            if read {
+                                let result = camera.next().unwrap();
+                                assert!(result == PImage::new(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
+                            } else {
+                                break;
+                            }
+                        }
+                    }
                 }
-                camera.push_frame(PImage::new(frame));
+                Err(err) => panic!("{} | step {} Camera error: {:?}", dbg, step, err),
             }
-            let result = camera.count();
-            assert_eq!(result, target);
         }
         test_duration.exit();
     }

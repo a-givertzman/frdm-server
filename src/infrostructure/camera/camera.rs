@@ -1,5 +1,5 @@
-use std::sync::mpsc;
-use sal_sync::services::entity::name::Name;
+use opencv::videoio::VideoCaptureTrait;
+use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 use crate::domain::dbg::dbgid::DbgId;
 use super::{camera_conf::CameraConf, pimage::PImage};
 ///
@@ -29,19 +29,28 @@ impl Camera {
     }
     ///
     /// Receive frames from IP camera
-    pub fn read(&self, path: Into<Path>) -> mpsc::Receiver<PImage> {
-        let video = videoio::VideoCapture::from_file("src/video/video_test.mp4", videoio::CAP_ANY).unwrap();
-        video.read(&mut frame).unwrap();
-        if frame.empty() {
-            break;
+    pub fn read(&self, path: impl Into<String>) -> Result<CameraIntoIterator, StrErr> {
+        match opencv::videoio::VideoCapture::from_file(&path.into(), opencv::videoio::CAP_ANY) {
+            Ok(mut video) => {
+                let mut frames = vec![];
+                let mut frame = opencv::core::Mat::default();
+                while let Ok(result) = video.read(&mut frame) {
+                    if result {
+                        frames.push(PImage::new(frame.clone()));
+                    } else {
+                        break;
+                    }
+                }
+                Ok(CameraIntoIterator { frames })
+            }
+            Err(err) => Err(StrErr(format!("{}.read | IO Error: {:#?}", self.dbg, err))),
         }
-        camera.push_frame(PImage::new(frame));
     }
 }
 ///
 /// Camera Iterator
 pub struct CameraIntoIterator {
-    camera: Camera,
+    // camera: Camera,
     frames: Vec<PImage>,
 }
 //
@@ -65,7 +74,7 @@ impl IntoIterator for Camera {
     type IntoIter = CameraIntoIterator;
     fn into_iter(self) -> Self::IntoIter {
         CameraIntoIterator {
-            camera: self,
+            // camera: self,
             frames: vec![] //cv::read_frames_from_file
         }
     }
