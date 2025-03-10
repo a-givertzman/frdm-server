@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 log = "^0.4"
+#
+#
 env_logger = "^0.11"
 #
 #
@@ -13,6 +15,29 @@ testing = { git = "https://github.com/a-givertzman/rust-testing.git" }
 debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "0.0.1" }
 api-tools = { git = "https://github.com/a-givertzman/rust-api-tools.git", tag = "0.2.0" }
 # api-tools = { path = "../api-tools/" }
+sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git", tag = "0.0.3" }
 #
 # Collections
 indexmap = "^2.7"
+linked-hash-map = "^0.5"
+hashers = "^1.0"
+#
+# Serde
+serde = { version = "^1.0", features = ["derive"] }
+serde_yaml = "^0.9"
+serde_json = "^1.0"
+#
+#
+regex = "^1.10"
+#
+#
+strum = "^0.27"
+strum_macros = "^0.27"
+#
+#
+# OpenCV
+opencv = "^0.94"
+#
+#
+# [build-dependencies]
+# cc = "^1.1"
