@@ -41,3 +41,6 @@ opencv = "^0.94"
 #
 # [build-dependencies]
 # cc = "^1.1"
+#
+# Arena camera SDK
+lucid-arena-sys = "0.1"
