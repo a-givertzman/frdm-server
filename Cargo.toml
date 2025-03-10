@@ -43,4 +43,5 @@ opencv = "^0.94"
 # cc = "^1.1"
 #
 # Arena camera SDK
-lucid-arena-sys = "0.1"
+# lucid-arena-sys = "0.1"
+lucid-arena-sys = { path = "../lucid-arena-sys" }
