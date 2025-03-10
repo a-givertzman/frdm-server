@@ -32,7 +32,7 @@ mod camera {
         init_each();
         let dbg = DbgId::root("test");
         log::debug!("\n{}", dbg);
-        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(5));
         test_duration.run().unwrap();
         let test_data = [
             (
@@ -84,24 +84,26 @@ mod camera {
                         height: 800,
                     },
                     address: "192.168.10.12:2020".parse().unwrap(),
-                }).read("src/video/video_test.mp4"),
-                videoio::VideoCapture::from_file("src/video/video_test.mp4", videoio::CAP_ANY).unwrap(),
+                }).read("src/test/unit/infrostructure/camera/video_test.mp4"),
+                videoio::VideoCapture::from_file("src/test/unit/infrostructure/camera/video_test.mp4", videoio::CAP_ANY).unwrap(),
             ),
         ];
         for (step, camera, mut target_video) in test_data {
             match camera {
                 Ok(mut camera) => {
-                    loop {
-                        let mut target = Mat::default();
-                        while let Ok(read) = target_video.read(&mut target) {
-                            if read {
-                                let result = camera.next().unwrap();
-                                assert!(result == PImage::new(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
-                            } else {
-                                break;
-                            }
+                    let mut frames = 0;
+                    let mut target = Mat::default();
+                    while let Ok(read) = target_video.read(&mut target) {
+                        log::trace!("{} | step {} read: {:?}", dbg, step, read);
+                        if read {
+                            let result = camera.next().unwrap();
+                            assert!(result == PImage::new(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
+                            frames += 1;
+                        } else {
+                            break;
                         }
                     }
+                    log::debug!("{} | step: {} Frames: {:?}", dbg, step, frames);
                 }
                 Err(err) => panic!("{} | step {} Camera error: {:?}", dbg, step, err),
             }
