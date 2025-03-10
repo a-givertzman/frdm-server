@@ -29,8 +29,13 @@ impl Camera {
     }
     ///
     /// Receive frames from IP camera
-    pub fn read(&self) -> mpsc::Receiver<PImage> {
-        todo!("{}.read | To be implemented", self.dbg)
+    pub fn read(&self, path: Into<Path>) -> mpsc::Receiver<PImage> {
+        let video = videoio::VideoCapture::from_file("src/video/video_test.mp4", videoio::CAP_ANY).unwrap();
+        video.read(&mut frame).unwrap();
+        if frame.empty() {
+            break;
+        }
+        camera.push_frame(PImage::new(frame));
     }
 }
 ///
