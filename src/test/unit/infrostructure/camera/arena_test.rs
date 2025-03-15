@@ -3,7 +3,7 @@
 mod tests {
     use std::{ffi::CString, str::FromStr, sync::Once, time::{Duration, Instant}};
     use crate::infrostructure::arena::{bindings::{
-        acBuffer, acBufferGetSizeFilled, acCloseSystem, acDevice, acDeviceGetBuffer, acDeviceGetNodeMap, acDeviceGetTLStreamNodeMap, acDeviceRequeueBuffer, acDeviceStartStream, acDeviceStopStream, acImageGetHeight, acImageGetTimestampNs, acImageGetWidth, acNode, acNodeMap, acNodeMapGetNodeAndAccessMode, acNodeMapSetEnumerationValue, acOpenSystem, acSystemCreateDevice, acSystemDestroyDevice, acSystemGetDeviceIpAddressStr, acSystemGetDeviceModel, acSystemGetDeviceSerial, acSystemGetNumDevices, acSystemUpdateDevices, acValueFromString, acValueToString, AC_ACCESS_MODE, AC_ACCESS_MODE_LIST_AC_ACCESS_MODE_RO, AC_ACCESS_MODE_LIST_AC_ACCESS_MODE_RW, AC_ACCESS_MODE_NI, AC_ACCESS_MODE_RO, AC_ACCESS_MODE_RW, AC_ACCESS_MODE_WO, AC_ERROR, AC_ERROR_LIST_AC_ERR_SUCCESS
+        acBuffer, acBufferGetSizeFilled, acCloseSystem, acDevice, acDeviceGetBuffer, acDeviceGetNodeMap, acDeviceGetTLStreamNodeMap, acDeviceRequeueBuffer, acDeviceStartStream, acDeviceStopStream, acImageGetHeight, acImageGetTimestampNs, acImageGetWidth, acNode, acNodeMap, acNodeMapGetNodeAndAccessMode, acNodeMapSetEnumerationValue, acOpenSystem, acSystemCreateDevice, acSystemDestroyDevice, acSystemGetDeviceIpAddressStr, acSystemGetDeviceModel, acSystemGetDeviceSerial, acSystemGetNumDevices, acSystemUpdateDevices, acValueFromString, acValueToString, AC_ACCESS_MODE, AC_ACCESS_MODE_NI, AC_ACCESS_MODE_RO, AC_ACCESS_MODE_RW, AC_ACCESS_MODE_WO, AC_ERROR, AC_ERROR_LIST_AC_ERR_SUCCESS
     }, AC_ERR_ERROR, AC_ERR_SUCCESS};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
