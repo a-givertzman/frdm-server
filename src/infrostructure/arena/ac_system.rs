@@ -1,10 +1,10 @@
-use std::ffi::CString;
+use std::{ffi::CString, usize};
 
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 
 use crate::infrostructure::arena::bindings::acSystemUpdateDevices;
 
-use super::{ac_err::AcErr, bindings::{acCloseSystem, acOpenSystem, acSystem, acSystemGetNumDevices}};
+use super::{ac_err::AcErr, bindings::{acCloseSystem, acOpenSystem, acSystem, acSystemGetNumDevices}, ffi_str::FfiStr};
 
 ///
 /// Representation of the system object, the entry point into Arena SDK.
@@ -72,11 +72,13 @@ impl AcSystem {
     /// - `dev` - Index of the device
     pub fn device_model(&self, dev: usize) -> Result<String, StrErr> {
         unsafe {
-            let result = std::ptr::null_mut();
-            let mut len = 1024;
-            let err = AcErr::from(super::bindings::acSystemGetDeviceModel(self.system, dev, result, &mut len));
+            let mut result = FfiStr::new(1024);
+            log::debug!("{}.device_model | Device {}...", self.name, dev);
+            let err = AcErr::from(super::bindings::acSystemGetDeviceModel(self.system, dev, result.as_mut_ptr() as *mut i8, &mut result.len));
+            let result = result.to_string();
+            log::debug!("{}.device_model | Device {} model: {:?}", self.name, dev, result);
             match err {
-                AcErr::Success => Ok(CString::from_raw(result).into_string().unwrap()),
+                AcErr::Success => Ok(result),
                 _ => Err(StrErr(format!("{}.device_model | Error: {}", self.name, err))),
             }
         }
@@ -90,11 +92,12 @@ impl AcSystem {
     /// - `dev` - Index of the device
     pub fn device_serial(&self, dev: usize) -> Result<String, StrErr> {
         unsafe {
-            let result = std::ptr::null_mut();
-            let mut len = 1024;
-            let err = AcErr::from(super::bindings::acSystemGetDeviceSerial(self.system, dev, result, &mut len));
+            let mut result = FfiStr::new(1024);
+            let err = AcErr::from(super::bindings::acSystemGetDeviceSerial(self.system, dev, result.as_mut_ptr(), &mut result.len));
+            let result = result.to_string();
+            log::debug!("{}.device_model | Device {} model: {:?}", self.name, dev, result);
             match err {
-                AcErr::Success => Ok(CString::from_raw(result).into_string().unwrap()),
+                AcErr::Success => Ok(result),
                 _ => Err(StrErr(format!("{}.device_serial | Error: {}", self.name, err))),
             }
         }
@@ -105,11 +108,12 @@ impl AcSystem {
     /// - `dev` - Index of the device
     pub fn device_ip(&self, dev: usize) -> Result<String, StrErr> {
         unsafe {
-            let result = std::ptr::null_mut();
-            let mut len = 1024;
-            let err = AcErr::from(super::bindings::acSystemGetDeviceIpAddressStr(self.system, dev, result, &mut len));
+            let mut result = FfiStr::new(1024);
+            let err = AcErr::from(super::bindings::acSystemGetDeviceIpAddressStr(self.system, dev, result.as_mut_ptr(), &mut result.len));
+            let result = result.to_string();
+            log::debug!("{}.device_model | Device {} model: {:?}", self.name, dev, result);
             match err {
-                AcErr::Success => Ok(CString::from_raw(result).into_string().unwrap()),
+                AcErr::Success => Ok(result),
                 _ => Err(StrErr(format!("{}.device_ip | Error: {}", self.name, err))),
             }
         }

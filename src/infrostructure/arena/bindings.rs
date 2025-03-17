@@ -2165,7 +2165,7 @@ unsafe extern "C" {
     pub fn acSystemGetDeviceModel(
         hSystem: acSystem,
         index: usize,
-        pModelNameBuf: *mut ::std::os::raw::c_char,
+        pModelNameBuf: *mut std::ffi::c_char, //::std::os::raw::c_char,
         pBufLen: *mut usize,
     ) -> AC_ERROR;
 }

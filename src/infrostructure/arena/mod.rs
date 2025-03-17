@@ -6,6 +6,7 @@ pub mod ac_device;
 pub mod ac_system;
 pub mod ac_err;
 pub mod ac_access_mode;
+pub(super) mod ffi_str;
 
 
 

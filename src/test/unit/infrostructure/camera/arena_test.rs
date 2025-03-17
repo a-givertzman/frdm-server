@@ -1,19 +1,14 @@
 #[cfg(test)]
 
-mod tests {
-    use std::{ffi::CString, str::FromStr, sync::Once, time::{Duration, Instant}};
-    use crate::infrostructure::arena::{ac_device::AcDevice, ac_err::AcErr, ac_system::{self, AcSystem}, bindings::{
-        acBuffer, acBufferGetSizeFilled, acCloseSystem, acDevice, acDeviceGetBuffer, acDeviceGetNodeMap, acDeviceGetTLStreamNodeMap, acDeviceRequeueBuffer, acDeviceStartStream, acDeviceStopStream, acImageGetHeight, acImageGetTimestampNs, acImageGetWidth, acNode, acNodeMap, acNodeMapGetNodeAndAccessMode, acNodeMapSetEnumerationValue, acOpenSystem, acSystemCreateDevice, acSystemDestroyDevice, acSystemGetDeviceIpAddressStr, acSystemGetDeviceModel, acSystemGetDeviceSerial, acSystemGetNumDevices, acSystemUpdateDevices, acValueFromString, acValueToString, AC_ACCESS_MODE, AC_ACCESS_MODE_NI, AC_ACCESS_MODE_RO, AC_ACCESS_MODE_RW, AC_ACCESS_MODE_WO, AC_ERROR, AC_ERROR_LIST_AC_ERR_SUCCESS
-    }};
-    use sal_sync::services::entity::error::str_err::StrErr;
+mod arena {
+    use std::{sync::Once, time::Duration};
+    use crate::infrostructure::arena::{ac_device::AcDevice, ac_system::AcSystem};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use crate::domain::dbg::dbgid::DbgId;
     ///
     ///
     static INIT: Once = Once::new();
-    const MAX_BUF: usize = 1024;
-    const IMAGE_TIMEOUT: u64 = 2000;
     ///
     /// once called initialisation
     fn init_once() {
@@ -28,13 +23,13 @@ mod tests {
     ///
     /// Testing such functionality / behavior
     #[test]
-    fn test_task_cycle() {
+    fn list_devices() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
         let dbg = DbgId::root("test");
         log::debug!("\n{}", dbg);
-        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(30));
         test_duration.run().unwrap();
         let mut ac_system = AcSystem::new(&dbg);
         match ac_system.run() {
