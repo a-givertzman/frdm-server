@@ -67,7 +67,27 @@ impl AcSystem {
         self.devices
     }
     ///
-    /// Returns the model name of a device
+    /// 
+    // err = acSystemGetDeviceVendor(hSystem, i, pBuf, &len);
+    ///
+    /// Returns the Vendor name of a device
+    /// - `h_system` - The acSystem object
+    /// - `dev` - Index of the device
+    pub fn device_vendor(&self, dev: usize) -> Result<String, StrErr> {
+        unsafe {
+            let mut result = FfiStr::<1024>::new();
+            log::trace!("{}.device_vendor | Device {}...", self.name, dev);
+            let err = AcErr::from(super::bindings::acSystemGetDeviceVendor(self.system, dev, result.as_mut_ptr() as *mut i8, &mut result.len));
+            let result = result.to_string();
+            log::trace!("{}.device_vendor | Device {} Model: {:?}", self.name, dev, result);
+            match err {
+                AcErr::Success => Ok(result),
+                _ => Err(StrErr(format!("{}.device_vendor | Error: {}", self.name, err))),
+            }
+        }
+    }
+    ///
+    /// Returns the Model name of a device
     /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
     pub fn device_model(&self, dev: usize) -> Result<String, StrErr> {
@@ -84,7 +104,7 @@ impl AcSystem {
         }
     }
     ///
-    /// Returns the serial number of a device.
+    /// Returns the Serial number of a device.
     /// A serial number differentiates between devices. Each LUCID device has a unique serial
     /// number. LUCID serial numbers are numeric, but the serial numbers of other
     /// vendors may be alphanumeric.
@@ -95,10 +115,29 @@ impl AcSystem {
             let mut result = FfiStr::<1024>::new();
             let err = AcErr::from(super::bindings::acSystemGetDeviceSerial(self.system, dev, result.as_mut_ptr(), &mut result.len));
             let result = result.to_string();
-            log::trace!("{}.device_model | Device {} Serial: {:?}", self.name, dev, result);
+            log::trace!("{}.device_serial | Device {} Serial: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
                 _ => Err(StrErr(format!("{}.device_serial | Error: {}", self.name, err))),
+            }
+        }
+    }
+    ///
+    /// 
+    // err = acSystemGetDeviceMacAddressStr(hSystem, i, pBuf, &len);
+    ///
+    /// Returns the MAC address of a device on the network, returning it as a string.
+    /// - `h_system` - The acSystem object
+    /// - `dev` - Index of the device
+    pub fn device_mac(&self, dev: usize) -> Result<String, StrErr> {
+        unsafe {
+            let mut result = FfiStr::<1024>::new();
+            let err = AcErr::from(super::bindings::acSystemGetDeviceMacAddressStr(self.system, dev, result.as_mut_ptr(), &mut result.len));
+            let result = result.to_string();
+            log::trace!("{}.device_mac | Device {} MAC: {:?}", self.name, dev, result);
+            match err {
+                AcErr::Success => Ok(result),
+                _ => Err(StrErr(format!("{}.device_mac | Error: {}", self.name, err))),
             }
         }
     }
@@ -111,7 +150,7 @@ impl AcSystem {
             let mut result = FfiStr::<1024>::new();
             let err = AcErr::from(super::bindings::acSystemGetDeviceIpAddressStr(self.system, dev, result.as_mut_ptr(), &mut result.len));
             let result = result.to_string();
-            log::trace!("{}.device_model | Device {} IP: {:?}", self.name, dev, result);
+            log::trace!("{}.device_ip | Device {} IP: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
                 _ => Err(StrErr(format!("{}.device_ip | Error: {}", self.name, err))),

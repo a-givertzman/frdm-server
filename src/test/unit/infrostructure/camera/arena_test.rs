@@ -29,8 +29,8 @@ mod arena {
         init_each();
         let dbg = DbgId::root("test");
         log::debug!("\n{}", dbg);
-        let test_duration = TestDuration::new(&dbg, Duration::from_secs(30));
-        test_duration.run().unwrap();
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(10));
+        // test_duration.run().unwrap();
         let mut ac_system = AcSystem::new(&dbg);
         match ac_system.run() {
             Ok(_) => {
@@ -39,13 +39,15 @@ mod arena {
                         log::debug!("Devices found: {}", devices);
                         for dev in 0..devices {
                             log::debug!("Retriving Device {}...", dev);
+                            let device_vendor = ac_system.device_vendor(dev).unwrap();
                             let device_model = ac_system.device_model(dev).unwrap();
                             log::trace!("Device {} model: {}", dev, device_model);
                             let device_serial = ac_system.device_serial(dev).unwrap();
                             log::trace!("Device {} serial: {}", dev, device_serial);
+                            let device_mac = ac_system.device_mac(dev).unwrap();
                             let device_ip = ac_system.device_ip(dev).unwrap();
                             log::trace!("Device {} IP: {}", dev, device_ip);
-                            log::info!("Device {}: {:?} | {:?} | {:?}", dev, device_model, device_serial, device_ip);
+                            log::info!("Device {}: {:?} | {:?} | {:?} | {:?} | {:?}", dev, device_vendor, device_model, device_serial, device_mac, device_ip);
                         }
                         let selection = 0;
                         let mut device = AcDevice::new(&dbg, ac_system.system, selection);

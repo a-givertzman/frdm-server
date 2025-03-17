@@ -1,14 +1,18 @@
 use std::{ffi::CString, str::FromStr};
-
-use opencv::{core::MatTrait, traits::Boxed};
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
-
-use crate::infrostructure::arena::bindings::{acBuffer, acBufferGetSizeFilled, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceRequeueBuffer, acDeviceStartStream, acDeviceStopStream, acImageGetHeight, acImageGetTimestampNs, acImageGetWidth, acNode, acNodeMapSetEnumerationValue, AC_ACCESS_MODE_NI};
+use crate::infrostructure::arena::bindings::{
+    acBuffer, acNode,
+    acBufferGetSizeFilled, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceRequeueBuffer, acDeviceStartStream,
+    acDeviceStopStream, acImageGetData, acImageGetHeight, acImageGetTimestampNs, acImageGetWidth,
+    acNodeMapSetEnumerationValue, AC_ACCESS_MODE_NI,
+};
 
 use super::{
     ac_access_mode::AcAccessMode, ac_err::AcErr,
     bindings::{
-        acDevice, acDeviceGetNodeMap, acNodeMap, acNodeMapGetNodeAndAccessMode, acSystem, acSystemCreateDevice, acSystemDestroyDevice, acValueFromString, acValueToString
+        acDevice, acNodeMap, acSystem,
+        acDeviceGetNodeMap, acNodeMapGetNodeAndAccessMode,
+        acSystemCreateDevice, acSystemDestroyDevice, acValueFromString, acValueToString
     }, ffi_str::FfiStr
 };
 
@@ -44,7 +48,7 @@ impl AcDevice {
             let err = AcErr::from(acSystemCreateDevice(self.system, self.index, &mut self.device));
             match err {
                 AcErr::Success => {
-                    match self.acquire_images(100) {
+                    match self.acquire_images(100000) {
                         Ok(_) => {
                             log::debug!("{}.run | Image received", self.name);
 
@@ -161,6 +165,14 @@ impl AcDevice {
                     log::debug!("{}.acquire_images | Get node map - Ok", self.name);
                     // get node values that will be changed in order to return their values at
                     // the end of the example
+                    let err = AcErr::from(acNodeMapSetEnumerationValue(
+                        node_map,
+                        CString::from_str("PixelFormat").unwrap().as_ptr(),
+                        CString::from_str("BGR8").unwrap().as_ptr(),    // Mono8
+                    ));
+                    if err != AcErr::Success {
+                        return Err(StrErr(format!("{}.acquire_images | Set PixelFormat Error: {}", self.name, err)));
+                    };
                     let node_name = "AcquisitionMode";
                     match self.get_node_value(node_map, node_name) {
                         Ok(initial_acquisition_mode) => {
@@ -216,14 +228,18 @@ impl AcDevice {
                                             return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                         };
                                         let window = "Retrived";
-                                        if let Err(err) = opencv::highgui::named_window(window, 1) {
+                                        if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
                                             return Err(StrErr(format!("{}.acquire_images | Create Window Error: {}", self.name, err)));
                                         }
-                                        let img = opencv::imgcodecs::imread("/home/lobanov/Pictures/Sub-Issue-Bind.png", opencv::imgcodecs::IMREAD_COLOR).unwrap();
-                                        if let Err(err) = opencv::highgui::imshow(window, &img) {
-                                            log::warn!("{}.acquire_images | Display img error: {:?}", self.name, err);
-                                        }
-                                        opencv::highgui::wait_key(0).unwrap();
+                                        // let img = opencv::imgcodecs::imread("/home/lobanov/Pictures/Sub-Issue-Bind.png", opencv::imgcodecs::IMREAD_COLOR).unwrap();
+                                        // if let Err(err) = opencv::highgui::imshow(window, &img) {
+                                        //     log::warn!("{}.acquire_images | Display img error: {:?}", self.name, err);
+                                        // }
+                                        opencv::highgui::wait_key(10).unwrap();
+                                        // let mut cam = opencv::videoio::VideoCapture::new(0, opencv::videoio::CAP_ANY).unwrap(); // 0 is the default camera
+                                        // if ! cam.is_opened().unwrap() {
+                                        //     log::warn!("{}.acquire_images | Cam isn't opened", self.name);
+                                        // }
                                         // get images
                                         log::debug!("{}.acquire_images | Getting {} images", self.name, images);
                                         for i in 0..images {
@@ -263,18 +279,28 @@ impl AcDevice {
                                             if err != AcErr::Success {
                                                 return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                             };
-                                            const PRIu64: &str = "'l' 'u'";
-                                            log::debug!("{}.acquire_images | timestamp (ns): {} {} )", self.name, timestamp_ns, PRIu64);
-                                            let mut mat = opencv::core::Mat::new_rows_cols_with_data_unsafe(
-                                                width as i32,
+                                            log::debug!("{}.acquire_images | timestamp (ns): {})", self.name, timestamp_ns);
+                                            let mut buf = Vec::with_capacity(size_filled);
+                                            let mut p_input  = buf.as_mut_ptr();
+                                            let err = AcErr::from(acImageGetData(h_buffer, &mut p_input));
+                                            if err != AcErr::Success {
+                                                return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
+                                            };
+                                            let mat = opencv::core::Mat::new_rows_cols_with_data_unsafe(
                                                 height as i32,
-                                                opencv::core::CV_8UC1,
-                                                h_buffer,
+                                                width as i32,
+                                                opencv::core::CV_8UC3,
+                                                p_input as *mut std::ffi::c_void,
                                                 opencv::core::Mat_AUTO_STEP,
                                             ).unwrap();
-                                            if let Err(err) = opencv::highgui::imshow(window, &img) {
+                                            // let mut mat = opencv::core::Mat::default();
+                                            // if let Err(err) = cam.read(&mut mat) {
+                                            //     log::warn!("{}.acquire_images | Cam read error: {:?}", self.name, err);
+                                            // }
+                                            if let Err(err) = opencv::highgui::imshow(window, &mat) {
                                                 log::warn!("{}.acquire_images | Display img error: {:?}", self.name, err);
                                             };
+                                            opencv::highgui::wait_key(1).unwrap();
                                             // requeue image buffer
                                             log::debug!("{}.acquire_images | and requeue", self.name);
                                             let err = AcErr::from(acDeviceRequeueBuffer(self.device, h_buffer));
