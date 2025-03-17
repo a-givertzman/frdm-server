@@ -8,7 +8,7 @@ mod fast_scan {
     use opencv::{
         highgui, imgcodecs::{self, imread, IMREAD_COLOR}, imgproc, prelude::*, videoio, Result
     };
-    use crate::{domain::dbg::dbgid::DbgId, infrostructure::camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}};
+    use crate::{domain::dbg::dbgid::DbgId, infrostructure::camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}, scan::fast::FastScan};
     ///
     ///
     static INIT: Once = Once::new();
@@ -27,5 +27,53 @@ mod fast_scan {
     /// Testing read from USB
     #[test]
     fn grad() {
+        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        init_once();
+        init_each();
+        let dbg = DbgId::root("camera_test");
+        log::debug!("\n{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(10));
+        test_duration.run().unwrap();
+        let test_data = [
+            (
+                1,
+                Camera::new(CameraConf{
+                    name: "/test/Camera1".into(),
+                    fps: 30,
+                    resolution: CameraResolution {
+                        width: 1200,
+                        height: 800,
+                    },
+                    address: "192.168.10.12:2020".parse().unwrap(),
+                }).read("src/test/unit/infrostructure/camera/video_test.mp4"),
+                videoio::VideoCapture::from_file("src/test/unit/infrostructure/camera/video_test.mp4", videoio::CAP_ANY).unwrap(),
+            ),
+        ];
+        for (step, camera, mut target_video) in test_data {
+            match camera {
+                Ok(mut camera) => {
+                    let mut frames = 0;
+                    let mut target = Mat::default();
+                    while let Ok(read) = target_video.read(&mut target) {
+                        log::trace!("{} | step {} read: {:?}", dbg, step, read);
+                        if read {
+                            let result = camera.next().unwrap();
+                            let scnaed = FastScan::new(result);
+                            highgui::imshow("Video", &scnaed.gradient);
+                            //assert!(result == PImage::new(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
+                            frames += 1;
+                            if highgui::wait_key(30).unwrap() == 'q' as i32 {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    log::debug!("{} | step: {} Frames: {:?}", dbg, step, frames);
+                }
+                Err(err) => panic!("{} | step {} Camera error: {:?}", dbg, step, err),
+            }
+        }
+        test_duration.exit();
     }
 }
