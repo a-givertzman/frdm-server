@@ -72,11 +72,11 @@ impl AcSystem {
     /// - `dev` - Index of the device
     pub fn device_model(&self, dev: usize) -> Result<String, StrErr> {
         unsafe {
-            let mut result = FfiStr::new(1024);
-            log::debug!("{}.device_model | Device {}...", self.name, dev);
+            let mut result = FfiStr::<1024>::new();
+            log::trace!("{}.device_model | Device {}...", self.name, dev);
             let err = AcErr::from(super::bindings::acSystemGetDeviceModel(self.system, dev, result.as_mut_ptr() as *mut i8, &mut result.len));
             let result = result.to_string();
-            log::debug!("{}.device_model | Device {} model: {:?}", self.name, dev, result);
+            log::trace!("{}.device_model | Device {} Model: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
                 _ => Err(StrErr(format!("{}.device_model | Error: {}", self.name, err))),
@@ -92,10 +92,10 @@ impl AcSystem {
     /// - `dev` - Index of the device
     pub fn device_serial(&self, dev: usize) -> Result<String, StrErr> {
         unsafe {
-            let mut result = FfiStr::new(1024);
+            let mut result = FfiStr::<1024>::new();
             let err = AcErr::from(super::bindings::acSystemGetDeviceSerial(self.system, dev, result.as_mut_ptr(), &mut result.len));
             let result = result.to_string();
-            log::debug!("{}.device_model | Device {} model: {:?}", self.name, dev, result);
+            log::trace!("{}.device_model | Device {} Serial: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
                 _ => Err(StrErr(format!("{}.device_serial | Error: {}", self.name, err))),
@@ -108,10 +108,10 @@ impl AcSystem {
     /// - `dev` - Index of the device
     pub fn device_ip(&self, dev: usize) -> Result<String, StrErr> {
         unsafe {
-            let mut result = FfiStr::new(1024);
+            let mut result = FfiStr::<1024>::new();
             let err = AcErr::from(super::bindings::acSystemGetDeviceIpAddressStr(self.system, dev, result.as_mut_ptr(), &mut result.len));
             let result = result.to_string();
-            log::debug!("{}.device_model | Device {} model: {:?}", self.name, dev, result);
+            log::trace!("{}.device_model | Device {} IP: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
                 _ => Err(StrErr(format!("{}.device_ip | Error: {}", self.name, err))),

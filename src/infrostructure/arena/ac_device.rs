@@ -7,10 +7,8 @@ use crate::infrostructure::arena::bindings::{acBuffer, acBufferGetSizeFilled, ac
 use super::{
     ac_access_mode::AcAccessMode, ac_err::AcErr,
     bindings::{
-        acDevice, acNodeMap, acSystem,
-        acDeviceGetNodeMap, acNodeMapGetNodeAndAccessMode, acSystemCreateDevice, acSystemDestroyDevice, 
-        acValueFromString, acValueToString,
-    }
+        acDevice, acDeviceGetNodeMap, acNodeMap, acNodeMapGetNodeAndAccessMode, acSystem, acSystemCreateDevice, acSystemDestroyDevice, acValueFromString, acValueToString
+    }, ffi_str::FfiStr
 };
 
 ///
@@ -45,6 +43,15 @@ impl AcDevice {
             let err = AcErr::from(acSystemCreateDevice(self.system, self.index, &mut self.device));
             match err {
                 AcErr::Success => {
+                    match self.acquire_images(1) {
+                        Ok(_) => {
+                            log::debug!("{}.run | Image received", self.name);
+
+                        }
+                        Err(err) => {
+                            log::debug!("{}.run | Image receiv Error: {}", self.name, err);
+                        }
+                    }
                     Ok(())
                 }
                 _ => {
@@ -87,11 +94,10 @@ impl AcDevice {
                     let access_mode = AcAccessMode::from(access_mode);
                     match access_mode {
                         AcAccessMode::ReadWrite | AcAccessMode::ReadOnly => {
-                            let result = std::ptr::null_mut();
-                            let mut len = 1024;
-                            let err = AcErr::from(acValueToString(h_node, result, &mut len));
+                            let mut result = FfiStr::<1024>::new();
+                            let err = AcErr::from(acValueToString(h_node, result.as_mut_ptr(), &mut result.len));
                             match err {
-                                AcErr::Success => Ok(CString::from_raw(result).into_string().unwrap()),
+                                AcErr::Success => Ok(result.to_string()),
                                 _ => Err(StrErr(format!("{}.get_node_value | ValueToString Error: {}", self.name, err))),
                             }
                         },
@@ -156,16 +162,16 @@ impl AcDevice {
                     match self.get_node_value(node_map, node_name) {
                         Ok(acquisition_mode_initial) => {
                             // set acquisition mode
-                            log::debug!(".acquire_images | Set acquisition mode to 'Continuous'...");
+                            log::debug!("{}.acquire_images | Set acquisition mode to 'Continuous'...", self.name);
                             match self.set_node_value(node_map, node_name, "Continuous") {
                                 Ok(_) => {
                                     // set buffer handling mode
-                                    log::debug!(".acquire_images | Set buffer handling mode to 'NewestOnly'...");
+                                    log::debug!("{}.acquire_images | Set buffer handling mode to 'NewestOnly'...", self.name);
                                     // get stream node map
                                     let mut h_tlstream_node_map: acNodeMap = std::ptr::null_mut();
                                     let err = AcErr::from(acDeviceGetTLStreamNodeMap(self.device, &mut h_tlstream_node_map));
                                     if err != AcErr::Success {
-                                        return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                        return Err(StrErr(format!("{}.acquire_images | GetTLStreamNodeMap Error: {}", self.name, err)));
                                     };
                                     self.set_node_value(h_tlstream_node_map, "StreamBufferHandlingMode", "NewestOnly")?;
                                     // The TransportStreamProtocol node can tell the camera to use the TCP datastream engine. When
@@ -182,7 +188,7 @@ impl AcDevice {
                                         &mut access_mode_transport_stream_protocol,
                                     ));
                                     if err != AcErr::Success {
-                                        return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                        return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                     };
                                     if access_mode_transport_stream_protocol != AC_ACCESS_MODE_NI {
                                         // get node value
@@ -190,30 +196,30 @@ impl AcDevice {
                                             node_map,
                                             "TransportStreamProtocol",
                                         )?;
-                                        log::debug!(".acquire_images | Set Transport Stream Protocol to TCP");
+                                        log::debug!("{}.acquire_images | Set Transport Stream Protocol to TCP", self.name);
                                         let err = AcErr::from(acNodeMapSetEnumerationValue(
                                             node_map,
                                             CString::from_str("TransportStreamProtocol").unwrap().as_ptr(),
                                             CString::from_str("TCP").unwrap().as_ptr(),
                                         ));
                                         if err != AcErr::Success {
-                                            return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                            return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                         };
                                         // start stream
-                                        log::debug!(".acquire_images | Start stream");
+                                        log::debug!("{}.acquire_images | Start stream", self.name);
                                         let err = AcErr::from(acDeviceStartStream(self.device));
                                         if err != AcErr::Success {
-                                            return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                            return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                         };
                                         // get images
-                                        log::debug!(".acquire_images | Getting {} images", images);
+                                        log::debug!("{}.acquire_images | Getting {} images", self.name, images);
                                         for i in 0..images {
                                             // get image
-                                            log::debug!(".acquire_images | Getting {} image...", i);
+                                            log::debug!("{}.acquire_images | Getting {} image...", self.name, i);
                                             let mut h_buffer: acBuffer = std::ptr::null_mut();
                                             let err = AcErr::from(acDeviceGetBuffer(self.device, self.image_timeout, &mut h_buffer));
                                             if err != AcErr::Success {
-                                                return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                                return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                             };
                                             // get image information
                                             log::debug!(" (");
@@ -221,50 +227,50 @@ impl AcDevice {
                                             let mut size_filled = 0;
                                             let err = AcErr::from(acBufferGetSizeFilled(h_buffer, &mut size_filled));
                                             if err != AcErr::Success {
-                                                return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                                return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                             };
                                             log::debug!("{} bytes; ", size_filled);
                                             // get and display width
                                             let mut width = 0;
                                             let err = AcErr::from(acImageGetWidth(h_buffer, &mut width));
                                             if err != AcErr::Success {
-                                                return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                                return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                             };
                                             log::debug!("{}", width);
                                             // get and display height
                                             let mut height = 0;
                                             let err = AcErr::from(acImageGetHeight(h_buffer, &mut height));
                                             if err != AcErr::Success {
-                                                return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                                return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                             };
                                             log::debug!("{}; ", height);
                                             // get and display timestamp
                                             let mut timestamp_ns = 0;
                                             let err = AcErr::from(acImageGetTimestampNs(h_buffer, &mut timestamp_ns));
                                             if err != AcErr::Success {
-                                                return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                                return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                             };
                                             const PRIu64: &str = "'l' 'u'";
-                                            log::debug!(".acquire_images | timestamp (ns): {} {} )", timestamp_ns, PRIu64);
+                                            log::debug!("{}.acquire_images | timestamp (ns): {} {} )", self.name, timestamp_ns, PRIu64);
                                             // requeue image buffer
-                                            log::debug!(".acquire_images |  and requeue");
+                                            log::debug!("{}.acquire_images | and requeue", self.name);
                                             let err = AcErr::from(acDeviceRequeueBuffer(self.device, h_buffer));
                                             if err != AcErr::Success {
-                                                return Err(StrErr(format!("acquire_images | Error: {}",  err)));
+                                                return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                             };
                                         }
                                         // stop stream
-                                        log::debug!(".acquire_images | Stop stream");
+                                        log::debug!("{}.acquire_images | Stop stream", self.name);
                                         let err = AcErr::from(acDeviceStopStream(self.device));
                                         match err {
                                             AcErr::Success => (),
-                                            _ => return Err(StrErr(format!("acquire_images | Error: {}",  err))),
+                                            _ => return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err))),
                                         };
                                         // return node to its initial values
                                         self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial,
                                         )?;
                                     } else {
-                                        log::warn!(".acquire_images | Connected camera does not support TCP stream");
+                                        log::warn!("{}.acquire_images | Connected camera does not support TCP stream", self.name);
                                     }
                                     // return node to its initial values
                                     self.set_node_value(node_map, "AcquisitionMode", &acquisition_mode_initial)?;
@@ -272,16 +278,16 @@ impl AcDevice {
                                 },
                                 Err(err) => {
                                     if let Err(err) = self.set_node_value(node_map, "AcquisitionMode", &acquisition_mode_initial) {
-                                        log::debug!(".acquire_images | Error return mode back: {}", err);
+                                        log::debug!("{}.acquire_images | Error return mode back: {}", self.name, err);
                                     }
-                                    Err(StrErr(format!("acquire_images | Error: {}",  err)))
+                                    Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)))
                                 }
                             }
                         },
-                        Err(err) => Err(StrErr(format!("acquire_images | Error: {}",  err))),
+                        Err(err) => Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err))),
                     }
                 },
-                Err(err) => Err(StrErr(format!("acquire_images | Error: {}",  err))),
+                Err(err) => Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err))),
             }
         }
     }

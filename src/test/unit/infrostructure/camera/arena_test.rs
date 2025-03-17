@@ -40,12 +40,12 @@ mod arena {
                         for dev in 0..devices {
                             log::debug!("Retriving Device {}...", dev);
                             let device_model = ac_system.device_model(dev).unwrap();
-                            log::debug!("Device {} model: {}", dev, device_model);
+                            log::trace!("Device {} model: {}", dev, device_model);
                             let device_serial = ac_system.device_serial(dev).unwrap();
-                            log::debug!("Device {} serial: {}", dev, device_serial);
+                            log::trace!("Device {} serial: {}", dev, device_serial);
                             let device_ip = ac_system.device_ip(dev).unwrap();
-                            log::debug!("Device {} IP: {}", dev, device_serial);
-                            println!("Device {}: {:?} | {:?} | {:?}", dev, device_model, device_serial, device_ip);
+                            log::trace!("Device {} IP: {}", dev, device_ip);
+                            log::info!("Device {}: {:?} | {:?} | {:?}", dev, device_model, device_serial, device_ip);
                         }
                         let selection = 0;
                         let mut device = AcDevice::new(&dbg, ac_system.system, selection);

@@ -1,30 +1,45 @@
+use std::ffi::CString;
+
 ///
-/// 
-pub struct FfiStr {
+/// ```ignore
+/// let mut result = FfiStr::new(1024);
+/// let err = cApi::getName(result.as_mut_ptr() as *mut i8, &mut result.len));
+/// let result = result.to_string();
+/// log::debug!("Result: {}", result);
+/// ```
+pub struct FfiStr<const SIZE: usize> {
+    ///
+    /// The length in bytes of the data stored under the raw pointer
     pub len: usize,
-    raw: [i8; 1024],
-    str: String,
+    raw: [i8; SIZE],
 }
 //
 //
-impl FfiStr {
+impl<const SIZE: usize> FfiStr<SIZE> {
     ///
     /// 
-    pub fn new(len: usize) -> Self {
+    pub fn new() -> Self {
         Self {
-            len,
-            raw: [0i8; 1024],
-            str: String::new(),
+            len: SIZE,
+            raw: [0i8; SIZE],
         }
     }
+    ///
+    /// Retirns mutable raw pointer
     pub fn as_mut_ptr(&mut self) -> *mut i8 {
         self.raw.as_mut_ptr() as *mut i8
     }
-    pub fn to_string(&self) -> String {
-        log::trace!("FfiStr.device_model | raw: {:?}", self.raw);
-        let buf: Vec<u8> = self.raw[..self.len].iter().map(|item| *item as u8).collect();
-        log::trace!("FfiStr.device_model | buf: {:?}", buf);
-        let mut result = String::from_utf8(buf).unwrap();
+    ///
+    /// Returns a string of length `len` from raw pointer  
+    pub fn to_string(&mut self) -> String {
+        log::trace!("FfiStr.device_model | len: {}, raw: {:?}", self.len, self.raw);
+        let mut result = if self.len > 0 {
+            let buf = self.raw[..self.len].iter().map(|item| *item as u8).collect();
+            log::trace!("FfiStr.device_model | buf: {:?}", buf);
+            String::from_utf8(buf).unwrap_or(String::new())
+        } else {
+            unsafe { CString::from_raw(self.raw.as_mut_ptr()).into_string().unwrap_or(String::new()) }
+        };
         if result.ends_with('\0') {
             result.pop();
         }
