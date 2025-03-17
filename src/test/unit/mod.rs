@@ -1,1 +1,2 @@
 mod infrostructure;
+mod scan;
