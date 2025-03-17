@@ -33,13 +33,9 @@ impl<const SIZE: usize> FfiStr<SIZE> {
     /// Returns a string of length `len` from raw pointer  
     pub fn to_string(&mut self) -> String {
         log::trace!("FfiStr.device_model | len: {}, raw: {:?}", self.len, self.raw);
-        let mut result = if self.len > 0 {
-            let buf = self.raw[..self.len].iter().map(|item| *item as u8).collect();
-            log::trace!("FfiStr.device_model | buf: {:?}", buf);
-            String::from_utf8(buf).unwrap_or(String::new())
-        } else {
-            unsafe { CString::from_raw(self.raw.as_mut_ptr()).into_string().unwrap_or(String::new()) }
-        };
+        let buf = self.raw[..self.len].iter().map(|item| *item as u8).collect();
+        log::trace!("FfiStr.device_model | buf: {:?}", buf);
+        let mut result = String::from_utf8(buf).unwrap_or(String::new());
         if result.ends_with('\0') {
             result.pop();
         }

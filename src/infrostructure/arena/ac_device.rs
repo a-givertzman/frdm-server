@@ -1,5 +1,6 @@
 use std::{ffi::CString, str::FromStr};
 
+use opencv::{core::MatTrait, traits::Boxed};
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 
 use crate::infrostructure::arena::bindings::{acBuffer, acBufferGetSizeFilled, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceRequeueBuffer, acDeviceStartStream, acDeviceStopStream, acImageGetHeight, acImageGetTimestampNs, acImageGetWidth, acNode, acNodeMapSetEnumerationValue, AC_ACCESS_MODE_NI};
@@ -43,7 +44,7 @@ impl AcDevice {
             let err = AcErr::from(acSystemCreateDevice(self.system, self.index, &mut self.device));
             match err {
                 AcErr::Success => {
-                    match self.acquire_images(1) {
+                    match self.acquire_images(100) {
                         Ok(_) => {
                             log::debug!("{}.run | Image received", self.name);
 
@@ -154,13 +155,15 @@ impl AcDevice {
     /// (8) stops the stream
     fn acquire_images(&self, images: usize) -> Result<(), StrErr> {
         unsafe {
+            log::debug!("{}.acquire_images | Get node map...", self.name);
             match self.node_map(self.device) {
                 Ok(node_map) => {
+                    log::debug!("{}.acquire_images | Get node map - Ok", self.name);
                     // get node values that will be changed in order to return their values at
                     // the end of the example
                     let node_name = "AcquisitionMode";
                     match self.get_node_value(node_map, node_name) {
-                        Ok(acquisition_mode_initial) => {
+                        Ok(initial_acquisition_mode) => {
                             // set acquisition mode
                             log::debug!("{}.acquire_images | Set acquisition mode to 'Continuous'...", self.name);
                             match self.set_node_value(node_map, node_name, "Continuous") {
@@ -174,6 +177,7 @@ impl AcDevice {
                                         return Err(StrErr(format!("{}.acquire_images | GetTLStreamNodeMap Error: {}", self.name, err)));
                                     };
                                     self.set_node_value(h_tlstream_node_map, "StreamBufferHandlingMode", "NewestOnly")?;
+                                    // self.set_node_value(h_tlstream_node_map, "StreamBufferHandlingMode", "NewestOnly")?;
                                     // The TransportStreamProtocol node can tell the camera to use the TCP datastream engine. When
                                     //    set to TCP - Arena will switch to using the TCP datastream engine. 
                                     //    There is no further necessary configuration, though to achieve maximum throughput 
@@ -188,7 +192,7 @@ impl AcDevice {
                                         &mut access_mode_transport_stream_protocol,
                                     ));
                                     if err != AcErr::Success {
-                                        return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
+                                        return Err(StrErr(format!("{}.acquire_images | GetNodeAndAccessMode Error: {}", self.name, err)));
                                     };
                                     if access_mode_transport_stream_protocol != AC_ACCESS_MODE_NI {
                                         // get node value
@@ -196,21 +200,30 @@ impl AcDevice {
                                             node_map,
                                             "TransportStreamProtocol",
                                         )?;
-                                        log::debug!("{}.acquire_images | Set Transport Stream Protocol to TCP", self.name);
-                                        let err = AcErr::from(acNodeMapSetEnumerationValue(
-                                            node_map,
-                                            CString::from_str("TransportStreamProtocol").unwrap().as_ptr(),
-                                            CString::from_str("TCP").unwrap().as_ptr(),
-                                        ));
-                                        if err != AcErr::Success {
-                                            return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
-                                        };
+                                        // log::debug!("{}.acquire_images | Set Transport Stream Protocol to TCP", self.name);
+                                        // let err = AcErr::from(acNodeMapSetEnumerationValue(
+                                        //     node_map,
+                                        //     CString::from_str("TransportStreamProtocol").unwrap().as_ptr(),
+                                        //     CString::from_str("TCP").unwrap().as_ptr(),
+                                        // ));
+                                        // if err != AcErr::Success {
+                                        //     return Err(StrErr(format!("{}.acquire_images | Set Transport Stream Protocol to TCP Error: {}", self.name, err)));
+                                        // };
                                         // start stream
                                         log::debug!("{}.acquire_images | Start stream", self.name);
                                         let err = AcErr::from(acDeviceStartStream(self.device));
                                         if err != AcErr::Success {
                                             return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
                                         };
+                                        let window = "Retrived";
+                                        if let Err(err) = opencv::highgui::named_window(window, 1) {
+                                            return Err(StrErr(format!("{}.acquire_images | Create Window Error: {}", self.name, err)));
+                                        }
+                                        let img = opencv::imgcodecs::imread("/home/lobanov/Pictures/Sub-Issue-Bind.png", opencv::imgcodecs::IMREAD_COLOR).unwrap();
+                                        if let Err(err) = opencv::highgui::imshow(window, &img) {
+                                            log::warn!("{}.acquire_images | Display img error: {:?}", self.name, err);
+                                        }
+                                        opencv::highgui::wait_key(0).unwrap();
                                         // get images
                                         log::debug!("{}.acquire_images | Getting {} images", self.name, images);
                                         for i in 0..images {
@@ -252,6 +265,16 @@ impl AcDevice {
                                             };
                                             const PRIu64: &str = "'l' 'u'";
                                             log::debug!("{}.acquire_images | timestamp (ns): {} {} )", self.name, timestamp_ns, PRIu64);
+                                            let mut mat = opencv::core::Mat::new_rows_cols_with_data_unsafe(
+                                                width as i32,
+                                                height as i32,
+                                                opencv::core::CV_8UC1,
+                                                h_buffer,
+                                                opencv::core::Mat_AUTO_STEP,
+                                            ).unwrap();
+                                            if let Err(err) = opencv::highgui::imshow(window, &img) {
+                                                log::warn!("{}.acquire_images | Display img error: {:?}", self.name, err);
+                                            };
                                             // requeue image buffer
                                             log::debug!("{}.acquire_images | and requeue", self.name);
                                             let err = AcErr::from(acDeviceRequeueBuffer(self.device, h_buffer));
@@ -267,27 +290,26 @@ impl AcDevice {
                                             _ => return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err))),
                                         };
                                         // return node to its initial values
-                                        self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial,
-                                        )?;
+                                        // self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial)?;
                                     } else {
                                         log::warn!("{}.acquire_images | Connected camera does not support TCP stream", self.name);
                                     }
                                     // return node to its initial values
-                                    self.set_node_value(node_map, "AcquisitionMode", &acquisition_mode_initial)?;
+                                    self.set_node_value(node_map, "AcquisitionMode", &initial_acquisition_mode)?;
                                     Ok(())
                                 },
                                 Err(err) => {
-                                    if let Err(err) = self.set_node_value(node_map, "AcquisitionMode", &acquisition_mode_initial) {
+                                    if let Err(err) = self.set_node_value(node_map, "AcquisitionMode", &initial_acquisition_mode) {
                                         log::debug!("{}.acquire_images | Error return mode back: {}", self.name, err);
                                     }
                                     Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)))
                                 }
                             }
                         },
-                        Err(err) => Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err))),
+                        Err(err) => Err(StrErr(format!("{}.acquire_images | Get `initial_acquisition_mode` Error: {}", self.name, err))),
                     }
                 },
-                Err(err) => Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err))),
+                Err(err) => Err(StrErr(format!("{}.acquire_images | Get node map - Error: {}", self.name, err))),
             }
         }
     }
