@@ -5,9 +5,9 @@ use crate::infrostructure::arena::{ac_access_mode::AcAccessMode, bindings::{
 }};
 
 use super::{
-    ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node::AcNodeMap, bindings::{
-        acDevice, acNodeMap, acSystem, acDeviceGetNodeMap, acSystemCreateDevice, acSystemDestroyDevice
-    }, pixel_format::PixelFormat
+    ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
+        acDevice, acDeviceGetNodeMap, acNodeMap, acSystem, acSystemCreateDevice, acSystemDestroyDevice
+    }, exposure::Exposure, pixel_format::PixelFormat
 };
 
 ///
@@ -18,8 +18,7 @@ pub struct AcDevice {
     device: acDevice,
     system: acSystem,
     pixel_format: PixelFormat,
-    // Exposure Time 	20.5 μs to 10 s (Normal) / 1 μs to 5 μs (Short Mode)
-    exposure: usize,
+    exposure: Exposure,
     // Maximum time to wait for an image buffer
     image_timeout: u64,
     exit: Arc<AtomicBool>,
@@ -35,7 +34,7 @@ impl AcDevice {
         system: acSystem,
         index: usize,
         pixel_format: PixelFormat,
-        exposure: usize,
+        exposure: Exposure,
         exit: Option<Arc<AtomicBool>>,
     ) -> Self {
         let name = Name::new(parent.into(), format!("AcDevice({index})"));
@@ -121,6 +120,33 @@ impl AcDevice {
                             Ok(_) => log::debug!("{}.stream | PixelFormat: {}", dbg, self.pixel_format.format()),
                             Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
                         };
+                        if let Ok(exposure) = node_map.get_enumeration_value("ExposureAuto") {
+                            log::debug!("{}.stream | ExposureAuto: {}", dbg, exposure);
+                        }
+                        match node_map.set_enumeration_value("ExposureAuto", self.exposure.auto.as_ref()) {
+                            Ok(_) => log::debug!("{}.stream | Set ExposureAuto: {}", dbg, self.exposure.auto),
+                            Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
+                        };
+                        match node_map.get_node("ExposureTime") {
+                            Ok(node) => {
+                                if node.is_writable() {
+                                    if let Ok(exposure) = node.get_float_value() {
+                                        log::debug!("{}.stream | Exposure time: {}", dbg, exposure);
+                                    }
+                                    if let Ok(exposure) = node.get_float_min_value() {
+                                        log::debug!("{}.stream | Exposure min time: {}", dbg, exposure);
+                                    }
+                                    if let Ok(exposure) = node.get_float_max_value() {
+                                        log::debug!("{}.stream | Exposure max time: {}", dbg, exposure);
+                                    }
+                                    match node.set_float_value(self.exposure.time) {
+                                        Ok(_) => log::debug!("{}.stream | Set Exposure {} us - Ok", dbg, self.exposure.time),
+                                        Err(err) => log::debug!("{}.stream | Set Exposure {} us Error: {}", dbg, self.exposure.time, err),
+                                    }
+                                }
+                            },
+                            Err(err) => log::debug!("{}.stream | Get ExposureTime Node Error: {}", dbg, err),
+                        }
                         let node_name = "AcquisitionMode";
                         match node_map.get_value(node_name) {
                             Ok(initial_acquisition_mode) => {
