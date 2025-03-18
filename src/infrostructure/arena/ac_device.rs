@@ -18,6 +18,8 @@ pub struct AcDevice {
     device: acDevice,
     system: acSystem,
     pixel_format: PixelFormat,
+    // Exposure Time 	20.5 μs to 10 s (Normal) / 1 μs to 5 μs (Short Mode)
+    exposure: usize,
     // Maximum time to wait for an image buffer
     image_timeout: u64,
     exit: Arc<AtomicBool>,
@@ -28,7 +30,14 @@ impl AcDevice {
     ///
     /// Returns [AcDevice] new instance
     /// - `exit` - Exit signal, write true to stop reading.
-    pub fn new(parent: impl Into<String>, system: acSystem, index: usize, pixel_format: PixelFormat, exit: Option<Arc<AtomicBool>>) -> Self {
+    pub fn new(
+        parent: impl Into<String>,
+        system: acSystem,
+        index: usize,
+        pixel_format: PixelFormat,
+        exposure: usize,
+        exit: Option<Arc<AtomicBool>>,
+    ) -> Self {
         let name = Name::new(parent.into(), format!("AcDevice({index})"));
         Self {
             name,
@@ -36,6 +45,7 @@ impl AcDevice {
             device: std::ptr::null_mut(),
             system,
             pixel_format,
+            exposure,
             image_timeout: 2000,
             exit: exit.unwrap_or(Arc::new(AtomicBool::new(false))),
         }
@@ -122,6 +132,10 @@ impl AcDevice {
                                         log::debug!("{}.stream | Set buffer handling mode to 'NewestOnly'...", dbg);
                                         if let Err(err) = h_tlstream_node_map.set_value("StreamBufferHandlingMode", "NewestOnly"){
                                             log::warn!("{}.stream | StreamBufferHandlingMode set 'NewestOnly' Error: {}", dbg, err);
+                                        }
+                                        log::debug!("{}.stream | Set auto negotiate packet size...", dbg);
+                                        if let Err(err) = h_tlstream_node_map.set_bool_value("StreamAutoNegotiatePacketSize", true){
+                                            log::warn!("{}.stream | StreamAutoNegotiatePacketSize Error: {}", dbg, err);
                                         }
                                         let result = match node_map.get_access_mode("TransportStreamProtocol") {
                                             Ok(transport_stream_protocol_access_mode) => match transport_stream_protocol_access_mode {

@@ -3,7 +3,7 @@ use std::{ffi::CString, str::FromStr};
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 
 use super::{
-    ac_access_mode::AcAccessMode, ac_err::AcErr, bindings::{acDevice, acNode, acNodeMap, acNodeMapGetNodeAndAccessMode, acNodeMapSetEnumerationValue, acValueFromString, acValueToString}, ffi_str::FfiStr
+    ac_access_mode::AcAccessMode, ac_err::AcErr, bindings::{acDevice, acNode, acNodeMap, acNodeMapGetNodeAndAccessMode, acNodeMapSetBooleanValue, acNodeMapSetEnumerationValue, acValueFromString, acValueToString}, ffi_str::FfiStr
 };
 
 ///
@@ -89,7 +89,6 @@ impl AcNodeMap {
     /// Sets String node value
     pub fn set_value(&self, node_name: &str, value: &str) -> Result<(), StrErr>{
         unsafe {
-            // get node
             let mut h_node: super::bindings::acNode = std::ptr::null_mut();
             let mut access_mode = 0;
             let err = AcErr::from(acNodeMapGetNodeAndAccessMode(
@@ -120,7 +119,6 @@ impl AcNodeMap {
     /// Sets Enumeration node value
     pub fn set_enumeration_value(&self, node_name: &str, value: &str) -> Result<(), StrErr>{
         unsafe {
-            // get node
             let mut h_node: super::bindings::acNode = std::ptr::null_mut();
             let mut access_mode = 0;
             let err = AcErr::from(acNodeMapGetNodeAndAccessMode(
@@ -151,5 +149,38 @@ impl AcNodeMap {
             }
         }
     }
-
+    ///
+    /// Sets Bool node value
+    pub fn set_bool_value(&self, node_name: &str, value: bool) -> Result<(), StrErr>{
+        unsafe {
+            let mut h_node: super::bindings::acNode = std::ptr::null_mut();
+            let mut access_mode = 0;
+            let err = AcErr::from(acNodeMapGetNodeAndAccessMode(
+                self.map,
+                CString::new(node_name).unwrap().as_ptr(),
+                &mut h_node,
+                &mut access_mode,
+            ));
+            match err {
+                AcErr::Success => {
+                    let access_mode = AcAccessMode::from(access_mode);
+                    match access_mode {
+                        AcAccessMode::ReadWrite | AcAccessMode::WriteOnly => {
+                            let err = AcErr::from(acNodeMapSetBooleanValue(
+                                self.map,
+                                CString::from_str(node_name).unwrap().as_ptr(),
+                                if value {1u8} else {0},
+                            ));
+                            match err {
+                                AcErr::Success => Ok(()),
+                                _ => Err(StrErr(format!("{}.set_enumeration_value | ValueFromString Error: {}", self.name, err))),
+                            }
+                        },
+                        _ => return Err(StrErr(format!("{}.set_enumeration_value | Access denied, current mode is '{}'", self.name, access_mode))),
+                    }
+                },
+                _ => Err(StrErr(format!("{}.set_enumeration_value | Error: {}", self.name, err))),
+            }
+        }
+    }
 }

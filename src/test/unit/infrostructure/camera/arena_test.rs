@@ -33,6 +33,10 @@ mod arena {
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(&dbg, Duration::from_secs(30));
         test_duration.run().unwrap();
+        // Pixel format `Mono8` - Monochrom / `BGR8` - Color
+        let pixel_format = PixelFormat::BGR8;
+        // Exposure Time 	20.5 μs to 10 s (Normal) / 1 μs to 5 μs (Short Mode)
+        // let exposure_time = 
         let read_time = Duration::from_secs(10);
         let frames = Arc::new(AtomicUsize::new(0));
         let frames_clone = frames.clone();
@@ -83,7 +87,7 @@ mod arena {
                                 log::info!("Device {}: {:?} | {:?} | {:?} | {:?} | {:?}", dev, device_vendor, device_model, device_serial, device_mac, device_ip);
                             }
                             let selection = 0;
-                            let mut device = AcDevice::new(&dbg, ac_system.system, selection, PixelFormat::BGR8, Some(exit_1));
+                            let mut device = AcDevice::new(&dbg, ac_system.system, selection, pixel_format, Some(exit_1));
                             let result = device.listen(|frame| {
                                 if let Err(err) = send.send(frame) {
                                     log::warn!("{} | Send Error; {}", dbg, err);
