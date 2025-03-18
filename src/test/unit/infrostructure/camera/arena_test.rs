@@ -2,7 +2,7 @@
 
 mod arena {
     use std::{sync::Once, time::Duration};
-    use crate::infrostructure::arena::{ac_device::AcDevice, ac_system::AcSystem};
+    use crate::infrostructure::arena::{ac_device::AcDevice, ac_system::AcSystem, pixel_format::PixelFormat};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use crate::domain::dbg::dbgid::DbgId;
@@ -50,7 +50,7 @@ mod arena {
                             log::info!("Device {}: {:?} | {:?} | {:?} | {:?} | {:?}", dev, device_vendor, device_model, device_serial, device_mac, device_ip);
                         }
                         let selection = 0;
-                        let mut device = AcDevice::new(&dbg, ac_system.system, selection);
+                        let mut device = AcDevice::new(&dbg, ac_system.system, selection, PixelFormat::BGR8);
                         match device.run() {
                             Ok(_) => {
 
