@@ -1,13 +1,13 @@
-use std::sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc, RwLock};
+use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 use crate::infrostructure::arena::{ac_access_mode::AcAccessMode, bindings::{
     acBuffer, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceStartStream, acDeviceStopStream,
 }};
 
 use super::{
-    ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node::AcNodeMap, bindings::{
-        acDevice, acNodeMap, acSystem, acDeviceGetNodeMap, acSystemCreateDevice, acSystemDestroyDevice
-    }, pixel_format::PixelFormat
+    ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
+        acDevice, acDeviceGetNodeMap, acNodeMap, acSystem, acSystemCreateDevice, acSystemDestroyDevice
+    }, exposure::Exposure, pixel_format::PixelFormat
 };
 
 ///
@@ -18,6 +18,7 @@ pub struct AcDevice {
     device: acDevice,
     system: acSystem,
     pixel_format: PixelFormat,
+    exposure: Exposure,
     // Maximum time to wait for an image buffer
     image_timeout: u64,
     exit: Arc<AtomicBool>,
@@ -28,7 +29,14 @@ impl AcDevice {
     ///
     /// Returns [AcDevice] new instance
     /// - `exit` - Exit signal, write true to stop reading.
-    pub fn new(parent: impl Into<String>, system: acSystem, index: usize, pixel_format: PixelFormat, exit: Option<Arc<AtomicBool>>) -> Self {
+    pub fn new(
+        parent: impl Into<String>,
+        system: acSystem,
+        index: usize,
+        pixel_format: PixelFormat,
+        exposure: Exposure,
+        exit: Option<Arc<AtomicBool>>,
+    ) -> Self {
         let name = Name::new(parent.into(), format!("AcDevice({index})"));
         Self {
             name,
@@ -36,6 +44,7 @@ impl AcDevice {
             device: std::ptr::null_mut(),
             system,
             pixel_format,
+            exposure,
             image_timeout: 2000,
             exit: exit.unwrap_or(Arc::new(AtomicBool::new(false))),
         }
@@ -111,6 +120,33 @@ impl AcDevice {
                             Ok(_) => log::debug!("{}.stream | PixelFormat: {}", dbg, self.pixel_format.format()),
                             Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
                         };
+                        if let Ok(exposure) = node_map.get_enumeration_value("ExposureAuto") {
+                            log::debug!("{}.stream | ExposureAuto: {}", dbg, exposure);
+                        }
+                        match node_map.set_enumeration_value("ExposureAuto", self.exposure.auto.as_ref()) {
+                            Ok(_) => log::debug!("{}.stream | Set ExposureAuto: {}", dbg, self.exposure.auto),
+                            Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
+                        };
+                        match node_map.get_node("ExposureTime") {
+                            Ok(node) => {
+                                if node.is_writable() {
+                                    if let Ok(exposure) = node.get_float_value() {
+                                        log::debug!("{}.stream | Exposure time: {}", dbg, exposure);
+                                    }
+                                    if let Ok(exposure) = node.get_float_min_value() {
+                                        log::debug!("{}.stream | Exposure min time: {}", dbg, exposure);
+                                    }
+                                    if let Ok(exposure) = node.get_float_max_value() {
+                                        log::debug!("{}.stream | Exposure max time: {}", dbg, exposure);
+                                    }
+                                    match node.set_float_value(self.exposure.time) {
+                                        Ok(_) => log::debug!("{}.stream | Set Exposure {} us - Ok", dbg, self.exposure.time),
+                                        Err(err) => log::debug!("{}.stream | Set Exposure {} us Error: {}", dbg, self.exposure.time, err),
+                                    }
+                                }
+                            },
+                            Err(err) => log::debug!("{}.stream | Get ExposureTime Node Error: {}", dbg, err),
+                        }
                         let node_name = "AcquisitionMode";
                         match node_map.get_value(node_name) {
                             Ok(initial_acquisition_mode) => {
@@ -122,6 +158,10 @@ impl AcDevice {
                                         log::debug!("{}.stream | Set buffer handling mode to 'NewestOnly'...", dbg);
                                         if let Err(err) = h_tlstream_node_map.set_value("StreamBufferHandlingMode", "NewestOnly"){
                                             log::warn!("{}.stream | StreamBufferHandlingMode set 'NewestOnly' Error: {}", dbg, err);
+                                        }
+                                        log::debug!("{}.stream | Set auto negotiate packet size...", dbg);
+                                        if let Err(err) = h_tlstream_node_map.set_bool_value("StreamAutoNegotiatePacketSize", true){
+                                            log::warn!("{}.stream | StreamAutoNegotiatePacketSize Error: {}", dbg, err);
                                         }
                                         let result = match node_map.get_access_mode("TransportStreamProtocol") {
                                             Ok(transport_stream_protocol_access_mode) => match transport_stream_protocol_access_mode {
