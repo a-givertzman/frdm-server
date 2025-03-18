@@ -26,8 +26,9 @@ pub struct AcDevice {
 //
 impl AcDevice {
     ///
-    /// 
-    pub fn new(parent: impl Into<String>, system: acSystem, index: usize, pixel_format: PixelFormat) -> Self {
+    /// Returns [AcDevice] new instance
+    /// - `exit` - Exit signal, write true to stop reading.
+    pub fn new(parent: impl Into<String>, system: acSystem, index: usize, pixel_format: PixelFormat, exit: Option<Arc<AtomicBool>>) -> Self {
         let name = Name::new(parent.into(), format!("AcDevice({index})"));
         Self {
             name,
@@ -36,7 +37,7 @@ impl AcDevice {
             system,
             pixel_format,
             image_timeout: 2000,
-            exit: Arc::new(AtomicBool::new(false)),
+            exit: exit.unwrap_or(Arc::new(AtomicBool::new(false))),
         }
     }
     ///
@@ -45,17 +46,7 @@ impl AcDevice {
         unsafe {
             let err = AcErr::from(acSystemCreateDevice(self.system, self.index, &mut self.device));
             match err {
-                AcErr::Success => {
-                    match self.stream_(on_event) {
-                        Ok(_) => {
-                            log::debug!("{}.stream | Image received", self.name);
-                            Ok(())
-                        }
-                        Err(err) => {
-                            Err(StrErr(format!("{}.stream | Image receiv Error: {}", self.name, err)))
-                        }
-                    }
-                }
+                AcErr::Success => self.read(on_event),
                 _ => {
                     Err(StrErr(format!("{}.stream | Error: {}", self.name, err)))
                 }
@@ -106,7 +97,7 @@ impl AcDevice {
     /// (6) prints information from images
     /// (7) requeues buffers
     /// (8) stops the stream
-    fn stream_(&self, on_event: impl Fn(AcImage)) -> Result<(), StrErr> {
+    fn read(&self, on_event: impl Fn(AcImage)) -> Result<(), StrErr> {
         let dbg = self.name.join();
         let exit = self.exit.clone();
         log::debug!("{}.stream | Get node map...", dbg);
@@ -142,37 +133,37 @@ impl AcDevice {
                                                     match err {
                                                         AcErr::Success => {
                                                             log::debug!("{}.stream | Retriving images...", dbg);
-                                                                loop {
-                                                                    log::debug!("{}.stream | Read image...", dbg);
-                                                                    match self.buffer() {
-                                                                        Ok(buffer) => {
-                                                                            match buffer.get_image() {
-                                                                                Ok(img) => {
-                                                                                    (on_event)(img)
-                                                                                }
-                                                                                Err(err) => log::warn!("{}.stream | Error: {}", dbg, err),
+                                                            loop {
+                                                                log::trace!("{}.stream | Read image...", dbg);
+                                                                match self.buffer() {
+                                                                    Ok(buffer) => {
+                                                                        match buffer.get_image() {
+                                                                            Ok(img) => {
+                                                                                (on_event)(img)
                                                                             }
+                                                                            Err(err) => log::warn!("{}.stream | Error: {}", dbg, err),
                                                                         }
-                                                                        Err(err) => {
-                                                                            log::warn!("{}.stream | Error: {}", dbg, err);
-                                                                        }
-                                                                    };
-                                                                    if exit.load(Ordering::SeqCst) {
-                                                                        break;
                                                                     }
+                                                                    Err(err) => {
+                                                                        log::warn!("{}.stream | Error: {}", dbg, err);
+                                                                    }
+                                                                };
+                                                                if exit.load(Ordering::SeqCst) {
+                                                                    break;
                                                                 }
-                                                                // stop stream
-                                                                log::debug!("{}.stream | Stop stream...", dbg);
-                                                                let err = AcErr::from(unsafe { acDeviceStopStream(self.device) });
-                                                                if err != AcErr::Success {
-                                                                    log::warn!("{}.stream | Error: {}", dbg, err);
-                                                                }
+                                                            }
+                                                            // stop stream
+                                                            log::debug!("{}.stream | Stop stream...", dbg);
+                                                            let err = AcErr::from(unsafe { acDeviceStopStream(self.device) });
+                                                            if err != AcErr::Success {
+                                                                return Err(StrErr(format!("{}.stream | DeviceStopStream Error: {}", dbg, err)));
+                                                            }
+                                                            Ok(())
                                                             // return node to its initial values
                                                             // self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial)?;
                                                         }
-                                                        _ => log::warn!("{}.stream | Error: {}", dbg, err),
-                                                    };
-                                                    Ok(())
+                                                        _ => Err(StrErr(format!("{}.stream | DeviceStartStream Error: {}", dbg, err))),
+                                                    }
                                                 }
                                             }
                                             Err(err) => Err(StrErr(format!("{}.stream | Get TransportStreamProtocol access mode Error: {}", dbg, err))),
@@ -199,16 +190,9 @@ impl AcDevice {
         }
     }
     ///
-    /// Cleans up the system (acSystem) and deinitializes the Arena SDK, deallocating all memory.
-    pub fn close(&self) -> Result<(), StrErr> {
-        self.exit.store(true, Ordering::SeqCst);
-        unsafe {
-            let err = AcErr::from(acSystemDestroyDevice(self.system, self.device));
-            match err {
-                AcErr::Success => Ok(()),
-                _ => Err(StrErr(format!("{}.close | Error: {}", self.name, err))),
-            }
-        }
+    /// Returns `Exit` signal, write true to stop reading.
+    pub fn exit(&self) -> Arc<AtomicBool> {
+        self.exit.clone()
     }
 
 }
