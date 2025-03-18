@@ -79,7 +79,7 @@ impl AcDevice {
     }
     ///
     /// Returns Device buffer
-    fn buffer(&self) -> Result<AcBuffer, StrErr> {
+    fn get_buffer(&self) -> Result<AcBuffer, StrErr> {
         let mut buffer: acBuffer = std::ptr::null_mut();
         let err = AcErr::from(unsafe { acDeviceGetBuffer(self.device, self.image_timeout, &mut buffer) });
         match err {
@@ -135,7 +135,7 @@ impl AcDevice {
                                                             log::debug!("{}.stream | Retriving images...", dbg);
                                                             loop {
                                                                 log::trace!("{}.stream | Read image...", dbg);
-                                                                match self.buffer() {
+                                                                match self.get_buffer() {
                                                                     Ok(buffer) => {
                                                                         match buffer.get_image() {
                                                                             Ok(img) => {

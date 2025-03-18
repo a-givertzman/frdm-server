@@ -64,11 +64,6 @@ impl AcBuffer {
         if err != AcErr::Success {
             return Err(StrErr(format!("{}.get_image | Error: {}", self.name, err)));
         };
-        log::trace!("{}.get_image | and requeue", self.name);
-        let err = AcErr::from(unsafe { acDeviceRequeueBuffer(self.device, self.buffer) });
-        if err != AcErr::Success {
-            return Err(StrErr(format!("{}.get_image | Error: {}", self.name, err)));
-        };
         match unsafe { opencv::core::Mat::new_rows_cols_with_data_unsafe(
             height as i32,
             width as i32,
@@ -84,5 +79,15 @@ impl AcBuffer {
             }),
             Err(err) => Err(StrErr(format!("{}.get_image | Error: {}", self.name, err))),
         }
+    }
+}
+///
+/// 
+impl Drop for AcBuffer {
+    fn drop(&mut self) {
+        let err = AcErr::from(unsafe { acDeviceRequeueBuffer(self.device, self.buffer) });
+        if err != AcErr::Success {
+            log::warn!("{}.drop | Error; {}", self.name, err);
+        };
     }
 }
