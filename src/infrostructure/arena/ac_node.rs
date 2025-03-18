@@ -1,5 +1,3 @@
-use std::{ffi::CString, str::FromStr};
-
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 
 use super::{ac_err::AcErr, 
