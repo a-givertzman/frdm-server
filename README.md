@@ -27,3 +27,43 @@ Web page: https://sa-lab.dev/projects-frdm.html#project__overview
       ```
       This will make the Arena SDK shared library files accessible by the run-time linker (ld.so or ld-linux.so).
     - Be shure the MTU for ethernet interfgace used by camera is set to 900 bytes
+
+
+- Descover the IP address of the camera
+
+  - Install network discovering tool [netdisciver](https://github.com/alexxy/netdiscover)
+
+  ```bash
+  sudo apt install netdiscover
+  ```
+  
+  - Use it in passive listening mode and detect incoming ARP announcements (using the -p switch) 
+  ```bash
+  sudo netdiscover -p
+  ```
+  
+  - Reconnect the camera on the network and you will reciev it new IP
+  ```bash
+  Currently scanning: (passive)   |   Screen View: Unique Hosts
+
+  5 Captured ARP Req/Rep packets, from 2 hosts.   Total size: 300
+  _____________________________________________________________________________
+   IP            At MAC Address     Count     Len  MAC Vendor / Hostname      
+  -----------------------------------------------------------------------------
+  0.0.0.0         1c:0f:af:90:a1:71      3     180  Lucid Vision Labs
+  169.254.114.161 1c:0f:af:90:a1:71      2     120  Lucid Vision Labs
+  ```
+  - After some timeout (few secinds) camera MAC: `1c:0f:af:90:a1:71` and IP: `169.254.114.161`
+
+- Start the application
+  
+  - usinng cargo
+  ```bash
+  cargo --run --release
+  ```
+  
+  - Or precompiled executable
+  ```bash
+  ./frdm-server
+  ```
+

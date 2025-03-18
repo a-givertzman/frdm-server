@@ -1,7 +1,7 @@
 [package]
 name = "frdm-server"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 log = "^0.4"
@@ -18,7 +18,7 @@ api-tools = { git = "https://github.com/a-givertzman/rust-api-tools.git", tag = 
 sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git", tag = "0.0.3" }
 #
 # Collections
-indexmap = "^2.7"
+indexmap = "^2.8"
 linked-hash-map = "^0.5"
 hashers = "^1.0"
 #
@@ -42,6 +42,4 @@ opencv = "^0.94"
 # [build-dependencies]
 # cc = "^1.1"
 #
-# Arena camera SDK
-# lucid-arena-sys = "0.1"
-# lucid-arena-sys = { path = "../lucid-arena-sys" }
+libc = "^0.2"
