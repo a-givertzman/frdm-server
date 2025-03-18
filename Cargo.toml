@@ -42,6 +42,7 @@ opencv = "^0.94"
 # [build-dependencies]
 # cc = "^1.1"
 #
+<<<<<<< HEAD
 # Arena camera SDK
 # lucid-arena-sys = "0.1"
 # lucid-arena-sys = { path = "../lucid-arena-sys" }
@@ -50,3 +51,6 @@ opencv = "^0.94"
 # rpath = true
 
 libc = "^0.2"
+=======
+libc = "^0.2"
+>>>>>>> 447803abf05305ecfda8645257015ab2b8b4090b
