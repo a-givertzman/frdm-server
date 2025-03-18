@@ -1,15 +1,12 @@
-use std::{ffi::CString, str::FromStr};
+use std::sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc, RwLock};
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
-use crate::infrostructure::arena::bindings::{
-    acBuffer, acNode,
-    acBufferGetSizeFilled, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceRequeueBuffer, acDeviceStartStream,
-    acDeviceStopStream, acImageGetData, acImageGetHeight, acImageGetTimestampNs, acImageGetWidth,
-    AC_ACCESS_MODE_NI,
-};
+use crate::infrostructure::arena::{ac_access_mode::AcAccessMode, bindings::{
+    acBuffer, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceStartStream, acDeviceStopStream,
+}};
 
 use super::{
-    ac_buffer::AcBuffer, ac_err::AcErr, ac_node::AcNodeMap, bindings::{
-        acDevice, acDeviceGetNodeMap, acNodeMap, acNodeMapGetNodeAndAccessMode, acSystem, acSystemCreateDevice, acSystemDestroyDevice
+    ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node::AcNodeMap, bindings::{
+        acDevice, acNodeMap, acSystem, acDeviceGetNodeMap, acSystemCreateDevice, acSystemDestroyDevice
     }, pixel_format::PixelFormat
 };
 
@@ -22,7 +19,8 @@ pub struct AcDevice {
     system: acSystem,
     pixel_format: PixelFormat,
     // Maximum time to wait for an image buffer
-    image_timeout: u64
+    image_timeout: u64,
+    exit: Arc<AtomicBool>,
 }
 //
 //
@@ -38,28 +36,28 @@ impl AcDevice {
             system,
             pixel_format,
             image_timeout: 2000,
+            exit: Arc::new(AtomicBool::new(false)),
         }
     }
     ///
     /// 
-    pub fn run(&mut self) -> Result<(), StrErr> {
+    pub fn listen(&mut self, on_event: impl Fn(AcImage)) -> Result<(), StrErr> {
         unsafe {
             let err = AcErr::from(acSystemCreateDevice(self.system, self.index, &mut self.device));
             match err {
                 AcErr::Success => {
-                    match self.acquire_images(100000) {
+                    match self.stream_(on_event) {
                         Ok(_) => {
-                            log::debug!("{}.run | Image received", self.name);
-
+                            log::debug!("{}.stream | Image received", self.name);
+                            Ok(())
                         }
                         Err(err) => {
-                            log::debug!("{}.run | Image receiv Error: {}", self.name, err);
+                            Err(StrErr(format!("{}.stream | Image receiv Error: {}", self.name, err)))
                         }
                     }
-                    Ok(())
                 }
                 _ => {
-                    Err(StrErr(format!("{}.run | Error: {}", self.name, err)))
+                    Err(StrErr(format!("{}.stream | Error: {}", self.name, err)))
                 }
             }
         }
@@ -99,7 +97,7 @@ impl AcDevice {
         }
     }
     ///
-    /// demonstrates acquisition
+    /// Image acquisition
     /// (1) sets acquisition mode
     /// (2) sets buffer handling mode
     /// (3) set transport stream protocol to TCP
@@ -108,197 +106,102 @@ impl AcDevice {
     /// (6) prints information from images
     /// (7) requeues buffers
     /// (8) stops the stream
-    fn acquire_images(&self, images: usize) -> Result<(), StrErr> {
-        unsafe {
-            log::debug!("{}.acquire_images | Get node map...", self.name);
-            match self.node() {
-                Ok(node_map) => {
-                    log::debug!("{}.acquire_images | Get node map - Ok", self.name);
-                    match node_map.set_enumeration_value("PixelFormat", &self.pixel_format.format()) {
-                        Ok(_) => log::debug!("{}.acquire_images | PixelFormat: {}", self.name, self.pixel_format.format()),
-                        Err(err) => return Err(StrErr(format!("{}.acquire_images | Set PixelFormat Error: {}", self.name, err))),
-                    };
-                    let node_name = "AcquisitionMode";
-                    match node_map.get_value(node_name) {
-                        Ok(initial_acquisition_mode) => {
-                            // set acquisition mode
-                            log::debug!("{}.acquire_images | Set acquisition mode to 'Continuous'...", self.name);
-                            match node_map.set_value(node_name, "Continuous") {
-                                Ok(_) => {
-                                    // get TL Stream node map
-                                    let h_tlstream_node_map = match self.tls_stream_node() {
-                                        Err(err) => return Err(StrErr(format!("{}.acquire_images | GetTLStreamNodeMap Error: {}", self.name, err))),
-                                        Ok(node) => node,
-                                    };
-                                    // let err = AcErr::from(acDeviceGetTLStreamNodeMap(self.device, &mut h_tlstream_node_map.map));
-                                    // if err != AcErr::Success {
-                                    //     return Err(StrErr(format!("{}.acquire_images | GetTLStreamNodeMap Error: {}", self.name, err)));
-                                    // };
-                                    // set buffer handling mode
-                                    log::debug!("{}.acquire_images | Set buffer handling mode to 'NewestOnly'...", self.name);
-                                    h_tlstream_node_map.set_value("StreamBufferHandlingMode", "NewestOnly")?;
-                                    // self.set_node_value(h_tlstream_node_map, "StreamBufferHandlingMode", "NewestOnly")?;
-                                    // The TransportStreamProtocol node can tell the camera to use the TCP datastream engine. When
-                                    //    set to TCP - Arena will switch to using the TCP datastream engine. 
-                                    //    There is no further necessary configuration, though to achieve maximum throughput 
-                                    //    users may want to set the "DeviceLinkThroughputReserve" to 0 and 
-                                    //    also set the stream channel packet delay "GevSCPD" to 0.
-                                    let mut h_transport_stream_protocol_node: acNode = std::ptr::null_mut();
-                                    let mut access_mode_transport_stream_protocol = 0;
-                                    let err = AcErr::from(acNodeMapGetNodeAndAccessMode(
-                                        node_map.map,
-                                        CString::from_str("TransportStreamProtocol").unwrap().as_ptr(),
-                                        &mut h_transport_stream_protocol_node,
-                                        &mut access_mode_transport_stream_protocol,
-                                    ));
-                                    if err != AcErr::Success {
-                                        return Err(StrErr(format!("{}.acquire_images | GetNodeAndAccessMode Error: {}", self.name, err)));
-                                    };
-                                    if access_mode_transport_stream_protocol != AC_ACCESS_MODE_NI {
-                                        // get node value
-                                        // let p_transport_stream_protocol_initial = node_map.get_value("TransportStreamProtocol")?;
-                                        // log::debug!("{}.acquire_images | Set Transport Stream Protocol to TCP", self.name);
-                                        // let err = AcErr::from(acNodeMapSetEnumerationValue(
-                                        //     node_map,
-                                        //     CString::from_str("TransportStreamProtocol").unwrap().as_ptr(),
-                                        //     CString::from_str("TCP").unwrap().as_ptr(),
-                                        // ));
-                                        // if err != AcErr::Success {
-                                        //     return Err(StrErr(format!("{}.acquire_images | Set Transport Stream Protocol to TCP Error: {}", self.name, err)));
-                                        // };
-                                        // start stream
-                                        log::debug!("{}.acquire_images | Start stream", self.name);
-                                        let err = AcErr::from(acDeviceStartStream(self.device));
-                                        if err != AcErr::Success {
-                                            return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
-                                        };
-                                        let window = "Retrived";
-                                        if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
-                                            return Err(StrErr(format!("{}.acquire_images | Create Window Error: {}", self.name, err)));
+    fn stream_(&self, on_event: impl Fn(AcImage)) -> Result<(), StrErr> {
+        let dbg = self.name.join();
+        let exit = self.exit.clone();
+        log::debug!("{}.stream | Get node map...", dbg);
+        match self.node() {
+            Ok(node_map) => {
+                match self.tls_stream_node() {
+                    Err(err) => return Err(StrErr(format!("{}.stream | GetTLStreamNodeMap Error: {}", dbg, err))),
+                    Ok(h_tlstream_node_map) => {
+                        log::debug!("{}.stream | Get node map - Ok", dbg);
+                        match node_map.set_enumeration_value("PixelFormat", &self.pixel_format.format()) {
+                            Ok(_) => log::debug!("{}.stream | PixelFormat: {}", dbg, self.pixel_format.format()),
+                            Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
+                        };
+                        let node_name = "AcquisitionMode";
+                        match node_map.get_value(node_name) {
+                            Ok(initial_acquisition_mode) => {
+                                // set acquisition mode
+                                log::debug!("{}.stream | Set acquisition mode to 'Continuous'...", dbg);
+                                match node_map.set_value(node_name, "Continuous") {
+                                    Ok(_) => {
+                                        // set buffer handling mode
+                                        log::debug!("{}.stream | Set buffer handling mode to 'NewestOnly'...", dbg);
+                                        if let Err(err) = h_tlstream_node_map.set_value("StreamBufferHandlingMode", "NewestOnly"){
+                                            log::warn!("{}.stream | StreamBufferHandlingMode set 'NewestOnly' Error: {}", dbg, err);
                                         }
-                                        // let img = opencv::imgcodecs::imread("/home/lobanov/Pictures/Sub-Issue-Bind.png", opencv::imgcodecs::IMREAD_COLOR).unwrap();
-                                        // if let Err(err) = opencv::highgui::imshow(window, &img) {
-                                        //     log::warn!("{}.acquire_images | Display img error: {:?}", self.name, err);
-                                        // }
-                                        opencv::highgui::wait_key(10).unwrap();
-                                        // let mut cam = opencv::videoio::VideoCapture::new(0, opencv::videoio::CAP_ANY).unwrap(); // 0 is the default camera
-                                        // if ! cam.is_opened().unwrap() {
-                                        //     log::warn!("{}.acquire_images | Cam isn't opened", self.name);
-                                        // }
-                                        // get images
-                                        log::debug!("{}.acquire_images | Getting {} images", self.name, images);
-                                        for i in 0..images {
-                                            // get image
-                                            log::debug!("{}.acquire_images | Getting {} image...", self.name, i);
-                                            match self.buffer() {
-                                                Ok(buffer) => {
-                                                    match buffer.get_image() {
-                                                        Ok(img) => {
-                                                            if let Err(err) = opencv::highgui::imshow(window, &img.mat) {
-                                                                log::warn!("{}.acquire_images | Display img error: {:?}", self.name, err);
-                                                            };
-                                                            opencv::highgui::wait_key(1).unwrap();
+                                        let result = match node_map.get_access_mode("TransportStreamProtocol") {
+                                            Ok(transport_stream_protocol_access_mode) => match transport_stream_protocol_access_mode {
+                                                AcAccessMode::NotImplemented => Err(StrErr(format!("{}.stream | Access denied, Mode: {}", dbg, transport_stream_protocol_access_mode))),
+                                                AcAccessMode::Undefined(_) => Err(StrErr(format!("{}.stream | Access is undefined: {}", dbg, transport_stream_protocol_access_mode))),
+                                                _ => {
+                                                    log::debug!("{}.stream | Start stream", dbg);
+                                                    let err = AcErr::from(unsafe { acDeviceStartStream(self.device) });
+                                                    match err {
+                                                        AcErr::Success => {
+                                                            log::debug!("{}.stream | Retriving images...", dbg);
+                                                                loop {
+                                                                    log::debug!("{}.stream | Read image...", dbg);
+                                                                    match self.buffer() {
+                                                                        Ok(buffer) => {
+                                                                            match buffer.get_image() {
+                                                                                Ok(img) => {
+                                                                                    (on_event)(img)
+                                                                                }
+                                                                                Err(err) => log::warn!("{}.stream | Error: {}", dbg, err),
+                                                                            }
+                                                                        }
+                                                                        Err(err) => {
+                                                                            log::warn!("{}.stream | Error: {}", dbg, err);
+                                                                        }
+                                                                    };
+                                                                    if exit.load(Ordering::SeqCst) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                                // stop stream
+                                                                log::debug!("{}.stream | Stop stream...", dbg);
+                                                                let err = AcErr::from(unsafe { acDeviceStopStream(self.device) });
+                                                                if err != AcErr::Success {
+                                                                    log::warn!("{}.stream | Error: {}", dbg, err);
+                                                                }
+                                                            // return node to its initial values
+                                                            // self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial)?;
                                                         }
-                                                        Err(_) => todo!(),
-                                                    }
+                                                        _ => log::warn!("{}.stream | Error: {}", dbg, err),
+                                                    };
+                                                    Ok(())
                                                 }
-                                                Err(err) => {
-                                                    log::warn!("{}.acquire_images | Get buffer error: {}", self.name, err);
-                                                    return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
-                                                }
-                                            };
-                                            // // get image information
-                                            // log::debug!(" (");
-                                            // // get and display size filled
-                                            // let mut size_filled = 0;
-                                            // let err = AcErr::from(acBufferGetSizeFilled(h_buffer, &mut size_filled));
-                                            // if err != AcErr::Success {
-                                            //     return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
-                                            // };
-                                            // log::debug!("{} bytes; ", size_filled);
-                                            // // get and display width
-                                            // let mut width = 0;
-                                            // let err = AcErr::from(acImageGetWidth(h_buffer, &mut width));
-                                            // if err != AcErr::Success {
-                                            //     return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
-                                            // };
-                                            // log::debug!("{}", width);
-                                            // // get and display height
-                                            // let mut height = 0;
-                                            // let err = AcErr::from(acImageGetHeight(h_buffer, &mut height));
-                                            // if err != AcErr::Success {
-                                            //     return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
-                                            // };
-                                            // log::debug!("{}; ", height);
-                                            // // get and display timestamp
-                                            // let mut timestamp_ns = 0;
-                                            // let err = AcErr::from(acImageGetTimestampNs(h_buffer, &mut timestamp_ns));
-                                            // if err != AcErr::Success {
-                                            //     return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
-                                            // };
-                                            // log::debug!("{}.acquire_images | timestamp (ns): {})", self.name, timestamp_ns);
-                                            // let mut buf = Vec::with_capacity(size_filled);
-                                            // let mut p_input  = buf.as_mut_ptr();
-                                            // let err = AcErr::from(acImageGetData(h_buffer, &mut p_input));
-                                            // if err != AcErr::Success {
-                                            //     return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
-                                            // };
-                                            // let mat = opencv::core::Mat::new_rows_cols_with_data_unsafe(
-                                            //     height as i32,
-                                            //     width as i32,
-                                            //     self.pixel_format.cv_format(),
-                                            //     p_input as *mut std::ffi::c_void,
-                                            //     opencv::core::Mat_AUTO_STEP,
-                                            // ).unwrap();
-                                            // let mut mat = opencv::core::Mat::default();
-                                            // if let Err(err) = cam.read(&mut mat) {
-                                            //     log::warn!("{}.acquire_images | Cam read error: {:?}", self.name, err);
-                                            // }
-                                            // if let Err(err) = opencv::highgui::imshow(window, &mat) {
-                                            //     log::warn!("{}.acquire_images | Display img error: {:?}", self.name, err);
-                                            // };
-                                            // opencv::highgui::wait_key(1).unwrap();
-                                            // requeue image buffer
-                                            // log::debug!("{}.acquire_images | and requeue", self.name);
-                                            // let err = AcErr::from(acDeviceRequeueBuffer(self.device, h_buffer));
-                                            // if err != AcErr::Success {
-                                            //     return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)));
-                                            // };
-                                        }
-                                        // stop stream
-                                        log::debug!("{}.acquire_images | Stop stream", self.name);
-                                        let err = AcErr::from(acDeviceStopStream(self.device));
-                                        match err {
-                                            AcErr::Success => (),
-                                            _ => return Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err))),
+                                            }
+                                            Err(err) => Err(StrErr(format!("{}.stream | Get TransportStreamProtocol access mode Error: {}", dbg, err))),
                                         };
-                                        // return node to its initial values
-                                        // self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial)?;
-                                    } else {
-                                        log::warn!("{}.acquire_images | Connected camera does not support TCP stream", self.name);
+                                        if let Err(err) = node_map.set_value("AcquisitionMode", &initial_acquisition_mode) {
+                                            log::debug!("{}.stream | Error return mode back: {}", dbg, err);
+                                        }
+                                        result
+                                    },
+                                    Err(err) => {
+                                        if let Err(err) = node_map.set_value("AcquisitionMode", &initial_acquisition_mode) {
+                                            log::debug!("{}.stream | Error return mode back: {}", dbg, err);
+                                        }
+                                        Err(StrErr(format!("{}.stream | Set acquisition mode to 'Continuous' Error: {}", dbg, err)))
                                     }
-                                    // return node to its initial values
-                                    node_map.set_value("AcquisitionMode", &initial_acquisition_mode)?;
-                                    Ok(())
-                                },
-                                Err(err) => {
-                                    if let Err(err) = node_map.set_value("AcquisitionMode", &initial_acquisition_mode) {
-                                        log::debug!("{}.acquire_images | Error return mode back: {}", self.name, err);
-                                    }
-                                    Err(StrErr(format!("{}.acquire_images | Error: {}", self.name, err)))
                                 }
-                            }
-                        },
-                        Err(err) => Err(StrErr(format!("{}.acquire_images | Get `initial_acquisition_mode` Error: {}", self.name, err))),
+                            },
+                            Err(err) => Err(StrErr(format!("{}.stream | Get `initial_acquisition_mode` Error: {}", dbg, err))),
+                        }
                     }
-                },
-                Err(err) => Err(StrErr(format!("{}.acquire_images | Get node map - Error: {}", self.name, err))),
-            }
+                }
+            },
+            Err(err) => Err(StrErr(format!("{}.stream | Get node map - Error: {}", dbg, err))),
         }
     }
     ///
     /// Cleans up the system (acSystem) and deinitializes the Arena SDK, deallocating all memory.
     pub fn close(&self) -> Result<(), StrErr> {
+        self.exit.store(true, Ordering::SeqCst);
         unsafe {
             let err = AcErr::from(acSystemDestroyDevice(self.system, self.device));
             match err {

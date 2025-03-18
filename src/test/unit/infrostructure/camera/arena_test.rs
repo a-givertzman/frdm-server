@@ -51,14 +51,25 @@ mod arena {
                         }
                         let selection = 0;
                         let mut device = AcDevice::new(&dbg, ac_system.system, selection, PixelFormat::BGR8);
-                        match device.run() {
-                            Ok(_) => {
-
-                            }
-                            Err(err) => {
-                                log::warn!("{} | Error; {}", dbg, err);
-                            }
+                        let window = "Retrived";
+                        if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
+                            log::warn!("{}.stream | Create Window Error: {}", dbg, err);
                         }
+                        // opencv::highgui::wait_key(10).unwrap();
+                        let result = device.listen(|img| {
+                            if let Err(err) = opencv::highgui::imshow(window, &img.mat) {
+                                log::warn!("{}.stream | Display img error: {:?}", dbg, err);
+                            };
+                            opencv::highgui::wait_key(1).unwrap();
+                            // let mut cam = opencv::videoio::VideoCapture::new(0, opencv::videoio::CAP_ANY).unwrap(); // 0 is the default camera
+                            // if ! cam.is_opened().unwrap() {
+                            //     log::warn!("{}.stream | Cam isn't opened", dbg);
+                            // }
+                        });
+                        if let Err(err) = result {
+                            log::warn!("{} | Error; {}", dbg, err);
+                        }
+                        device.close().unwrap();
                     }
                     None => {
                         log::warn!("{} | No devices detected", dbg);

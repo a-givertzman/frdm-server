@@ -3,8 +3,7 @@ use std::{ffi::CString, str::FromStr};
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 
 use super::{
-    ac_access_mode::AcAccessMode, ac_err::AcErr, ffi_str::FfiStr,
-    bindings::{acDevice, acNodeMap, acNodeMapGetNodeAndAccessMode, acNodeMapSetEnumerationValue, acValueFromString, acValueToString},
+    ac_access_mode::AcAccessMode, ac_err::AcErr, bindings::{acDevice, acNode, acNodeMap, acNodeMapGetNodeAndAccessMode, acNodeMapSetEnumerationValue, acValueFromString, acValueToString}, ffi_str::FfiStr
 };
 
 ///
@@ -30,6 +29,28 @@ impl AcNodeMap {
             kind,
             device,
             map,
+        }
+    }
+    ///
+    /// Get Node Access mode
+    /// - #[doc = "< "]
+    /// - AC_ACCESS_MODE_NI = 0 - Not implemented
+    /// - AC_ACCESS_MODE_NA = 1 - Not available
+    /// - AC_ACCESS_MODE_WO = 2 - Write only
+    /// - AC_ACCESS_MODE_RO = 3 - Read only
+    /// - AC_ACCESS_MODE_RW = 4 - Read and write
+    pub fn get_access_mode(&self, node_name: &str) -> Result<AcAccessMode, StrErr> {
+        let mut h_transport_stream_protocol_node: acNode = std::ptr::null_mut();
+        let mut access_mode = 0;
+        let err = AcErr::from(unsafe { acNodeMapGetNodeAndAccessMode(
+            self.map,
+            CString::from_str(node_name).unwrap().as_ptr(),
+            &mut h_transport_stream_protocol_node,
+            &mut access_mode,
+        ) });
+        match err {
+            AcErr::Success => Ok(AcAccessMode::from(access_mode)),
+            _ => Err(StrErr(format!("{}.get_access_mode | Error: {}", self.name, err))),
         }
     }
     ///
