@@ -1,6 +1,8 @@
+use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc}, thread::JoinHandle};
+
 use opencv::videoio::VideoCaptureTrait;
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
-use crate::domain::dbg::dbgid::DbgId;
+use crate::{domain::dbg::dbgid::DbgId, infrostructure::arena::{ac_device::AcDevice, ac_image::AcImage, ac_system::AcSystem}};
 use super::{camera_conf::CameraConf, pimage::PImage};
 ///
 /// # Description to the [Camera] class
@@ -10,6 +12,9 @@ pub struct Camera {
     dbg: DbgId,
     name: Name,
     conf: CameraConf,
+    send: mpsc::Sender<AcImage>,
+    recv: Option<mpsc::Receiver<AcImage>>,
+    exit: Arc<AtomicBool>,
 }
 //
 //
@@ -21,15 +26,79 @@ impl Camera {
     pub fn new(conf: CameraConf) -> Self {
         let dbg = DbgId::root(conf.name.join());
         log::debug!("{}.new | : ", dbg);
+        let (send, recv) = mpsc::channel();
         Self {
             dbg,
             name: conf.name.clone(),
             conf,
+            send,
+            recv: Some(recv),
+            exit: Arc::new(AtomicBool::new(false)),
+        }
+    }
+    ///
+    /// Returns channel recv to access farmes from camera
+    /// - call `read` to start reading frames from camera
+    /// - call `close` to stop reading and cleen up
+    pub fn stream(&mut self) -> mpsc::Receiver<AcImage> {
+        match self.recv.take() {
+            Some(recv) => recv,
+            None => {
+                panic!("{}.stream | Receiver can be returned only once", self.name);
+            },
         }
     }
     ///
     /// Receive frames from IP camera
-    pub fn read(&self, path: impl Into<String>) -> Result<CameraIntoIterator, StrErr> {
+    pub fn read(&self) -> Result<JoinHandle<()>, StrErr> {
+        let dbg = self.name.join();
+        let conf = self.conf.clone();
+        let send = self.send.clone();
+        let exit = self.exit.clone();
+        let handle = std::thread::spawn(move || {
+            let mut ac_system = AcSystem::new(&dbg);
+            match ac_system.run() {
+                Ok(_) => {
+                    match ac_system.devices() {
+                        Some(devices) => {
+                            log::debug!("Devices found: {}", devices);
+                            for dev in 0..devices {
+                                log::debug!("Retriving Device {}...", dev);
+                                let device_vendor = ac_system.device_vendor(dev).unwrap();
+                                let device_model = ac_system.device_model(dev).unwrap();
+                                log::trace!("Device {} model: {}", dev, device_model);
+                                let device_serial = ac_system.device_serial(dev).unwrap();
+                                log::trace!("Device {} serial: {}", dev, device_serial);
+                                let device_mac = ac_system.device_mac(dev).unwrap();
+                                let device_ip = ac_system.device_ip(dev).unwrap();
+                                log::trace!("Device {} IP: {}", dev, device_ip);
+                                log::info!("Device {}: {:?} | {:?} | {:?} | {:?} | {:?}", dev, device_vendor, device_model, device_serial, device_mac, device_ip);
+                            }
+                            let selection = 0;
+                            let mut device = AcDevice::new(&dbg, ac_system.system, selection, conf, Some(exit));
+                            let result = device.listen(|frame| {
+                                if let Err(err) = send.send(frame) {
+                                    log::warn!("{} | Send Error; {}", dbg, err);
+                                }
+                                // frames_clone.fetch_add(1, Ordering::SeqCst);
+                            });
+                            if let Err(err) = result {
+                                log::warn!("{} | Error; {}", dbg, err);
+                            }
+                        }
+                        None => {
+                            log::warn!("{} | No devices detected", dbg);
+                        }
+                    }
+                }
+                Err(err) => panic!("{} | Error; {}", dbg, err),
+            }
+        });
+        Ok(handle)
+    }
+    ///
+    /// Receive frames from IP camera
+    pub fn from_file(&self, path: impl Into<String>) -> Result<CameraIntoIterator, StrErr> {
         match opencv::videoio::VideoCapture::from_file(&path.into(), opencv::videoio::CAP_ANY) {
             Ok(mut video) => {
                 let mut frames = vec![];
@@ -45,6 +114,11 @@ impl Camera {
             }
             Err(err) => Err(StrErr(format!("{}.read | IO Error: {:#?}", self.dbg, err))),
         }
+    }
+    ///
+    /// Sends `Exit` signal to stop reading.
+    pub fn exit(&self) {
+        self.exit.store(true, Ordering::SeqCst);
     }
 }
 ///

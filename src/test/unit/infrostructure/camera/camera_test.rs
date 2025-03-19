@@ -1,12 +1,11 @@
 #[cfg(test)]
 
 mod camera {
-    use std::{net::SocketAddr, os::linux::net::SocketAddrExt, sync::Once, time::{Duration, Instant}};
-    use sal_sync::services::conf::conf_tree::ConfTree;
+    use std::{sync::Once, time::Duration};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use opencv::{
-        highgui, imgcodecs::{self, imread, IMREAD_COLOR}, imgproc, prelude::*, videoio, Result
+        prelude::*, videoio
     };
     use crate::{domain::dbg::dbgid::DbgId, infrostructure::{arena::{exposure::{Exposure, ExposureAuto}, pixel_format::PixelFormat}, camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}}};
     ///
@@ -98,7 +97,7 @@ mod camera {
                     exposure: Exposure::new(ExposureAuto::Off, 5000.0),
                     auto_packet_size: true,
                     resend_packet: false,
-                }).read("src/test/unit/infrostructure/camera/video_test.mp4"),
+                }).from_file("src/test/unit/infrostructure/camera/video_test.mp4"),
                 videoio::VideoCapture::from_file("src/test/unit/infrostructure/camera/video_test.mp4", videoio::CAP_ANY).unwrap(),
             ),
         ];
