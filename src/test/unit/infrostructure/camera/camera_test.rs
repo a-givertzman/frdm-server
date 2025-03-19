@@ -42,6 +42,7 @@ mod camera {
                     resolution: 
                         width: 1200
                         height: 800
+                    index: 0
                     address: 192.168.10.12:2020
                     pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
                     exposure:
@@ -57,7 +58,8 @@ mod camera {
                         width: 1200,
                         height: 800,
                     },
-                    address: "192.168.10.12:2020".parse().unwrap(),
+                    index: Some(0),
+                    address: Some("192.168.10.12:2020".parse().unwrap()),
                     pixel_format: PixelFormat::BayerBG8,
                     exposure: Exposure::new(ExposureAuto::Off, 5000.0),
                     auto_packet_size: true,
@@ -92,7 +94,8 @@ mod camera {
                         width: 1200,
                         height: 800,
                     },
-                    address: "192.168.10.12:2020".parse().unwrap(),
+                    index: Some(0),
+                    address: Some("192.168.10.12:2020".parse().unwrap()),
                     pixel_format: PixelFormat::BayerBG8,
                     exposure: Exposure::new(ExposureAuto::Off, 5000.0),
                     auto_packet_size: true,

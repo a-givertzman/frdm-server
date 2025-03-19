@@ -155,18 +155,15 @@ impl AcSystem {
             }
         }
     }
-    ///
-    /// Cleans up the system (acSystem) and deinitializes the Arena SDK, deallocating all memory.
-    pub fn close(&self) -> Result<(), StrErr> {
-        unsafe {
-            let err = AcErr::from(acCloseSystem(self.system));
-            match err {
-                AcErr::Success => Ok(()),
-                _ => Err(StrErr(format!("{}.close | Error: {}", self.name, err))),
-            }
-        }
-    }
-
+    // ///
+    // /// Cleans up the system (acSystem) and deinitializes the Arena SDK, deallocating all memory.
+    // pub fn close(&self) -> Result<(), StrErr> {
+    //     let err = AcErr::from(unsafe { acCloseSystem(self.system) });
+    //     match err {
+    //         AcErr::Success => Ok(()),
+    //         _ => Err(StrErr(format!("{}.close | Error: {}", self.name, err))),
+    //     }
+    // }
 }
 //
 //

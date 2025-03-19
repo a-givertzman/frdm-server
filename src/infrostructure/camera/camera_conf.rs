@@ -14,8 +14,11 @@ pub struct CameraConf {
     /// Camera cesolution setting
     pub resolution: CameraResolution,
     ///
-    /// Ip and port address of the camera
-    pub address: SocketAddr,
+    /// Camera index, if IP addres is dynamic or unknown
+    pub index: Option<usize>,
+    ///
+    /// Ip and port address of the camera, if specified statically
+    pub address: Option<SocketAddr>,
     ///
     /// Pixel format
     /// - Mono8/10/12/16,
@@ -84,7 +87,9 @@ impl CameraConf {
         let resolution = self_conf.get_param_conf("resolution").unwrap();
         let resolution = CameraResolution::new(self_name.join(), &resolution);
         log::debug!("{}.new | resolution: {:?}", self_id, resolution);
-        let self_address: SocketAddr = self_conf.get_param_value("address").unwrap().as_str().unwrap().parse().unwrap();
+        let self_index = self_conf.get_param_value("index").map(|ix| ix.as_u64().unwrap() as usize).ok();
+        log::debug!("{}.new | index: {:?}", self_id, self_index);
+        let self_address: Option<SocketAddr> = self_conf.get_param_value("address").map(|addr| addr.as_str().unwrap().parse().unwrap()).ok();
         log::debug!("{}.new | address: {:?}", self_id, self_address);
         let pixel_format = self_conf.get_param_value("pixel-format").unwrap();
         let pixel_format: PixelFormat = serde_yaml::from_value(pixel_format).unwrap();
@@ -100,6 +105,7 @@ impl CameraConf {
             name: self_name,
             fps: self_fps as usize, 
             resolution: resolution, 
+            index: self_index,
             address: self_address,
             pixel_format,
             exposure,
