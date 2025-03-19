@@ -21,7 +21,9 @@ mod arena {
     ///  - ...
     fn init_each() -> () {}
     ///
-    /// Testing such functionality / behavior
+    /// Testing TRI028S-CC Image aqusion
+    /// 
+    /// [TRI028S-CC Technical spec](https://thinklucid.com/product/triton-2-8-mp-imx429/)
     #[test]
     fn list_devices() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
@@ -35,6 +37,7 @@ mod arena {
         test_duration.run().unwrap();
         // Pixel format `Mono8` - Monochrom / `BGR8` - Color
         let pixel_format = PixelFormat::BGR8;
+        let pixel_format = PixelFormat::BayerBG8;
         // Exposure Time 	20.5 μs to 10 s (Normal) / 1 μs to 5 μs (Short Mode)
         let exposure = Exposure::new(ExposureAuto::Off, 7000.0);
         let read_time = Duration::from_secs(20);
