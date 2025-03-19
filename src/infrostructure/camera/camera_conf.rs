@@ -49,7 +49,7 @@ pub struct CameraConf {
 	///    information. If a packet is missed while receiving an image, a
 	///    packet resend is requested and this information is used to retrieve
 	///    and redeliver the missing packet in the correct order.
-    pub packet_resend: bool,
+    pub resend_packet: bool,
 
 }
 //
@@ -70,7 +70,7 @@ impl CameraConf {
     ///         auto: Off               # Off / Continuous
     ///         time: 5000              # microseconds
     ///     auto-packet-size: true
-    ///     packet-resend: false
+    ///     resend-packet: false
     /// ```
     pub fn new(parent: impl Into<String>, conf_tree: &ConfTree) -> Self {
         log::trace!("CameraConf.new | conf_tree: {:?}", conf_tree);
@@ -89,16 +89,13 @@ impl CameraConf {
         let pixel_format = self_conf.get_param_value("pixel-format").unwrap();
         let pixel_format: PixelFormat = serde_yaml::from_value(pixel_format).unwrap();
         log::debug!("{}.new | pixel-format: {:?}", self_id, pixel_format);
-
         let exposure = self_conf.get_param_value("exposure").unwrap();
         let exposure: Exposure = serde_yaml::from_value(exposure).unwrap();
         log::debug!("{}.new | exposure: {:?}", self_id, exposure);
-
         let auto_packet_size = self_conf.get_param_value("auto-packet-size").unwrap().as_bool().unwrap();
         log::debug!("{}.new | auto-packet-size: {:?}", self_id, auto_packet_size);
-
-        let packet_resend = self_conf.get_param_value("packet-resend").unwrap().as_bool().unwrap();
-        log::debug!("{}.new | packet-resend: {:?}", self_id, packet_resend);
+        let resend_packet = self_conf.get_param_value("resend-packet").unwrap().as_bool().unwrap();
+        log::debug!("{}.new | resend-packet: {:?}", self_id, resend_packet);
         Self {
             name: self_name,
             fps: self_fps as usize, 
@@ -107,7 +104,7 @@ impl CameraConf {
             pixel_format,
             exposure,
             auto_packet_size,
-            packet_resend,
+            resend_packet,
         }
     }
     ///

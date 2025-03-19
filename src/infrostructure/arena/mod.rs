@@ -1,6 +1,5 @@
 pub(super) mod ac_access_mode;
 pub(super) mod ac_buffer;
-pub mod ac_device_conf;
 pub mod ac_device;
 pub(super) mod ac_err;
 pub mod ac_image;

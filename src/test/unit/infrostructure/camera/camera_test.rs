@@ -49,7 +49,7 @@ mod camera {
                         auto: Off               # Off / Continuous
                         time: 5000              # microseconds
                     auto-packet-size: true
-                    packet-resend: false
+                    resend-packet: false
                 "#).unwrap(),
                 CameraConf {
                     name: "/test/Camera1".into(),
@@ -62,7 +62,7 @@ mod camera {
                     pixel_format: PixelFormat::BayerBG8,
                     exposure: Exposure::new(ExposureAuto::Off, 5000.0),
                     auto_packet_size: true,
-                    packet_resend: false,
+                    resend_packet: false,
                 }        
             ),
         ];
@@ -97,7 +97,7 @@ mod camera {
                     pixel_format: PixelFormat::BayerBG8,
                     exposure: Exposure::new(ExposureAuto::Off, 5000.0),
                     auto_packet_size: true,
-                    packet_resend: false,
+                    resend_packet: false,
                 }).read("src/test/unit/infrostructure/camera/video_test.mp4"),
                 videoio::VideoCapture::from_file("src/test/unit/infrostructure/camera/video_test.mp4", videoio::CAP_ANY).unwrap(),
             ),

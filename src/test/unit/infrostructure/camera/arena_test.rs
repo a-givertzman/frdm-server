@@ -58,7 +58,7 @@ mod arena {
                     auto: Off               # Off / Continuous
                     time: 7000              # microseconds
                 auto-packet-size: true
-                packet-resend: false
+                resend-packet: false
         "#).unwrap();
         let conf = CameraConf::from_yaml(&dbg, &conf);
         let time = Instant::now();

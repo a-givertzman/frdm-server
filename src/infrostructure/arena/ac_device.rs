@@ -5,7 +5,7 @@ use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
 }}, camera::camera_conf::CameraConf};
 
 use super::{
-    ac_buffer::AcBuffer, ac_device_conf::AcDeviceConf, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
+    ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
         acDevice, acDeviceGetNodeMap, acNodeMap, acSystem, acSystemCreateDevice, acSystemDestroyDevice
     }, exposure::Exposure
 };
@@ -190,13 +190,14 @@ impl AcDevice {
                                 log::debug!("{}.stream | Set acquisition mode to 'Continuous'...", dbg);
                                 match node_map.set_value(node_name, "Continuous") {
                                     Ok(_) => {
-                                        log::debug!("{}.stream | Set buffer handling mode to 'NewestOnly'...", dbg);
                                         if let Err(err) = h_tlstream_node_map.set_value("StreamBufferHandlingMode", "NewestOnly"){
                                             log::warn!("{}.stream | StreamBufferHandlingMode set 'NewestOnly' Error: {}", dbg, err);
                                         }
-                                        log::debug!("{}.stream | Set auto negotiate packet size...", dbg);
-                                        if let Err(err) = h_tlstream_node_map.set_bool_value("StreamAutoNegotiatePacketSize", true){
+                                        if let Err(err) = h_tlstream_node_map.set_bool_value("StreamAutoNegotiatePacketSize", self.conf.auto_packet_size){
                                             log::warn!("{}.stream | StreamAutoNegotiatePacketSize Error: {}", dbg, err);
+                                        }
+                                        if let Err(err) = h_tlstream_node_map.set_bool_value("StreamPacketResendEnable", self.conf.resend_packet){
+                                            log::warn!("{}.stream | StreamPacketResendEnable Error: {}", dbg, err);
                                         }
                                         let result = match node_map.get_access_mode("TransportStreamProtocol") {
                                             Ok(transport_stream_protocol_access_mode) => match transport_stream_protocol_access_mode {
