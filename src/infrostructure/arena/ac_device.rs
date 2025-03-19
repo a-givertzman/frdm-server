@@ -1,13 +1,13 @@
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
-use crate::infrostructure::arena::{ac_access_mode::AcAccessMode, bindings::{
+use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
     acBuffer, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceStartStream, acDeviceStopStream,
-}};
+}}, camera::camera_conf::CameraConf};
 
 use super::{
-    ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
+    ac_buffer::AcBuffer, ac_device_conf::AcDeviceConf, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
         acDevice, acDeviceGetNodeMap, acNodeMap, acSystem, acSystemCreateDevice, acSystemDestroyDevice
-    }, exposure::Exposure, pixel_format::PixelFormat
+    }, exposure::Exposure
 };
 
 ///
@@ -17,8 +17,7 @@ pub struct AcDevice {
     index: usize,
     device: acDevice,
     system: acSystem,
-    pixel_format: PixelFormat,
-    exposure: Exposure,
+    conf: CameraConf,
     // Maximum time to wait for an image buffer
     image_timeout: u64,
     exit: Arc<AtomicBool>,
@@ -33,8 +32,7 @@ impl AcDevice {
         parent: impl Into<String>,
         system: acSystem,
         index: usize,
-        pixel_format: PixelFormat,
-        exposure: Exposure,
+        conf: CameraConf,
         exit: Option<Arc<AtomicBool>>,
     ) -> Self {
         let name = Name::new(parent.into(), format!("AcDevice({index})"));
@@ -43,8 +41,7 @@ impl AcDevice {
             index,
             device: std::ptr::null_mut(),
             system,
-            pixel_format,
-            exposure,
+            conf,
             image_timeout: 2000,
             exit: exit.unwrap_or(Arc::new(AtomicBool::new(false))),
         }
@@ -92,7 +89,7 @@ impl AcDevice {
         let mut buffer: acBuffer = std::ptr::null_mut();
         let err = AcErr::from(unsafe { acDeviceGetBuffer(self.device, self.image_timeout, &mut buffer) });
         match err {
-            AcErr::Success => Ok(AcBuffer::new(&self.name, self.device, buffer, self.pixel_format)),
+            AcErr::Success => Ok(AcBuffer::new(&self.name, self.device, buffer, self.conf.pixel_format)),
             _ => Err(StrErr(format!("{}.buffer | Error: {}", self.name, err))),
         }
     }
@@ -141,10 +138,10 @@ impl AcDevice {
                             }
                             Ok(())
                         }
-                        Err(err) => Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: {}", dbg, self.exposure.time, err))),
+                        Err(err) => Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: {}", dbg, self.conf.exposure.time, err))),
                     }
                 } else {
-                    Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: ExposureTime Node - is not writable", dbg, self.exposure.time)))
+                    Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: ExposureTime Node - is not writable", dbg, self.conf.exposure.time)))
                 }
             },
             Err(err) => Err(StrErr(format!("{}.set_exposure | Get ExposureTime Node Error: {}", dbg, err))),
@@ -170,31 +167,29 @@ impl AcDevice {
                     Err(err) => return Err(StrErr(format!("{}.stream | GetTLStreamNodeMap Error: {}", dbg, err))),
                     Ok(h_tlstream_node_map) => {
                         log::debug!("{}.stream | Get node map - Ok", dbg);
-                        match node_map.set_enumeration_value("PixelFormat", &self.pixel_format.format()) {
-                            Ok(_) => log::debug!("{}.stream | PixelFormat: {}", dbg, self.pixel_format.format()),
+                        match node_map.set_enumeration_value("PixelFormat", &self.conf.pixel_format.format()) {
+                            Ok(_) => log::debug!("{}.stream | PixelFormat: {}", dbg, self.conf.pixel_format.format()),
                             Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
                         };
                         if let Ok(exposure) = node_map.get_enumeration_value("ExposureAuto") {
                             log::debug!("{}.stream | ExposureAuto: {}", dbg, exposure);
                         }
-                        match node_map.set_enumeration_value("ExposureAuto", self.exposure.auto.as_ref()) {
-                            Ok(_) => log::debug!("{}.stream | Set ExposureAuto: {}", dbg, self.exposure.auto),
+                        match node_map.set_enumeration_value("ExposureAuto", self.conf.exposure.auto.as_ref()) {
+                            Ok(_) => log::debug!("{}.stream | Set ExposureAuto: {}", dbg, self.conf.exposure.auto),
                             Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
                         };
                         if let Err(err) = self.set_min_frame_rate(&node_map) {
                             log::warn!("{}.stream | Error: {}", dbg, err)
                         } 
-                        if let Err(err) = self.set_exposure(&node_map, self.exposure) {
+                        if let Err(err) = self.set_exposure(&node_map, self.conf.exposure) {
                             log::warn!("{}.stream | Error: {}", dbg, err)
                         } 
                         let node_name = "AcquisitionMode";
                         match node_map.get_value(node_name) {
                             Ok(initial_acquisition_mode) => {
-                                // set acquisition mode
                                 log::debug!("{}.stream | Set acquisition mode to 'Continuous'...", dbg);
                                 match node_map.set_value(node_name, "Continuous") {
                                     Ok(_) => {
-                                        // set buffer handling mode
                                         log::debug!("{}.stream | Set buffer handling mode to 'NewestOnly'...", dbg);
                                         if let Err(err) = h_tlstream_node_map.set_value("StreamBufferHandlingMode", "NewestOnly"){
                                             log::warn!("{}.stream | StreamBufferHandlingMode set 'NewestOnly' Error: {}", dbg, err);

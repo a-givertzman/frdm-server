@@ -8,7 +8,7 @@ mod camera {
     use opencv::{
         highgui, imgcodecs::{self, imread, IMREAD_COLOR}, imgproc, prelude::*, videoio, Result
     };
-    use crate::{domain::dbg::dbgid::DbgId, infrostructure::camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}};
+    use crate::{domain::dbg::dbgid::DbgId, infrostructure::{arena::{exposure::{Exposure, ExposureAuto}, pixel_format::PixelFormat}, camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -44,6 +44,12 @@ mod camera {
                         width: 1200
                         height: 800
                     address: 192.168.10.12:2020
+                    pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
+                    exposure:
+                        auto: Off               # Off / Continuous
+                        time: 5000              # microseconds
+                    auto-packet-size: true
+                    packet-resend: false
                 "#).unwrap(),
                 CameraConf {
                     name: "/test/Camera1".into(),
@@ -53,6 +59,10 @@ mod camera {
                         height: 800,
                     },
                     address: "192.168.10.12:2020".parse().unwrap(),
+                    pixel_format: PixelFormat::BayerBG8,
+                    exposure: Exposure::new(ExposureAuto::Off, 5000.0),
+                    auto_packet_size: true,
+                    packet_resend: false,
                 }        
             ),
         ];
@@ -84,6 +94,10 @@ mod camera {
                         height: 800,
                     },
                     address: "192.168.10.12:2020".parse().unwrap(),
+                    pixel_format: PixelFormat::BayerBG8,
+                    exposure: Exposure::new(ExposureAuto::Off, 5000.0),
+                    auto_packet_size: true,
+                    packet_resend: false,
                 }).read("src/test/unit/infrostructure/camera/video_test.mp4"),
                 videoio::VideoCapture::from_file("src/test/unit/infrostructure/camera/video_test.mp4", videoio::CAP_ANY).unwrap(),
             ),

@@ -1,10 +1,27 @@
+use serde::Deserialize;
+
 ///
-/// Exposure Time 	20.5 μs to 10 s (Normal) / 1 μs to 5 μs (Short Mode)
-#[derive(Clone, Copy)]
+/// Exposure settings for the camera
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 pub struct Exposure {
+	/// Disable automatic exposure before setting an exposure time.
+    /// 
+    /// Automatic exposure controls whether the exposure time is set manually or
+	/// automatically by the device. Setting automatic exposure to 'Off' stops
+	/// the device from automatically updating the exposure time while
+	/// streaming.
     pub auto: ExposureAuto,
     ///
     /// Exposure Time in microseconds
+    /// - Opproximate range (exact range to be read from device):
+    ///     - Normal mode: 20.5 μs to 10 s
+    ///     - Short mode : 1 μs to 5 μs
+	/// - Before setting the exposure time:
+    ///     - Disable automatic exposure
+    ///     - Check that the new exposure time is not
+	///       outside of the exposure time's acceptable range. If the value is above the
+	///       maximum or below the minimum, update the value to be within range. Lastly,
+	///       set new the new exposure time.
     pub time: f64,
 }
 //
@@ -19,7 +36,7 @@ impl Exposure {
 }
 ///
 /// 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Deserialize, PartialEq)]
 pub enum ExposureAuto {
     Off,
     // On,

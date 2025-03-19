@@ -1,5 +1,3 @@
-use std::{ffi::CString, usize};
-
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 
 use crate::infrostructure::arena::bindings::acSystemUpdateDevices;

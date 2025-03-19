@@ -47,6 +47,8 @@
 //! https://docs.opencv.org/3.4/de/d25/imgproc_color_conversions.html
 //! https://stackoverflow.com/questions/7734469/converting-basler-image-to-opencv
 
+use serde::Deserialize;
+
 ///
 /// Pixel format
 /// - Mono8/10/12/16,
@@ -54,7 +56,7 @@
 /// - RGB8, BGR8,
 /// - YCbCr8, YCbCr411, 
 /// - YUV422, YUV411,
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 pub enum PixelFormat {
     Mono8, Mono10, Mono12, Mono16,
     RGB8, BGR8,
@@ -145,5 +147,3 @@ impl PixelFormat {
         }
     }
 }
-
-
