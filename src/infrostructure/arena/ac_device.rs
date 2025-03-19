@@ -97,6 +97,60 @@ impl AcDevice {
         }
     }
     ///
+    /// Set minimum posible acquisition frame rate
+    fn set_min_frame_rate(&self, node_map: &AcNodeMap) -> Result<(), StrErr> {
+        let dbg = self.name.join();
+        match node_map.set_bool_value("AcquisitionFrameRateEnable", true) {
+            Ok(_) => match node_map.get_node("AcquisitionFrameRate") {
+                Ok(node) => match node.get_float_min_value() {
+                    Ok(min_frame_rate) => match node.set_float_value(min_frame_rate) {
+                        Ok(_) => {
+                            log::debug!("{}.set_min_frame_rate | AcquisitionFrameRate: {}", dbg, min_frame_rate);
+                            Ok(())
+                        }
+                        Err(err) => Err(StrErr(format!("{}.set_min_frame_rate | Set AcquisitionFrameRate Error: {}", dbg, err))),
+                    }
+                    Err(err) => Err(StrErr(format!("{}.set_min_frame_rate | Get Min AcquisitionFrameRate Error: {}", dbg, err))),
+                }
+                Err(err) => Err(StrErr(format!("{}.set_min_frame_rate | Get AcquisitionFrameRate Node Error: {}", dbg, err))),
+            }
+            Err(err) => Err(StrErr(format!("{}.set_min_frame_rate | Set AcquisitionFrameRateEnable Error: {}", dbg, err))),
+        }
+    }
+    ///
+    /// Set Exposure time
+    fn set_exposure(&self, node_map: &AcNodeMap, exposure: Exposure) -> Result<(), StrErr> {
+        let dbg = self.name.join();
+        match node_map.get_node("ExposureTime") {
+            Ok(node) => {
+                if node.is_writable() {
+                    if let Ok(exp) = node.get_float_value() {
+                        log::debug!("{}.set_exposure | Prev Exposure time: {} us", dbg, exp);
+                    }
+                    if let Ok(exp) = node.get_float_min_value() {
+                        log::debug!("{}.set_exposure | Min Exposure time: {} us", dbg, exp);
+                    }
+                    if let Ok(exp) = node.get_float_max_value() {
+                        log::debug!("{}.set_exposure | Max Exposure time: {} us", dbg, exp);
+                    }
+                    match node.set_float_value(exposure.time) {
+                        Ok(_) => {
+                            // log::debug!("{}.set_exposure | Set Exposure {} us - Ok", dbg, self.exposure.time);
+                            if let Ok(exposure) = node.get_float_value() {
+                                log::debug!("{}.set_exposure | Exposure time: {} us", dbg, exposure);
+                            }
+                            Ok(())
+                        }
+                        Err(err) => Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: {}", dbg, self.exposure.time, err))),
+                    }
+                } else {
+                    Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: ExposureTime Node - is not writable", dbg, self.exposure.time)))
+                }
+            },
+            Err(err) => Err(StrErr(format!("{}.set_exposure | Get ExposureTime Node Error: {}", dbg, err))),
+        }
+    }
+    ///
     /// Image acquisition
     /// (1) sets acquisition mode
     /// (2) sets buffer handling mode
@@ -127,26 +181,12 @@ impl AcDevice {
                             Ok(_) => log::debug!("{}.stream | Set ExposureAuto: {}", dbg, self.exposure.auto),
                             Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
                         };
-                        match node_map.get_node("ExposureTime") {
-                            Ok(node) => {
-                                if node.is_writable() {
-                                    if let Ok(exposure) = node.get_float_value() {
-                                        log::debug!("{}.stream | Exposure time: {}", dbg, exposure);
-                                    }
-                                    if let Ok(exposure) = node.get_float_min_value() {
-                                        log::debug!("{}.stream | Exposure min time: {}", dbg, exposure);
-                                    }
-                                    if let Ok(exposure) = node.get_float_max_value() {
-                                        log::debug!("{}.stream | Exposure max time: {}", dbg, exposure);
-                                    }
-                                    match node.set_float_value(self.exposure.time) {
-                                        Ok(_) => log::debug!("{}.stream | Set Exposure {} us - Ok", dbg, self.exposure.time),
-                                        Err(err) => log::debug!("{}.stream | Set Exposure {} us Error: {}", dbg, self.exposure.time, err),
-                                    }
-                                }
-                            },
-                            Err(err) => log::debug!("{}.stream | Get ExposureTime Node Error: {}", dbg, err),
-                        }
+                        if let Err(err) = self.set_min_frame_rate(&node_map) {
+                            log::warn!("{}.stream | Error: {}", dbg, err)
+                        } 
+                        if let Err(err) = self.set_exposure(&node_map, self.exposure) {
+                            log::warn!("{}.stream | Error: {}", dbg, err)
+                        } 
                         let node_name = "AcquisitionMode";
                         match node_map.get_value(node_name) {
                             Ok(initial_acquisition_mode) => {

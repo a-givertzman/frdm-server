@@ -1,5 +1,6 @@
 ///
 /// Exposure Time 	20.5 μs to 10 s (Normal) / 1 μs to 5 μs (Short Mode)
+#[derive(Clone, Copy)]
 pub struct Exposure {
     pub auto: ExposureAuto,
     ///
@@ -18,6 +19,7 @@ impl Exposure {
 }
 ///
 /// 
+#[derive(Clone, Copy)]
 pub enum ExposureAuto {
     Off,
     // On,

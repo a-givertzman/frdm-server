@@ -1,3 +1,13 @@
+#! /bin/bash
+
+#
+# Use it ti proper install Arena SDK under Linux Debian
+# 
+# Just copy in into Arena SDK folder
+# and execute it
+
+#
+# System path to install
 installPath="/usr/lib/arena-sdk"
 
 if [ "$1" = "-r" ]; then
