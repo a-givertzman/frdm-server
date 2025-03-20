@@ -7,7 +7,7 @@ use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
 use super::{
     ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
         acDevice, acDeviceGetNodeMap, acNodeMap, acSystem, acSystemCreateDevice, acSystemDestroyDevice
-    }, exposure::Exposure
+    }, exposure::Exposure, frame_rate::FrameRate
 };
 
 ///
@@ -95,23 +95,37 @@ impl AcDevice {
     }
     ///
     /// Set minimum posible acquisition frame rate
-    fn set_min_frame_rate(&self, node_map: &AcNodeMap) -> Result<(), StrErr> {
+    fn set_frame_rate(&self, node_map: &AcNodeMap, value: FrameRate) -> Result<(), StrErr> {
         let dbg = self.name.join();
-        match node_map.set_bool_value("AcquisitionFrameRateEnable", true) {
+        let acq_fr_en = true;
+        match node_map.set_bool_value("AcquisitionFrameRateEnable", acq_fr_en) {
             Ok(_) => match node_map.get_node("AcquisitionFrameRate") {
-                Ok(node) => match node.get_float_min_value() {
-                    Ok(min_frame_rate) => match node.set_float_value(min_frame_rate) {
-                        Ok(_) => {
-                            log::debug!("{}.set_min_frame_rate | AcquisitionFrameRate: {}", dbg, min_frame_rate);
-                            Ok(())
+                Ok(node) => {
+                    let val = match value {
+                        FrameRate::Min => match node.get_float_min_value() {
+                            Ok(val) => Ok(val),
+                            Err(err) => Err(StrErr(format!("{}.set_frame_rate | Get Min Error: {}", dbg, err))),
                         }
-                        Err(err) => Err(StrErr(format!("{}.set_min_frame_rate | Set AcquisitionFrameRate Error: {}", dbg, err))),
+                        FrameRate::Max => match node.get_float_max_value() {
+                            Ok(val) => Ok(val),
+                            Err(err) => Err(StrErr(format!("{}.set_frame_rate | Get Max Error: {}", dbg, err))),
+                        },
+                        FrameRate::Val(val) => Ok(val)
+                    };
+                    match val {
+                        Ok(val) => match node.set_float_value(val) {
+                            Ok(_) => {
+                                log::debug!("{}.set_frame_rate | AcquisitionFrameRate changed to {:?}", dbg, value);
+                                Ok(())
+                            }
+                            Err(err) => Err(StrErr(format!("{}.set_frame_rate | AcquisitionFrameRate change to {:?} Error: {}", dbg, value, err))),
+                        }
+                        Err(err) => Err(err),
                     }
-                    Err(err) => Err(StrErr(format!("{}.set_min_frame_rate | Get Min AcquisitionFrameRate Error: {}", dbg, err))),
                 }
-                Err(err) => Err(StrErr(format!("{}.set_min_frame_rate | Get AcquisitionFrameRate Node Error: {}", dbg, err))),
+                Err(err) => Err(StrErr(format!("{}.set_frame_rate | Error: {}", dbg, err))),
             }
-            Err(err) => Err(StrErr(format!("{}.set_min_frame_rate | Set AcquisitionFrameRateEnable Error: {}", dbg, err))),
+            Err(err) => Err(StrErr(format!("{}.set_frame_rate | AcquisitionFrameRateEnable change to {} Error: {}", dbg, acq_fr_en, err))),
         }
     }
     ///
@@ -174,11 +188,11 @@ impl AcDevice {
                         if let Ok(exposure) = node_map.get_enumeration_value("ExposureAuto") {
                             log::debug!("{}.stream | ExposureAuto: {}", dbg, exposure);
                         }
-                        match node_map.set_enumeration_value("ExposureAuto", self.conf.exposure.auto.as_ref()) {
+                        match node_map.set_enumeration_value("ExposureAuto", self.conf.exposure.auto.as_str()) {
                             Ok(_) => log::debug!("{}.stream | Set ExposureAuto: {}", dbg, self.conf.exposure.auto),
                             Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
                         };
-                        if let Err(err) = self.set_min_frame_rate(&node_map) {
+                        if let Err(err) = self.set_frame_rate(&node_map, self.conf.fps) {
                             log::warn!("{}.stream | Error: {}", dbg, err)
                         } 
                         if let Err(err) = self.set_exposure(&node_map, self.conf.exposure) {

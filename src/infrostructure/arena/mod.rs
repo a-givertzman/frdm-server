@@ -9,4 +9,5 @@ pub mod ac_system;
 pub(super) mod bindings;
 pub mod exposure;
 pub(super) mod ffi_str;
+pub mod frame_rate;
 pub mod pixel_format;

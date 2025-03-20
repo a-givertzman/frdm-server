@@ -7,7 +7,7 @@ mod camera {
     use opencv::{
         prelude::*, videoio
     };
-    use crate::{domain::dbg::dbgid::DbgId, infrostructure::{arena::{exposure::{Exposure, ExposureAuto}, pixel_format::PixelFormat}, camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}}};
+    use crate::{domain::dbg::dbgid::DbgId, infrostructure::{arena::{exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate, pixel_format::PixelFormat}, camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -38,6 +38,70 @@ mod camera {
                 1,
                 serde_yaml::from_str(r#"
                 service Camera Camera1:
+                    fps: Min
+                    resolution: 
+                        width: 1200
+                        height: 800
+                    index: 0
+                    address: 192.168.10.12:2020
+                    pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
+                    exposure:
+                        auto: Off               # Off / Continuous
+                        time: 5000              # microseconds
+                    auto-packet-size: true
+                    resend-packet: false
+                "#).unwrap(),
+                CameraConf {
+                    name: "/test/Camera1".into(),
+                    fps: FrameRate::Min,
+                    resolution: CameraResolution {
+                        width: 1200,
+                        height: 800,
+                    },
+                    index: Some(0),
+                    address: Some("192.168.10.12:2020".parse().unwrap()),
+                    pixel_format: PixelFormat::BayerBG8,
+                    exposure: Exposure::new(ExposureAuto::Off, 5000.0),
+                    auto_packet_size: true,
+                    resend_packet: false,
+                }        
+            ),
+            (
+                2,
+                serde_yaml::from_str(r#"
+                service Camera Camera1:
+                    fps: Max
+                    resolution: 
+                        width: 1200
+                        height: 800
+                    index: 0
+                    address: 192.168.10.12:2020
+                    pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
+                    exposure:
+                        auto: Off               # Off / Continuous
+                        time: 5000              # microseconds
+                    auto-packet-size: true
+                    resend-packet: false
+                "#).unwrap(),
+                CameraConf {
+                    name: "/test/Camera1".into(),
+                    fps: FrameRate::Max,
+                    resolution: CameraResolution {
+                        width: 1200,
+                        height: 800,
+                    },
+                    index: Some(0),
+                    address: Some("192.168.10.12:2020".parse().unwrap()),
+                    pixel_format: PixelFormat::BayerBG8,
+                    exposure: Exposure::new(ExposureAuto::Off, 5000.0),
+                    auto_packet_size: true,
+                    resend_packet: false,
+                }        
+            ),
+            (
+                3,
+                serde_yaml::from_str(r#"
+                service Camera Camera1:
                     fps: 30
                     resolution: 
                         width: 1200
@@ -53,7 +117,7 @@ mod camera {
                 "#).unwrap(),
                 CameraConf {
                     name: "/test/Camera1".into(),
-                    fps: 30,
+                    fps: FrameRate::Val(30.0),
                     resolution: CameraResolution {
                         width: 1200,
                         height: 800,
@@ -89,7 +153,7 @@ mod camera {
                 1,
                 Camera::new(CameraConf{
                     name: "/test/Camera1".into(),
-                    fps: 30,
+                    fps: FrameRate::Val(30.0),
                     resolution: CameraResolution {
                         width: 1200,
                         height: 800,

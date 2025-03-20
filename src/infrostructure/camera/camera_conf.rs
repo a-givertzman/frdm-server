@@ -1,6 +1,6 @@
 use std::{fs, net::SocketAddr};
 use sal_sync::services::{conf::conf_tree::ConfTree, entity::name::Name};
-use crate::{conf::service_config::ServiceConfig, infrostructure::arena::{exposure::Exposure, pixel_format::PixelFormat}};
+use crate::{conf::service_config::ServiceConfig, infrostructure::arena::{exposure::Exposure, frame_rate::FrameRate, pixel_format::PixelFormat}};
 use super::camera_resolution::CameraResolution;
 ///
 /// Configuration parameters for ip [Camera] class
@@ -8,8 +8,11 @@ use super::camera_resolution::CameraResolution;
 pub struct CameraConf {
     pub name: Name,
     ///
-    /// frames per second
-    pub fps: usize,
+    /// Rame Rate (frames per second)
+    /// - `Min` - Minimum supported
+    /// - `Max` - Maximum supported
+    /// - `Val` - User specified value
+    pub fps: FrameRate,
     ///
     /// Camera cesolution setting
     pub resolution: CameraResolution,
@@ -62,7 +65,7 @@ impl CameraConf {
     /// creates config from serde_yaml::Value of following format:
     /// ```yaml
     /// service Camera Camera1:
-    ///     fps: 30
+    ///     fps: 30.0                   # Max / Min / 30.0
     ///     addres: 192.168.10.12:2020
     ///     index: 0                    # the number of Camera
     ///     resolution: 
@@ -81,16 +84,17 @@ impl CameraConf {
         let mut self_conf = ServiceConfig::new(&self_id, conf_tree.clone());
         log::trace!("{}.new | self_conf: {:?}", self_id, self_conf);
         let sufix = self_conf.sufix();
-        let self_name = Name::new(parent, if sufix.is_empty() {self_conf.name()} else {sufix});
-        let self_fps = self_conf.get_param_value("fps").unwrap().as_u64().unwrap();
-        log::debug!("{}.new | fps: {:?}", self_id, self_fps);
+        let name = Name::new(parent, if sufix.is_empty() {self_conf.name()} else {sufix});
+        let fps = self_conf.get_param_value("fps").unwrap();
+        let fps: FrameRate = serde_yaml::from_value(fps).unwrap();
+        log::debug!("{}.new | fps: {:?}", self_id, fps);
         let resolution = self_conf.get_param_conf("resolution").unwrap();
-        let resolution = CameraResolution::new(self_name.join(), &resolution);
+        let resolution = CameraResolution::new(name.join(), &resolution);
         log::debug!("{}.new | resolution: {:?}", self_id, resolution);
-        let self_index = self_conf.get_param_value("index").map(|ix| ix.as_u64().unwrap() as usize).ok();
-        log::debug!("{}.new | index: {:?}", self_id, self_index);
-        let self_address: Option<SocketAddr> = self_conf.get_param_value("address").map(|addr| addr.as_str().unwrap().parse().unwrap()).ok();
-        log::debug!("{}.new | address: {:?}", self_id, self_address);
+        let index = self_conf.get_param_value("index").map(|ix| ix.as_u64().unwrap() as usize).ok();
+        log::debug!("{}.new | index: {:?}", self_id, index);
+        let address: Option<SocketAddr> = self_conf.get_param_value("address").map(|addr| addr.as_str().unwrap().parse().unwrap()).ok();
+        log::debug!("{}.new | address: {:?}", self_id, address);
         let pixel_format = self_conf.get_param_value("pixel-format").unwrap();
         let pixel_format: PixelFormat = serde_yaml::from_value(pixel_format).unwrap();
         log::debug!("{}.new | pixel-format: {:?}", self_id, pixel_format);
@@ -102,11 +106,11 @@ impl CameraConf {
         let resend_packet = self_conf.get_param_value("resend-packet").unwrap().as_bool().unwrap();
         log::debug!("{}.new | resend-packet: {:?}", self_id, resend_packet);
         Self {
-            name: self_name,
-            fps: self_fps as usize, 
-            resolution: resolution, 
-            index: self_index,
-            address: self_address,
+            name,
+            fps, 
+            resolution, 
+            index,
+            address,
             pixel_format,
             exposure,
             auto_packet_size,

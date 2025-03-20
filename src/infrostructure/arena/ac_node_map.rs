@@ -42,7 +42,7 @@ impl AcNodeMap {
         ) });
         match err {
             AcErr::Success => Ok(AcNode::new(&self.name, node, node_name)),
-            _ => Err(StrErr(format!("{}.get_access_mode | Error: {}", self.name, err))),
+            _ => Err(StrErr(format!("{}.get_access_mode | Get node '{}' Error: {}", self.name, node_name, err))),
         }
     }
 

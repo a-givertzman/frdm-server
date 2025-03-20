@@ -27,6 +27,8 @@ pub struct Exposure {
 //
 //
 impl Exposure {
+    ///
+    /// Returns [Exposure] new instance
     pub fn new(auto: ExposureAuto, time: f64) -> Self {
         Self {
             auto,
@@ -42,8 +44,9 @@ pub enum ExposureAuto {
     // On,
     Continuous,
 }
-impl AsRef<str> for ExposureAuto {
-    fn as_ref(&self) -> &str {
+impl ExposureAuto {
+    /// Returns &str representation of the [ExposureAuto] variant, used in the `AcDevice` raw setting
+    pub fn as_str(&self) -> &str {
         match self {
             ExposureAuto::Continuous => "Continuous",
             ExposureAuto::Off => "Off",
@@ -53,11 +56,11 @@ impl AsRef<str> for ExposureAuto {
 }
 impl std::fmt::Display for ExposureAuto {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_ref())
+        write!(f, "{}", self.as_str())
     }
 }
 impl std::fmt::Debug for ExposureAuto {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_ref())
+        write!(f, "{}", self.as_str())
     }
 }
