@@ -1,5 +1,5 @@
 service Camera Camera1:
-    fps: 30
+    fps: Min                    # Max / Min / 30.0
     resolution: 
         width: 1200
         height: 800
