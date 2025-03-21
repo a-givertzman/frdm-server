@@ -7,7 +7,7 @@ mod camera {
     use opencv::{
         prelude::*, videoio
     };
-    use crate::{domain::dbg::dbgid::DbgId, infrostructure::{arena::{exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate, pixel_format::PixelFormat}, camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}}};
+    use crate::{domain::dbg::dbgid::DbgId, infrostructure::{arena::{channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate, pixel_format::PixelFormat}, camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -49,6 +49,7 @@ mod camera {
                         auto: Off               # Off / Continuous
                         time: 5000              # microseconds
                     auto-packet-size: true
+                    channel-packet-size: Min
                     resend-packet: false
                 "#).unwrap(),
                 CameraConf {
@@ -63,6 +64,7 @@ mod camera {
                     pixel_format: PixelFormat::BayerBG8,
                     exposure: Exposure::new(ExposureAuto::Off, 5000.0),
                     auto_packet_size: true,
+                    channel_packet_size: ChannelPacketSize::Min,
                     resend_packet: false,
                 }        
             ),
@@ -81,6 +83,7 @@ mod camera {
                         auto: Off               # Off / Continuous
                         time: 5000              # microseconds
                     auto-packet-size: true
+                    channel-packet-size: Max
                     resend-packet: false
                 "#).unwrap(),
                 CameraConf {
@@ -95,6 +98,7 @@ mod camera {
                     pixel_format: PixelFormat::BayerBG8,
                     exposure: Exposure::new(ExposureAuto::Off, 5000.0),
                     auto_packet_size: true,
+                    channel_packet_size: ChannelPacketSize::Max,
                     resend_packet: false,
                 }        
             ),
@@ -113,6 +117,7 @@ mod camera {
                         auto: Off               # Off / Continuous
                         time: 5000              # microseconds
                     auto-packet-size: true
+                    channel-packet-size: 1024
                     resend-packet: false
                 "#).unwrap(),
                 CameraConf {
@@ -127,6 +132,7 @@ mod camera {
                     pixel_format: PixelFormat::BayerBG8,
                     exposure: Exposure::new(ExposureAuto::Off, 5000.0),
                     auto_packet_size: true,
+                    channel_packet_size: ChannelPacketSize::Val(1024),
                     resend_packet: false,
                 }        
             ),
@@ -163,6 +169,7 @@ mod camera {
                     pixel_format: PixelFormat::BayerBG8,
                     exposure: Exposure::new(ExposureAuto::Off, 5000.0),
                     auto_packet_size: true,
+                    channel_packet_size: ChannelPacketSize::Max,
                     resend_packet: false,
                 }).from_file("src/test/unit/infrostructure/camera/video_test.mp4"),
                 videoio::VideoCapture::from_file("src/test/unit/infrostructure/camera/video_test.mp4", videoio::CAP_ANY).unwrap(),

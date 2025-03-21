@@ -1,7 +1,7 @@
 use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 
 use super::{ac_err::AcErr, 
-    bindings::{acFloatGetMax, acFloatGetMin, acFloatGetValue, acFloatSetValue, acIsWritable, acNode}}
+    bindings::{acFloatGetMax, acFloatGetMin, acFloatGetValue, acFloatSetValue, acIntegerGetMax, acIntegerGetMin, acIntegerGetValue, acIntegerSetValue, acIsWritable, acNode}}
 ;
 
 ///
@@ -73,6 +73,45 @@ impl AcNode {
         match err {
             AcErr::Success => Ok(value),
             _ => Err(StrErr(format!("{}.get_float_max_value | Error: {}", self.name, err))),
+        }
+    }
+    ///
+    /// Gets i64 node value
+    pub fn get_int_value(&self) -> Result<i64, StrErr> {
+        let mut value = 0;
+        let err = AcErr::from(unsafe { acIntegerGetValue(self.node, &mut value) });
+        match err {
+            AcErr::Success => Ok(value),
+            _ => Err(StrErr(format!("{}.get_int_value | Error: {}", self.name, err))),
+        }
+    }
+    ///
+    /// Sets i64 node value
+    pub fn set_int_value(&self, value: i64) -> Result<(), StrErr> {
+        let err = AcErr::from(unsafe { acIntegerSetValue(self.node, value) });
+        match err {
+            AcErr::Success => Ok({}),
+            _ => Err(StrErr(format!("{}.get_int_value | Error: {}", self.name, err))),
+        }
+    }
+    ///
+    /// Gets Minimum i64 node value
+    pub fn get_int_min_value(&self) -> Result<i64, StrErr> {
+        let mut value = 0;
+        let err = AcErr::from(unsafe { acIntegerGetMin(self.node, &mut value) });
+        match err {
+            AcErr::Success => Ok(value),
+            _ => Err(StrErr(format!("{}.get_int_min_value | Error: {}", self.name, err))),
+        }
+    }
+    ///
+    /// Gets Maximum i64 node value
+    pub fn get_int_max_value(&self) -> Result<i64, StrErr> {
+        let mut value = 0;
+        let err = AcErr::from(unsafe { acIntegerGetMax(self.node, &mut value) });
+        match err {
+            AcErr::Success => Ok(value),
+            _ => Err(StrErr(format!("{}.get_int_max_value | Error: {}", self.name, err))),
         }
     }
 }

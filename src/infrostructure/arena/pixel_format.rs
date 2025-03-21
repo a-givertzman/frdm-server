@@ -56,6 +56,7 @@ use serde::Deserialize;
 /// - RGB8, BGR8,
 /// - YCbCr8, YCbCr411, 
 /// - YUV422, YUV411,
+/// - Default and fastest BayerRG8
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 pub enum PixelFormat {
     Mono8, Mono10, Mono12, Mono16,

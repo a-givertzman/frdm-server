@@ -66,7 +66,7 @@ impl Camera {
                                 if devices > 0 {
                                     log::debug!("{}.read | Devices found: {}", dbg, devices);
                                     for dev in 0..devices {
-                                        log::debug!("{}.read | Retriving Device {}...", dbg, dev);
+                                        // log::debug!("{}.read | Retriving Device {}...", dbg, dev);
                                         let device_vendor = ac_system.device_vendor(dev).unwrap();
                                         let device_model = ac_system.device_model(dev).unwrap();
                                         log::trace!("{}.read | Device {} model: {}", dbg, dev, device_model);
@@ -83,11 +83,11 @@ impl Camera {
                                                 let mut device = AcDevice::new(&dbg, ac_system.system, *index, conf.clone(), Some(exit.clone()));
                                                 let result = device.listen(|frame| {
                                                     if let Err(err) = send.send(frame) {
-                                                        log::warn!("{}.read | Send Error; {}", dbg, err);
+                                                        log::warn!("{}.read | Send Error: {}", dbg, err);
                                                     }
                                                 });
                                                 if let Err(err) = result {
-                                                    log::warn!("{}.read | Error; {}", dbg, err);
+                                                    log::warn!("{}.read | Error: {}", dbg, err);
                                                 }
                                             } else {
                                                 log::warn!("{}.read | Specified device index '{}' out of found devices count '{}'", dbg, index, devices);
@@ -102,7 +102,7 @@ impl Camera {
                             None => log::warn!("{}.read | No devices detected, Possible AcSystem is not executed first", dbg),
                         }
                     }
-                    Err(err) => log::warn!("{}.read | Error; {}", dbg, err),
+                    Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
                 }
                 std::thread::sleep(Duration::from_secs(1));
                 if exit.load(Ordering::SeqCst) {

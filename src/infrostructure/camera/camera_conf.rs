@@ -1,6 +1,6 @@
 use std::{fs, net::SocketAddr};
 use sal_sync::services::{conf::conf_tree::ConfTree, entity::name::Name};
-use crate::{conf::service_config::ServiceConfig, infrostructure::arena::{exposure::Exposure, frame_rate::FrameRate, pixel_format::PixelFormat}};
+use crate::{conf::service_config::ServiceConfig, infrostructure::arena::{channel_packet_size::ChannelPacketSize, exposure::Exposure, frame_rate::FrameRate, pixel_format::PixelFormat}};
 use super::camera_resolution::CameraResolution;
 ///
 /// Configuration parameters for ip [Camera] class
@@ -11,7 +11,7 @@ pub struct CameraConf {
     /// Rame Rate (frames per second)
     /// - `Min` - Minimum supported
     /// - `Max` - Maximum supported
-    /// - `Val` - User specified value
+    /// - `Val` - User specified value, FPS
     pub fps: FrameRate,
     ///
     /// Camera cesolution setting
@@ -46,6 +46,18 @@ pub struct CameraConf {
 	///    Ethernet settings may also be manually changed to allow for a
 	///    larger packet size.
     pub auto_packet_size: bool,
+    ///
+    /// Set maximum stream channel packet size
+    /// 
+	///    Maximizing packet size increases frame rate by reducing the amount of
+	///    overhead required between images. This includes both extra
+	///    header/trailer data per packet as well as extra time from intra-packet
+	///    spacing (the time between packets). In order to grab images at the
+	///    maximum packet size, the Ethernet adapter must be configured
+	///    appropriately: 'Jumbo packet' must be set to its maximum, 'UDP checksum
+	///    offload' must be set to 'Rx & Tx Enabled', and 'Received Buffers' must
+	///    be set to its maximum.
+    pub channel_packet_size: ChannelPacketSize,
     ///
 	/// Enable stream packet resend
     ///
@@ -103,6 +115,9 @@ impl CameraConf {
         log::debug!("{}.new | exposure: {:?}", self_id, exposure);
         let auto_packet_size = self_conf.get_param_value("auto-packet-size").unwrap().as_bool().unwrap();
         log::debug!("{}.new | auto-packet-size: {:?}", self_id, auto_packet_size);
+        let channel_packet_size = self_conf.get_param_value("channel-packet-size").unwrap();
+        let channel_packet_size: ChannelPacketSize = serde_yaml::from_value(channel_packet_size).unwrap();
+        log::debug!("{}.new | channel-packet-size: {:?}", self_id, channel_packet_size);
         let resend_packet = self_conf.get_param_value("resend-packet").unwrap().as_bool().unwrap();
         log::debug!("{}.new | resend-packet: {:?}", self_id, resend_packet);
         Self {
@@ -114,6 +129,7 @@ impl CameraConf {
             pixel_format,
             exposure,
             auto_packet_size,
+            channel_packet_size,
             resend_packet,
         }
     }

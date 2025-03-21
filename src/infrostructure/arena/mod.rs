@@ -7,6 +7,7 @@ pub(super) mod ac_node_map;
 pub(super) mod ac_node;
 pub mod ac_system;
 pub(super) mod bindings;
+pub mod channel_packet_size;
 pub mod exposure;
 pub(super) mod ffi_str;
 pub mod frame_rate;

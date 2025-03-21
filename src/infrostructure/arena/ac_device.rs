@@ -7,7 +7,7 @@ use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
 use super::{
     ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
         acDevice, acDeviceGetNodeMap, acNodeMap, acSystem, acSystemCreateDevice, acSystemDestroyDevice
-    }, exposure::Exposure, frame_rate::FrameRate
+    }, channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate
 };
 
 ///
@@ -42,19 +42,20 @@ impl AcDevice {
             device: std::ptr::null_mut(),
             system,
             conf,
-            image_timeout: 2000,
+            image_timeout: 3000,
             exit: exit.unwrap_or(Arc::new(AtomicBool::new(false))),
         }
     }
     ///
     /// 
     pub fn listen(&mut self, on_event: impl Fn(AcImage)) -> Result<(), StrErr> {
+        log::debug!("{}.listen | Started", self.name);
         unsafe {
             let err = AcErr::from(acSystemCreateDevice(self.system, self.index, &mut self.device));
             match err {
                 AcErr::Success => self.read(on_event),
                 _ => {
-                    Err(StrErr(format!("{}.stream | Error: {}", self.name, err)))
+                    Err(StrErr(format!("{}.listen | CreateDevice Error: {}", self.name, err)))
                 }
             }
         }
@@ -94,13 +95,19 @@ impl AcDevice {
         }
     }
     ///
-    /// Set minimum posible acquisition frame rate
+    /// Set acquisition frame rate, FPS
     fn set_frame_rate(&self, node_map: &AcNodeMap, value: FrameRate) -> Result<(), StrErr> {
         let dbg = self.name.join();
         let acq_fr_en = true;
         match node_map.set_bool_value("AcquisitionFrameRateEnable", acq_fr_en) {
             Ok(_) => match node_map.get_node("AcquisitionFrameRate") {
                 Ok(node) => {
+                    log::debug!(
+                        "{}.set_frame_rate | AcquisitionFrameRate range: {}...{} FPS", dbg,
+                        node.get_float_min_value().map_or_else(|err| format!("{err}"), |v| format!("{:.3}", v)),
+                        node.get_float_max_value().map_or_else(|err| format!("{err}"), |v| format!("{:.3}", v)),
+                    );
+                    log::debug!("{}.set_frame_rate | AcquisitionFrameRate prev: {} FPS", dbg, node.get_float_value().map_or_else(|err| format!("{err}"), |v| format!("{:.3}", v)),);
                     let val = match value {
                         FrameRate::Min => match node.get_float_min_value() {
                             Ok(val) => Ok(val),
@@ -115,7 +122,7 @@ impl AcDevice {
                     match val {
                         Ok(val) => match node.set_float_value(val) {
                             Ok(_) => {
-                                log::debug!("{}.set_frame_rate | AcquisitionFrameRate changed to {:?}", dbg, value);
+                                log::debug!("{}.set_frame_rate | AcquisitionFrameRate changed to {:?} ({:.3} FPS)", dbg, value, val);
                                 Ok(())
                             }
                             Err(err) => Err(StrErr(format!("{}.set_frame_rate | AcquisitionFrameRate change to {:?} Error: {}", dbg, value, err))),
@@ -132,33 +139,76 @@ impl AcDevice {
     /// Set Exposure time
     fn set_exposure(&self, node_map: &AcNodeMap, exposure: Exposure) -> Result<(), StrErr> {
         let dbg = self.name.join();
-        match node_map.get_node("ExposureTime") {
+        match node_map.set_enumeration_value("ExposureAuto", exposure.auto.as_str()) {
+            Ok(_) => log::debug!("{}.set_exposure | ExposureAuto changed to: {}", dbg, exposure.auto),
+            Err(err) => log::warn!("{}.set_exposure | Set ExposureAuto Error: {}", dbg, err),
+        };
+        match exposure.auto {
+            ExposureAuto::Off => match node_map.get_node("ExposureTime") {
+                Ok(node) => {
+                    if node.is_writable() {
+                        log::debug!(
+                            "{}.set_exposure | Exposure time range: {}...{} us", dbg,
+                            node.get_float_min_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+                            node.get_float_max_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+                        );
+                        log::debug!("{}.set_exposure | Exposure time prev: {} us", dbg, node.get_float_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),);
+                        match node.set_float_value(exposure.time) {
+                            Ok(_) => {
+                                // log::debug!("{}.set_exposure | Set Exposure {} us - Ok", dbg, self.exposure.time);
+                                if let Ok(exposure) = node.get_float_value() {
+                                    log::debug!("{}.set_exposure | Exposure time changed to: {} us", dbg, exposure);
+                                }
+                                Ok(())
+                            }
+                            Err(err) => Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: {}", dbg, exposure.time, err))),
+                        }
+                    } else {
+                        Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: ExposureTime Node - is not writable", dbg, exposure.time)))
+                    }
+                },
+                Err(err) => Err(StrErr(format!("{}.set_exposure | Get ExposureTime Node Error: {}", dbg, err))),
+            }
+            ExposureAuto::Continuous => Ok(()),
+        }
+    }
+    ///
+    /// Set DeviceStream Channel Packet Size
+    fn set_stream_channel_packet_size(&self, node_map: &AcNodeMap, size: ChannelPacketSize) -> Result<(), StrErr> {
+        let dbg = self.name.join();
+        match node_map.get_node("DeviceStreamChannelPacketSize") {
             Ok(node) => {
-                if node.is_writable() {
-                    if let Ok(exp) = node.get_float_value() {
-                        log::debug!("{}.set_exposure | Prev Exposure time: {} us", dbg, exp);
+                log::debug!(
+                    "{}.set_packet_size | Packet Size range: {}...{}", dbg,
+                    node.get_int_min_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+                    node.get_int_max_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+                );
+                let val = match size {
+                    ChannelPacketSize::Min => match node.get_int_min_value() {
+                        Ok(val) => Ok(val),
+                        Err(err) => Err(StrErr(format!("{}.set_stream_channel_packet_size | Get Min Error: {}", dbg, err))),
                     }
-                    if let Ok(exp) = node.get_float_min_value() {
-                        log::debug!("{}.set_exposure | Min Exposure time: {} us", dbg, exp);
+                    ChannelPacketSize::Max => match node.get_int_max_value() {
+                        Ok(val) => Ok(val),
+                        Err(err) => Err(StrErr(format!("{}.set_stream_channel_packet_size | Get Max Error: {}", dbg, err))),
                     }
-                    if let Ok(exp) = node.get_float_max_value() {
-                        log::debug!("{}.set_exposure | Max Exposure time: {} us", dbg, exp);
-                    }
-                    match node.set_float_value(exposure.time) {
+                    ChannelPacketSize::Val(val) => Ok(val),
+                };
+                log::debug!("{}.set_packet_size | Prev ChannelPacketSize: {}", dbg, node.get_int_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")));
+                match val {
+                    Ok(val) => match node.set_int_value(val) {
                         Ok(_) => {
-                            // log::debug!("{}.set_exposure | Set Exposure {} us - Ok", dbg, self.exposure.time);
-                            if let Ok(exposure) = node.get_float_value() {
-                                log::debug!("{}.set_exposure | Exposure time: {} us", dbg, exposure);
+                            if let Ok(val) = node.get_int_value() {
+                                log::debug!("{}.set_packet_size | ChannelPacketSize changed to: {}", dbg, val);
                             }
                             Ok(())
                         }
-                        Err(err) => Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: {}", dbg, self.conf.exposure.time, err))),
-                    }
-                } else {
-                    Err(StrErr(format!("{}.set_exposure | Set Exposure {} us Error: ExposureTime Node - is not writable", dbg, self.conf.exposure.time)))
+                        Err(err) => Err(StrErr(format!("{}.set_packet_size | Set ChannelPacketSize {} Error: {}", dbg, self.conf.exposure.time, err))),
+                    },
+                    Err(err) => Err(err),
                 }
-            },
-            Err(err) => Err(StrErr(format!("{}.set_exposure | Get ExposureTime Node Error: {}", dbg, err))),
+            }
+            Err(err) => Err(StrErr(format!("{}.set_packet_size | Get ChannelPacketSize Node Error: {}", dbg, err))),
         }
     }
     ///
@@ -177,104 +227,107 @@ impl AcDevice {
         log::debug!("{}.stream | Get node map...", dbg);
         match self.node() {
             Ok(node_map) => {
+                log::debug!("{}.stream | Get node map - Ok", dbg);
+                log::debug!("{}.stream | Pixel format prev: {}", dbg, node_map.get_enumeration_value("PixelFormat").map_or_else(|err| format!("{err}"), |v| format!("{v}")) );
+                match node_map.set_enumeration_value("PixelFormat", &self.conf.pixel_format.format()) {
+                    Ok(_) => log::debug!("{}.stream | PixelFormat changed to: {}", dbg, self.conf.pixel_format.format()),
+                    Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
+                };
+                log::debug!("{}.stream | Pixel format changed to: {}", dbg, node_map.get_enumeration_value("PixelFormat").map_or_else(|err| format!("{err}"), |v| format!("{v}")) );
+                if let Err(err) = self.set_stream_channel_packet_size(&node_map, self.conf.channel_packet_size) {
+                    log::warn!("{}.stream | Error: {}", dbg, err);
+                }
+                if let Err(err) = self.set_exposure(&node_map, self.conf.exposure) {
+                    log::warn!("{}.stream | Error: {}", dbg, err)
+                } 
+                if let Err(err) = self.set_frame_rate(&node_map, self.conf.fps) {
+                    log::warn!("{}.stream | Error: {}", dbg, err)
+                }
                 match self.tls_stream_node() {
-                    Err(err) => return Err(StrErr(format!("{}.stream | GetTLStreamNodeMap Error: {}", dbg, err))),
-                    Ok(h_tlstream_node_map) => {
-                        log::debug!("{}.stream | Get node map - Ok", dbg);
-                        match node_map.set_enumeration_value("PixelFormat", &self.conf.pixel_format.format()) {
-                            Ok(_) => log::debug!("{}.stream | PixelFormat: {}", dbg, self.conf.pixel_format.format()),
-                            Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
-                        };
-                        if let Ok(exposure) = node_map.get_enumeration_value("ExposureAuto") {
-                            log::debug!("{}.stream | ExposureAuto: {}", dbg, exposure);
+                    Ok(node) => {
+                        if let Err(err) = node.set_bool_value("StreamAutoNegotiatePacketSize", self.conf.auto_packet_size){
+                            log::warn!("{}.stream | Set StreamAutoNegotiatePacketSize Error: {}", dbg, err);
                         }
-                        match node_map.set_enumeration_value("ExposureAuto", self.conf.exposure.auto.as_str()) {
-                            Ok(_) => log::debug!("{}.stream | Set ExposureAuto: {}", dbg, self.conf.exposure.auto),
-                            Err(err) => log::warn!("{}.stream | Set PixelFormat Error: {}", dbg, err),
-                        };
-                        if let Err(err) = self.set_frame_rate(&node_map, self.conf.fps) {
-                            log::warn!("{}.stream | Error: {}", dbg, err)
-                        } 
-                        if let Err(err) = self.set_exposure(&node_map, self.conf.exposure) {
-                            log::warn!("{}.stream | Error: {}", dbg, err)
-                        } 
-                        let node_name = "AcquisitionMode";
-                        match node_map.get_value(node_name) {
-                            Ok(initial_acquisition_mode) => {
-                                log::debug!("{}.stream | Set acquisition mode to 'Continuous'...", dbg);
-                                match node_map.set_value(node_name, "Continuous") {
-                                    Ok(_) => {
-                                        if let Err(err) = h_tlstream_node_map.set_value("StreamBufferHandlingMode", "NewestOnly"){
-                                            log::warn!("{}.stream | StreamBufferHandlingMode set 'NewestOnly' Error: {}", dbg, err);
-                                        }
-                                        if let Err(err) = h_tlstream_node_map.set_bool_value("StreamAutoNegotiatePacketSize", self.conf.auto_packet_size){
-                                            log::warn!("{}.stream | StreamAutoNegotiatePacketSize Error: {}", dbg, err);
-                                        }
-                                        if let Err(err) = h_tlstream_node_map.set_bool_value("StreamPacketResendEnable", self.conf.resend_packet){
-                                            log::warn!("{}.stream | StreamPacketResendEnable Error: {}", dbg, err);
-                                        }
-                                        let result = match node_map.get_access_mode("TransportStreamProtocol") {
-                                            Ok(transport_stream_protocol_access_mode) => match transport_stream_protocol_access_mode {
-                                                AcAccessMode::NotImplemented => Err(StrErr(format!("{}.stream | Access denied, Mode: {}", dbg, transport_stream_protocol_access_mode))),
-                                                AcAccessMode::Undefined(_) => Err(StrErr(format!("{}.stream | Access is undefined: {}", dbg, transport_stream_protocol_access_mode))),
-                                                _ => {
-                                                    log::debug!("{}.stream | Start stream", dbg);
-                                                    let err = AcErr::from(unsafe { acDeviceStartStream(self.device) });
-                                                    match err {
-                                                        AcErr::Success => {
-                                                            log::debug!("{}.stream | Retriving images...", dbg);
-                                                            loop {
-                                                                log::trace!("{}.stream | Read image...", dbg);
-                                                                match self.get_buffer() {
-                                                                    Ok(buffer) => {
-                                                                        match buffer.get_image() {
-                                                                            Ok(img) => {
-                                                                                (on_event)(img)
-                                                                            }
-                                                                            Err(err) => log::warn!("{}.stream | Error: {}", dbg, err),
-                                                                        }
-                                                                    }
-                                                                    Err(err) => {
-                                                                        log::warn!("{}.stream | Error: {}", dbg, err);
-                                                                    }
-                                                                };
-                                                                if exit.load(Ordering::SeqCst) {
-                                                                    break;
-                                                                }
-                                                            }
-                                                            // stop stream
-                                                            log::debug!("{}.stream | Stop stream...", dbg);
-                                                            let err = AcErr::from(unsafe { acDeviceStopStream(self.device) });
-                                                            if err != AcErr::Success {
-                                                                return Err(StrErr(format!("{}.stream | DeviceStopStream Error: {}", dbg, err)));
-                                                            }
-                                                            Ok(())
-                                                            // return node to its initial values
-                                                            // self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial)?;
-                                                        }
-                                                        _ => Err(StrErr(format!("{}.stream | DeviceStartStream Error: {}", dbg, err))),
-                                                    }
-                                                }
-                                            }
-                                            Err(err) => Err(StrErr(format!("{}.stream | Get TransportStreamProtocol access mode Error: {}", dbg, err))),
-                                        };
-                                        if let Err(err) = node_map.set_value("AcquisitionMode", &initial_acquisition_mode) {
-                                            log::debug!("{}.stream | Error return mode back: {}", dbg, err);
-                                        }
-                                        result
-                                    },
-                                    Err(err) => {
-                                        if let Err(err) = node_map.set_value("AcquisitionMode", &initial_acquisition_mode) {
-                                            log::debug!("{}.stream | Error return mode back: {}", dbg, err);
-                                        }
-                                        Err(StrErr(format!("{}.stream | Set acquisition mode to 'Continuous' Error: {}", dbg, err)))
-                                    }
-                                }
-                            },
-                            Err(err) => Err(StrErr(format!("{}.stream | Get `initial_acquisition_mode` Error: {}", dbg, err))),
+                        if let Err(err) = node.set_bool_value("StreamPacketResendEnable", self.conf.resend_packet){
+                            log::warn!("{}.stream | Set StreamPacketResendEnable Error: {}", dbg, err);
+                        }
+                        if let Err(err) = node.set_value("StreamBufferHandlingMode", "NewestOnly"){
+                            log::warn!("{}.stream | Set StreamBufferHandlingMode set 'NewestOnly' Error: {}", dbg, err);
                         }
                     }
+                    Err(err) => log::warn!("{}.stream | Get TLS Node Error: {}", dbg, err)
                 }
+                let node_name = "AcquisitionMode";
+                match node_map.get_value(node_name) {
+                    Ok(initial_acquisition_mode) => {
+                        log::debug!("{}.stream | Set acquisition mode to 'Continuous'...", dbg);
+                        match node_map.set_value(node_name, "Continuous") {
+                            Ok(_) => {
+                                let result = match node_map.get_access_mode("TransportStreamProtocol") {
+                                    Ok(transport_stream_protocol_access_mode) => match transport_stream_protocol_access_mode {
+                                        AcAccessMode::NotImplemented => Err(StrErr(format!("{}.stream | Access denied, Mode: {}", dbg, transport_stream_protocol_access_mode))),
+                                        AcAccessMode::Undefined(_) => Err(StrErr(format!("{}.stream | Access is undefined: {}", dbg, transport_stream_protocol_access_mode))),
+                                        _ => {
+                                            log::debug!("{}.stream | Start stream", dbg);
+                                            let err = AcErr::from(unsafe { acDeviceStartStream(self.device) });
+                                            match err {
+                                                AcErr::Success => {
+                                                    log::debug!("{}.stream | Retriving images...", dbg);
+                                                    loop {
+                                                        log::trace!("{}.stream | Read image...", dbg);
+                                                        match self.get_buffer() {
+                                                            Ok(buffer) => {
+                                                                match buffer.get_image() {
+                                                                    Ok(img) => {
+                                                                        (on_event)(img)
+                                                                    }
+                                                                    Err(err) => log::warn!("{}.stream | Error: {}", dbg, err),
+                                                                }
+                                                            }
+                                                            Err(err) => {
+                                                                log::warn!("{}.stream | Error: {}", dbg, err);
+                                                            }
+                                                        };
+                                                        if exit.load(Ordering::SeqCst) {
+                                                            break;
+                                                        }
+                                                    }
+                                                    // stop stream
+                                                    log::debug!("{}.stream | Stop stream...", dbg);
+                                                    let err = AcErr::from(unsafe { acDeviceStopStream(self.device) });
+                                                    if err != AcErr::Success {
+                                                        return Err(StrErr(format!("{}.stream | DeviceStopStream Error: {}", dbg, err)));
+                                                    }
+                                                    Ok(())
+                                                    // return node to its initial values
+                                                    // self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial)?;
+                                                }
+                                                _ => Err(StrErr(format!("{}.stream | DeviceStartStream Error: {}", dbg, err))),
+                                            }
+                                        }
+                                    }
+                                    Err(err) => Err(StrErr(format!("{}.stream | Get TransportStreamProtocol access mode Error: {}", dbg, err))),
+                                };
+                                if let Err(err) = node_map.set_value("AcquisitionMode", &initial_acquisition_mode) {
+                                    log::debug!("{}.stream | Error return mode back: {}", dbg, err);
+                                }
+                                result
+                            },
+                            Err(err) => {
+                                if let Err(err) = node_map.set_value("AcquisitionMode", &initial_acquisition_mode) {
+                                    log::debug!("{}.stream | Error return mode back: {}", dbg, err);
+                                }
+                                Err(StrErr(format!("{}.stream | Set acquisition mode to 'Continuous' Error: {}", dbg, err)))
+                            }
+                        }
+                    },
+                    Err(err) => Err(StrErr(format!("{}.stream | Get `initial_acquisition_mode` Error: {}", dbg, err))),
+                }
+                // match self.tls_stream_node() {
+                //     Err(err) => return Err(StrErr(format!("{}.stream | GetTLStreamNodeMap Error: {}", dbg, err))),
+                //     Ok(h_tlstream_node_map) => {
+                //     }
+                // }
             },
             Err(err) => Err(StrErr(format!("{}.stream | Get node map - Error: {}", dbg, err))),
         }
