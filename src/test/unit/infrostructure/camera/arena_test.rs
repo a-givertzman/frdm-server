@@ -25,7 +25,7 @@ mod arena {
     /// 
     /// [TRI028S-CC Technical spec](https://thinklucid.com/product/triton-2-8-mp-imx429/)
     #[test]
-    fn list_devices() {
+    fn listen_device() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
