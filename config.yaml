@@ -1,0 +1,14 @@
+service Camera Camera1:
+    fps: Max                    # Max / Min / 30.0
+    resolution: 
+        width: 1200
+        height: 800
+    index: 0
+    # address: 192.168.10.12:2020
+    pixel-format: BayerRG8          # Mono8/10/12/16, Bayer8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411 | Default and fastest BayerRG8
+    exposure:
+        auto: Continuous                   # Off / Continuous
+        time: 10000                   # microseconds
+    auto-packet-size: true          # StreamAutoNegotiatePacketSize
+    channel-packet-size: Max        # Maximizing packet size increases frame rate
+    resend-packet: true             # StreamPacketResendEnable
