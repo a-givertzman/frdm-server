@@ -49,7 +49,7 @@ mod arena {
                     height: 800
                 index: 0
                 # address: 192.168.10.12:2020
-                pixel-format: BGR16          # Mono8/10/12/16, Bayer8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411 | Default and fastest BayerRG8
+                pixel-format: BayerRG8          # Mono8/10/12/16, BayerRG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411 | Default and fastest BayerRG8
                 exposure:
                     auto: Off                   # Off / Continuous
                     time: 7000                   # microseconds
