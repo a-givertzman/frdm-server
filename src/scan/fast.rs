@@ -3,7 +3,7 @@ use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
 use crate::{domain::dbg::dbgid::DbgId, infrostructure::camera::pimage::PImage};
 ///
 ///
-pub struct FastScan{
+pub struct Gradient{
     gray_frame: Mat,
     gradient_x: Mat,
     gradient_y: Mat,
@@ -13,7 +13,7 @@ pub struct FastScan{
 }
 //
 //
-impl FastScan{
+impl Gradient{
     pub fn new(frame: PImage) -> Self {
         let mut gray_frame = Mat::default();
         let mut gradient_x = Mat::default();
@@ -37,3 +37,5 @@ impl FastScan{
         }
     }
 }
+//
+//
