@@ -126,10 +126,10 @@ impl PixelFormat {
             Self::RGB12 => opencv::core::CV_16UC3,
             Self::BGR12 => opencv::core::CV_16UC3,
 
-            Self::BayerRG8 => opencv::core::CV_8UC1,
-            Self::BayerGR8 => opencv::core::CV_8UC1,
-            Self::BayerBG8 => opencv::core::CV_8UC1,
-            Self::BayerGB8 => opencv::core::CV_8UC1,
+            Self::BayerRG8 => opencv::core::CV_16UC1,
+            Self::BayerGR8 => opencv::core::CV_16UC1,
+            Self::BayerBG8 => opencv::core::CV_16UC1,
+            Self::BayerGB8 => opencv::core::CV_16UC1,
 
             Self::BayerRG10 => opencv::core::CV_16UC3,
             Self::BayerGR10 => opencv::core::CV_16UC3,

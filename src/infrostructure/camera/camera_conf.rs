@@ -74,21 +74,22 @@ pub struct CameraConf {
 //
 impl CameraConf {
     ///
-    /// creates config from serde_yaml::Value of following format:
+    /// Returns config from serde_yaml::Value of following format:
     /// ```yaml
     /// service Camera Camera1:
-    ///     fps: 30.0                   # Max / Min / 30.0
-    ///     addres: 192.168.10.12:2020
-    ///     index: 0                    # the number of Camera
-    ///     resolution: 
-    ///         width: 1200
-    ///         height: 800
-    ///     pixel-format: BayerBG8      # Mono8/10/12/16, Bayer8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
-    ///     exposure:
-    ///         auto: Off               # Off / Continuous
-    ///         time: 5000              # microseconds
-    ///     auto-packet-size: true
-    ///     resend-packet: false
+    /// fps: Max                    # Max / Min / 30.0
+    /// resolution: 
+    ///     width: 1200
+    ///     height: 800
+    /// index: 0
+    /// # address: 192.168.10.12:2020
+    /// pixel-format: BayerRG8          # Mono8/10/12/16, Bayer8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411 | Default and fastest BayerRG8
+    /// exposure:
+    ///     auto: Continuous                   # Off / Continuous
+    ///     time: 10000                   # microseconds
+    /// auto-packet-size: true          # StreamAutoNegotiatePacketSize
+    /// channel-packet-size: Max        # Maximizing packet size increases frame rate
+    /// resend-packet: true             # StreamPacketResendEnable
     /// ```
     pub fn new(parent: impl Into<String>, conf_tree: &ConfTree) -> Self {
         log::trace!("CameraConf.new | conf_tree: {:?}", conf_tree);
@@ -134,7 +135,7 @@ impl CameraConf {
         }
     }
     ///
-    /// creates config from serde_yaml::Value of following format:
+    /// Returns config from serde_yaml::Value of following format:
     pub(crate) fn from_yaml(parent: impl Into<String>, value: &serde_yaml::Value) -> CameraConf {
         match value.as_mapping().unwrap().into_iter().next() {
             Some((key, value)) => {

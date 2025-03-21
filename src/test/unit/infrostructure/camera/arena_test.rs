@@ -33,14 +33,9 @@ mod arena {
         let dbg_1 = dbg.clone();
         let dbg_2 = dbg.clone();
         log::debug!("\n{}", dbg);
-        let test_duration = TestDuration::new(&dbg, Duration::from_secs(30));
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(40));
         test_duration.run().unwrap();
-        // Pixel format `Mono8` - Monochrom / `BGR8` - Color
-        // let pixel_format = PixelFormat::BGR8;
-        // let pixel_format = PixelFormat::BayerBG8;
-        // Exposure Time 	20.5 μs to 10 s (Normal) / 1 μs to 5 μs (Short Mode)
-        // let exposure = Exposure::new(ExposureAuto::Off, 7000.0);
-        let read_time = Duration::from_secs(20);
+        let read_time = Duration::from_secs(10);
         let frames = Arc::new(AtomicUsize::new(0));
         let frames_clone = frames.clone();
         let exit = Arc::new(AtomicBool::new(false));
@@ -48,17 +43,19 @@ mod arena {
         let exit_2 = exit.clone();
         let conf = serde_yaml::from_str(r#"
             service Camera Camera1:
-                fps: 30
+                fps: Max                    # Max / Min / 30.0
                 resolution: 
                     width: 1200
                     height: 800
-                address: 192.168.10.12:2020
-                pixel-format: BayerBG8      # Mono8/10/12/16, Bayer8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
+                index: 0
+                # address: 192.168.10.12:2020
+                pixel-format: BayerRG16          # Mono8/10/12/16, Bayer8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411 | Default and fastest BayerRG8
                 exposure:
-                    auto: Off               # Off / Continuous
-                    time: 7000              # microseconds
-                auto-packet-size: true
-                resend-packet: false
+                    auto: Off                   # Off / Continuous
+                    time: 7000                   # microseconds
+                auto-packet-size: true          # StreamAutoNegotiatePacketSize
+                channel-packet-size: Max        # Maximizing packet size increases frame rate, Max / Min / 1500
+                resend-packet: true             # StreamPacketResendEnable
         "#).unwrap();
         let conf = CameraConf::from_yaml(&dbg, &conf);
         let time = Instant::now();
