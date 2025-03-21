@@ -35,7 +35,7 @@ mod arena {
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(&dbg, Duration::from_secs(40));
         test_duration.run().unwrap();
-        let read_time = Duration::from_secs(10);
+        let read_time = Duration::from_secs(30);
         let frames = Arc::new(AtomicUsize::new(0));
         let frames_clone = frames.clone();
         let exit = Arc::new(AtomicBool::new(false));
@@ -49,7 +49,7 @@ mod arena {
                     height: 800
                 index: 0
                 # address: 192.168.10.12:2020
-                pixel-format: BayerRG16          # Mono8/10/12/16, Bayer8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411 | Default and fastest BayerRG8
+                pixel-format: BGR16          # Mono8/10/12/16, Bayer8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411 | Default and fastest BayerRG8
                 exposure:
                     auto: Off                   # Off / Continuous
                     time: 7000                   # microseconds

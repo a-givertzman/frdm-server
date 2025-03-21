@@ -74,55 +74,27 @@ impl AcBuffer {
         ) };
         match src {
             Ok(src) => {
-                let mut dst = src.clone();
-                // let mut dst = opencv::core::Mat::default();
-                // let mut dst = unsafe { opencv::core::Mat::new_rows_cols(height as i32, width as i32, opencv::core::CV_8UC3).unwrap() };
-                match cvt_color(
-                    &src, 
-                    &mut dst, 
-                    opencv::imgproc::COLOR_BayerRG2RGB,
-                    3,
-                ) {
-                    Ok(_) => Ok(AcImage {
-                        width,
-                        height,
-                        timestamp: timestamp_ns as usize,
-                        mat: dst,
-                    }),
-                    Err(err) => Err(StrErr(format!("{}.get_image | Convert Error: {}", self.name, err))),
+                match self.pixel_format {
+                    PixelFormat::BayerRG8 | PixelFormat::BayerBG8 | PixelFormat::BayerGB8 |
+                    PixelFormat::BayerRG10 | PixelFormat::BayerGR10 | PixelFormat::BayerBG10 | PixelFormat::BayerGB10 |
+                    PixelFormat::BayerRG12 | PixelFormat::BayerGR12 | PixelFormat::BayerBG12 | PixelFormat::BayerGB12 |
+                    PixelFormat::BayerRG16 | PixelFormat::BayerGR16 | PixelFormat::BayerBG16 | PixelFormat::BayerGB16 => {
+                        let mut dst = src.clone();
+                        match cvt_color(
+                            &src, 
+                            &mut dst, 
+                            opencv::imgproc::COLOR_BayerRG2RGB,
+                            3,
+                        ) {
+                            Ok(_) => Ok(AcImage { width, height, timestamp: timestamp_ns as usize, mat: dst }),
+                            Err(err) => Err(StrErr(format!("{}.get_image | Convert Error: {}", self.name, err))),
+                        }
+                    }
+                    _ => Ok(AcImage { width, height, timestamp: timestamp_ns as usize, mat: src })
                 }
             }
-            Err(err) => Err(StrErr(format!("{}.get_image | Create src Error: {}", self.name, err))),
+            Err(err) => Err(StrErr(format!("{}.get_image | Create Error: {}", self.name, err))),
         }
-
-        // match opencv::core::Mat::new_size_with_data(
-        //     opencv::core::Size_ { width: width as i32, height: height as i32 },
-        //      dst,
-        // ) {
-        //     Ok(mat) => Ok(AcImage {
-        //         width,
-        //         height,
-        //         timestamp: timestamp_ns as usize,
-        //         mat: mat.clone_pointee(),
-        //     }),
-        //     Err(err) => Err(StrErr(format!("{}.get_image | Error: {}", self.name, err))),
-        // };
-
-        // match unsafe { opencv::core::Mat::new_rows_cols_with_data_unsafe(
-        //     height as i32,
-        //     width as i32,
-        //      self.pixel_format.cv_format(),
-        //     p_input as *mut std::ffi::c_void,
-        //     opencv::core::Mat_AUTO_STEP,
-        // ) } {
-        //     Ok(mat) => Ok(AcImage {
-        //         width,
-        //         height,
-        //         timestamp: timestamp_ns as usize,
-        //         mat,
-        //     }),
-        //     Err(err) => Err(StrErr(format!("{}.get_image | Error: {}", self.name, err))),
-        // }
     }
 }
 ///

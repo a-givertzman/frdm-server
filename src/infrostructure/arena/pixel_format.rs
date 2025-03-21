@@ -63,6 +63,7 @@ pub enum PixelFormat {
     RGB8, BGR8,
     RGB10, BGR10,
     RGB12, BGR12,
+    RGB16, BGR16,
     BayerRG8, BayerGR8, BayerBG8, BayerGB8,
     BayerRG10, BayerGR10, BayerBG10, BayerGB10,
     BayerRG12, BayerGR12, BayerBG12, BayerGB12,
@@ -86,6 +87,9 @@ impl PixelFormat {
             
             Self::RGB12 => String::from("RGB12"),
             Self::BGR12 => String::from("BGR12"),
+
+            Self::RGB16 => String::from("RGB16"),
+            Self::BGR16 => String::from("BGR16"),
 
             Self::BayerRG8 => String::from("BayerRG8"),
             Self::BayerGR8 => String::from("BayerGR8"),
@@ -126,25 +130,28 @@ impl PixelFormat {
             Self::RGB12 => opencv::core::CV_16UC3,
             Self::BGR12 => opencv::core::CV_16UC3,
 
-            Self::BayerRG8 => opencv::core::CV_16UC1,
-            Self::BayerGR8 => opencv::core::CV_16UC1,
-            Self::BayerBG8 => opencv::core::CV_16UC1,
-            Self::BayerGB8 => opencv::core::CV_16UC1,
+            Self::RGB16 => opencv::core::CV_16UC3,
+            Self::BGR16 => opencv::core::CV_16UC3,
 
-            Self::BayerRG10 => opencv::core::CV_16UC3,
-            Self::BayerGR10 => opencv::core::CV_16UC3,
-            Self::BayerBG10 => opencv::core::CV_16UC3,
-            Self::BayerGB10 => opencv::core::CV_16UC3,
+            Self::BayerRG8 => opencv::core::CV_8UC1,
+            Self::BayerGR8 => opencv::core::CV_8UC1,
+            Self::BayerBG8 => opencv::core::CV_8UC1,
+            Self::BayerGB8 => opencv::core::CV_8UC1,
 
-            Self::BayerRG12 => opencv::core::CV_16UC3,
-            Self::BayerGR12 => opencv::core::CV_16UC3,
-            Self::BayerBG12 => opencv::core::CV_16UC3,
-            Self::BayerGB12 => opencv::core::CV_16UC3,
+            Self::BayerRG10 => opencv::core::CV_16UC1,
+            Self::BayerGR10 => opencv::core::CV_16UC1,
+            Self::BayerBG10 => opencv::core::CV_16UC1,
+            Self::BayerGB10 => opencv::core::CV_16UC1,
 
-            Self::BayerRG16 => opencv::core::CV_16UC3,
-            Self::BayerGR16 => opencv::core::CV_16UC3,
-            Self::BayerBG16 => opencv::core::CV_16UC3,
-            Self::BayerGB16 => opencv::core::CV_16UC3,
+            Self::BayerRG12 => opencv::core::CV_16UC1,
+            Self::BayerGR12 => opencv::core::CV_16UC1,
+            Self::BayerBG12 => opencv::core::CV_16UC1,
+            Self::BayerGB12 => opencv::core::CV_16UC1,
+
+            Self::BayerRG16 => opencv::core::CV_16UC1,
+            Self::BayerGR16 => opencv::core::CV_16UC1,
+            Self::BayerBG16 => opencv::core::CV_16UC1,
+            Self::BayerGB16 => opencv::core::CV_16UC1,
         }
     }
 }
