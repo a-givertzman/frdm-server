@@ -1,7 +1,8 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc}, thread::JoinHandle, time::Duration};
 
 use opencv::videoio::VideoCaptureTrait;
-use sal_sync::services::entity::{dbg_id::DbgId, error::str_err::StrErr, name::Name};
+use sal_core::Error;
+use sal_sync::services::entity::{dbg_id::DbgId, name::Name};
 use crate::infrostructure::arena::{ac_device::AcDevice, ac_image::AcImage, ac_system::AcSystem};
 use super::{camera_conf::CameraConf, pimage::PImage};
 ///
@@ -50,7 +51,7 @@ impl Camera {
     }
     ///
     /// Receive frames from IP camera
-    pub fn read(&self) -> Result<JoinHandle<()>, StrErr> {
+    pub fn read(&self) -> Result<JoinHandle<()>, Error> {
         let dbg = self.dbg.clone();
         let conf = self.conf.clone();
         let send = self.send.clone();
@@ -115,7 +116,7 @@ impl Camera {
     }
     ///
     /// Receive frames from IP camera
-    pub fn from_file(&self, path: impl Into<String>) -> Result<CameraIntoIterator, StrErr> {
+    pub fn from_file(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
         match opencv::videoio::VideoCapture::from_file(&path.into(), opencv::videoio::CAP_ANY) {
             Ok(mut video) => {
                 let mut frames = vec![];
@@ -129,7 +130,7 @@ impl Camera {
                 }
                 Ok(CameraIntoIterator { frames })
             }
-            Err(err) => Err(StrErr(format!("{}.read | IO Error: {:#?}", self.dbg, err))),
+            Err(err) => Err(Error::new(&self.dbg, "from_file").err(err.to_string())),
         }
     }
     ///

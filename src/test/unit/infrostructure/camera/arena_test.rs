@@ -110,7 +110,7 @@ mod arena {
                                 frames_clone.fetch_add(1, Ordering::SeqCst);
                             });
                             if let Err(err) = result {
-                                log::warn!("{} | Error; {}", dbg, err);
+                                log::warn!("{} | Error: {}", dbg, err);
                             }
                         }
                         None => {
