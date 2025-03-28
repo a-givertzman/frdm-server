@@ -135,7 +135,7 @@ impl AcNodeMap {
     }
     ///
     /// Gets Enumeration node value
-    pub fn get_enumeration_value(&self, node_name: &str) -> Result<String, Error> {
+    pub fn get_enum_value(&self, node_name: &str) -> Result<String, Error> {
         unsafe {
             let mut result = FfiStr::<1024>::new();
             let err = AcErr::from(acNodeMapGetEnumerationValue(
@@ -146,11 +146,10 @@ impl AcNodeMap {
             );
             match err {
                 AcErr::Success => Ok(result.to_string()),
-                _ => Err(Error::new(&self.name, "get_enumeration_value").err(err)),
+                _ => Err(Error::new(&self.name, "get_enum_value").err(err)),
             }
         }
     }
-
     ///
     /// Sets Enumeration node value
     pub fn set_enum_value(&self, node_name: &str, value: &str) -> Result<(), Error>{

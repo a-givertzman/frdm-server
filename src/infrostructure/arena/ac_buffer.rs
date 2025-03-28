@@ -38,7 +38,7 @@ impl AcBuffer {
         if err != AcErr::Success {
             return Err(error.err(err));
         };
-        log::trace!("{}.get_image | bytes: {}; ", self.name, bytes);
+        log::debug!("{}.get_image | bytes: {}; ", self.name, bytes);
         // get and display width
         let mut width = 0;
         let err = AcErr::from(unsafe { acImageGetWidth(self.buffer, &mut width) });

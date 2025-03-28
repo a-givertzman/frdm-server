@@ -2,7 +2,7 @@ use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
 
 use super::{ac_err::AcErr, 
-    bindings::{acFloatGetMax, acFloatGetMin, acFloatGetValue, acFloatSetValue, acIntegerGetMax, acIntegerGetMin, acIntegerGetValue, acIntegerSetValue, acIsWritable, acNode}}
+    bindings::{acBooleanGetValue, acFloatGetMax, acFloatGetMin, acFloatGetValue, acFloatSetValue, acIntegerGetMax, acIntegerGetMin, acIntegerGetValue, acIntegerSetValue, acIsWritable, acNode, acStringGetValue}, ffi_str::FfiStr}
 ;
 
 ///
@@ -35,6 +35,16 @@ impl AcNode {
                 log::warn!("{}", err);
                 false
             }
+        }
+    }
+    ///
+    /// Gets bool node value
+    pub fn get_bool_value(&self) -> Result<bool, Error> {
+        let mut value = 0;
+        let err = AcErr::from(unsafe { acBooleanGetValue(self.node, &mut value) });
+        match err {
+            AcErr::Success => Ok(value > 0),
+            _ => Err(Error::new(&self.name, "get_bool_value").err(err)),
         }
     }
     ///
@@ -113,6 +123,16 @@ impl AcNode {
         match err {
             AcErr::Success => Ok(value),
             _ => Err(Error::new(&self.name, "get_int_max_value").err(err)),
+        }
+    }
+    ///
+    /// Gets string node value
+    pub fn get_str_value(&self) -> Result<String, Error> {
+        let mut result = FfiStr::<1024>::new();
+        let err = AcErr::from(unsafe { acStringGetValue(self.node, result.as_mut_ptr(), &mut result.len) });
+        match err {
+            AcErr::Success => Ok(result.to_string()),
+            _ => Err(Error::new(&self.name, "get_str_value").err(err)),
         }
     }
 }

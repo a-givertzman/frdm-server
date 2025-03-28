@@ -216,6 +216,26 @@ impl AcDevice {
         }
     }
     ///
+    /// Resets device to factory defaults.
+    fn factory_reset(&self, node_map: &AcNodeMap) -> Result<(), Error> {
+        let dbg = self.name.join();
+        let error = Error::new(&dbg, "factory_reset");
+        match node_map.get_node("DeviceFactoryReset") {
+            Ok(node) => {
+                log::debug!(
+                    "{}.factory_reset | FactoryReset: \nis_writable: {} \n bool: {} \nint: {} \nfloat: {} \nstr: {}", dbg,
+                    node.is_writable(),
+                    node.get_bool_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+                    node.get_int_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+                    node.get_float_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+                    node.get_str_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+                );
+                Ok(())
+            }
+            Err(err) => Err(error.pass_with("Get ChannelPacketSize Node", err)),
+        }
+    }
+    ///
     /// Image acquisition
     /// (1) sets acquisition mode
     /// (2) sets buffer handling mode
@@ -233,12 +253,17 @@ impl AcDevice {
         match self.node() {
             Ok(node_map) => {
                 log::debug!("{}.read | Get node map - Ok", dbg);
-                log::debug!("{}.read | Pixel format prev: {}", dbg, node_map.get_enumeration_value("PixelFormat").map_or_else(|err| format!("{err}"), |v| format!("{v}")) );
+                // log::debug!("{}.read | DeviceFactoryReset: {}", dbg, node_map.set_value("DeviceFactoryReset", "").map_or_else(|err| format!("{err}"), |v| format!("{v}")) );
+                // log::debug!("{}.read | DeviceFactoryReset: {}", dbg, node_map.get_enum_value("DeviceFactoryReset").map_or_else(|err| format!("{err}"), |v| format!("{v}")) );
+                // if let Err(err) = self.factory_reset(&node_map) {
+                //     log::warn!("{}.read | Error: {}", dbg, err)
+                // }
+                log::debug!("{}.read | Pixel format prev: {}", dbg, node_map.get_enum_value("PixelFormat").map_or_else(|err| format!("{err}"), |v| format!("{v}")) );
                 match node_map.set_enum_value("PixelFormat", &self.conf.pixel_format.format()) {
                     Ok(_) => log::debug!("{}.read | PixelFormat changed to: {}", dbg, self.conf.pixel_format.format()),
                     Err(err) => log::warn!("{}.read | Set PixelFormat Error: {}", dbg, err),
                 };
-                log::debug!("{}.read | Pixel format changed to: {}", dbg, node_map.get_enumeration_value("PixelFormat").map_or_else(|err| format!("{err}"), |v| format!("{v}")) );
+                log::debug!("{}.read | Pixel format changed to: {}", dbg, node_map.get_enum_value("PixelFormat").map_or_else(|err| format!("{err}"), |v| format!("{v}")) );
                 if let Err(err) = self.set_stream_channel_packet_size(&node_map, self.conf.channel_packet_size) {
                     log::warn!("{}.read | Error: {}", dbg, err);
                 }
