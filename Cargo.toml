@@ -11,7 +11,7 @@ env_logger = "^0.11"
 #
 #
 # sal-core = { path = "../sal-core/" }
-sal-core = { git = "https://github.com/a-givertzman/rust-sal-core.git", tag = "0.0.1" }
+sal-core = { git = "https://github.com/a-givertzman/rust-sal-core.git", tag = "0.0.2" }
 testing = { git = "https://github.com/a-givertzman/rust-testing.git" }
 # testing = { git = "https://github.com/a-givertzman/rust-testing.git", tag = "0.1.2" }
 debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "0.0.1" }
