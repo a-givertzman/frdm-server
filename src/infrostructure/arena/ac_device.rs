@@ -1,5 +1,5 @@
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
-use sal_core::Error;
+use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
 use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
     acBuffer, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceStartStream, acDeviceStopStream,

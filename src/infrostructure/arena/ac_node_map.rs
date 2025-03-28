@@ -1,6 +1,6 @@
 use std::{ffi::CString, str::FromStr};
 
-use sal_core::Error;
+use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
 
 use super::{

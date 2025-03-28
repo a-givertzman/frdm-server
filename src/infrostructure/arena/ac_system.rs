@@ -1,4 +1,4 @@
-use sal_core::Error;
+use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
 
 use crate::infrostructure::arena::bindings::acSystemUpdateDevices;

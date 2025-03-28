@@ -1,7 +1,7 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc}, thread::JoinHandle, time::Duration};
 
 use opencv::videoio::VideoCaptureTrait;
-use sal_core::Error;
+use sal_core::error::Error;
 use sal_sync::services::entity::{dbg_id::DbgId, name::Name};
 use crate::infrostructure::arena::{ac_device::AcDevice, ac_image::AcImage, ac_system::AcSystem};
 use super::{camera_conf::CameraConf, pimage::PImage};
