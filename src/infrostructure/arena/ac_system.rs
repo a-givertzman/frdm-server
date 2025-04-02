@@ -3,7 +3,7 @@ use sal_sync::services::entity::name::Name;
 
 use crate::infrostructure::arena::bindings::acSystemUpdateDevices;
 
-use super::{ac_err::AcErr, bindings::{acCloseSystem, acOpenSystem, acSystem, acSystemGetNumDevices}, ffi_str::FfiStr};
+use super::{ac_err::AcErr, bindings::{self, acCloseSystem, acOpenSystem, acSystem, acSystemGetNumDevices}, ffi_str::FfiStr};
 
 ///
 /// Representation of the system object, the entry point into Arena SDK.
@@ -31,6 +31,7 @@ impl AcSystem {
     /// 
     pub fn run(&mut self) -> Result<(), Error> {
         let error = Error::new(&self.name, "run");
+        log::info!("{}.run | Arena SDK: {:?}", self.name, self.version().unwrap_or("Error get version".into()));
         unsafe {
             let err = AcErr::from(acOpenSystem(&mut self.system));
             match err {
@@ -61,8 +62,21 @@ impl AcSystem {
         self.devices
     }
     ///
-    /// 
-    // err = acSystemGetDeviceVendor(hSystem, i, pBuf, &len);
+    /// Returns SDK build version
+    /// - `dev` - Index of the device
+    pub fn version(&self) -> Result<String, Error> {
+        unsafe {
+            let mut result = FfiStr::<1024>::new();
+            log::trace!("{}.version | SDK Version...", self.name);
+            let err = AcErr::from(super::bindings::acGetVersion(result.as_mut_ptr() as *mut i8, &mut result.len));
+            let result = result.to_string();
+            log::trace!("{}.version | SDK Version: {}", self.name, result);
+            match err {
+                AcErr::Success => Ok(result),
+                _ => Err(Error::new(&self.name, "version").err(err)),
+            }
+        }
+    }
     ///
     /// Returns the Vendor name of a device
     /// - `dev` - Index of the device

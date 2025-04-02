@@ -29,39 +29,63 @@ impl AcBuffer {
         }
     }
     ///
+    /// Returns filled bytes
+    pub fn len(&self) -> Result<usize, Error> {
+        let error = Error::new(&self.name, "len");
+        let mut bytes = 0;
+        let err = AcErr::from(unsafe { acBufferGetSizeFilled(self.buffer, &mut bytes) });
+        if err != AcErr::Success {
+            return Err(error.err(err));
+        };
+        Ok(bytes)
+    }
+    ///
     /// Retorns single image
-    pub fn get_image(&self) -> Result<AcImage, Error> {
+    pub fn image(&self) -> Result<AcImage, Error> {
         let error = Error::new(&self.name, "get_image");
         let mut bytes = 0;
         let err = AcErr::from(unsafe { acBufferGetSizeFilled(self.buffer, &mut bytes) });
         if err != AcErr::Success {
             return Err(error.err(err));
         };
+        let buffer: acBuffer = match self.pixel_format {
+            PixelFormat::QoiBayerRG8 | PixelFormat::QoiMono8 | PixelFormat::QoiRGB8 | PixelFormat::QoiBGR8 | PixelFormat::QoiYCbCr8 => {
+                let mut buffer: acBuffer = std::ptr::null_mut();
+                let err = AcErr::from( unsafe { super::bindings:: acImageFactoryDecompressImage(self.buffer, &mut buffer) } );
+                if err != AcErr::Success {
+                    return Err(error.err(err));
+                };
+                buffer
+            }
+            _ => {
+                self.buffer
+            }
+        };
         log::trace!("{}.get_image | bytes: {} mb", self.name, (bytes as f64) / 1048576.0);
         // get and display width
         let mut width = 0;
-        let err = AcErr::from(unsafe { acImageGetWidth(self.buffer, &mut width) });
+        let err = AcErr::from(unsafe { acImageGetWidth(buffer, &mut width) });
         if err != AcErr::Success {
             return Err(error.err(err));
         };
         log::trace!("{}.get_image | width: {}; ", self.name, width);
         // get and display height
         let mut height = 0;
-        let err = AcErr::from(unsafe { acImageGetHeight(self.buffer, &mut height) });
+        let err = AcErr::from(unsafe { acImageGetHeight(buffer, &mut height) });
         if err != AcErr::Success {
             return Err(error.err(err));
         };
         log::trace!("{}.get_image | height: {}; ", self.name, height);
         // get and display timestamp
         let mut timestamp_ns = 0;
-        let err = AcErr::from(unsafe { acImageGetTimestampNs(self.buffer, &mut timestamp_ns) });
+        let err = AcErr::from(unsafe { acImageGetTimestampNs(buffer, &mut timestamp_ns) });
         if err != AcErr::Success {
             return Err(error.err(err));
         };
         log::trace!("{}.get_image | timestamp (ns): {})", self.name, timestamp_ns);
         let mut buf = Vec::with_capacity(bytes);
         let mut p_input  = buf.as_mut_ptr();
-        let err = AcErr::from(unsafe { acImageGetData(self.buffer, &mut p_input) });
+        let err = AcErr::from(unsafe { acImageGetData(buffer, &mut p_input) });
         if err != AcErr::Success {
             return Err(error.err(err));
         };

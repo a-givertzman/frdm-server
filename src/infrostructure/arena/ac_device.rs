@@ -308,7 +308,8 @@ impl AcDevice {
                                                         log::trace!("{}.read | Read image...", dbg);
                                                         match self.get_buffer() {
                                                             Ok(buffer) => {
-                                                                match buffer.get_image() {
+                                                                log::trace!("{}.read | Buffer: {:?}", dbg, buffer.len());
+                                                                match buffer.image() {
                                                                     Ok(img) => {
                                                                         fps.add();
                                                                         log::debug!(
@@ -323,9 +324,7 @@ impl AcDevice {
                                                                     Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
                                                                 }
                                                             }
-                                                            Err(err) => {
-                                                                log::warn!("{}.read | Error: {}", dbg, err);
-                                                            }
+                                                            Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
                                                         };
                                                         if exit.load(Ordering::SeqCst) {
                                                             break;
