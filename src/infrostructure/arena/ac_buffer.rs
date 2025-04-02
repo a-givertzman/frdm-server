@@ -94,17 +94,16 @@ impl AcBuffer {
     ///
     /// Returns a pointer to the beginning of the image's payload data.
     /// The payload may include chunk data.
-    fn image_data(&self, buffer: acBuffer, len: usize) -> Result<Vec<u8>, Error> {
+    fn image_data(&self, buffer: acBuffer) -> Result<*mut u8, Error> {
         let error = Error::new(&self.name, "image_data");
-        fn get_data(self_name: &str, buffer: acBuffer, len: usize) -> Result<Vec<u8>, Error> {
+        fn get_data(self_name: &str, buffer: acBuffer) -> Result<*mut u8, Error> {
             let error = Error::new(self_name, "get_data");
-            let mut buf = Vec::with_capacity(len);
-            let mut p_input  = buf.as_mut_ptr();
-            let err = AcErr::from(unsafe { super::bindings::acImageGetData(buffer, &mut p_input) });
+            let mut result = std::ptr::null_mut();
+            let err = AcErr::from(unsafe { super::bindings::acImageGetData(buffer, &mut result) });
             if err != AcErr::Success {
                 return Err(error.err(err));
             };
-            Ok(buf)
+            Ok(result)
         }
         match self.pixel_format {
             PixelFormat::QoiBayerRG8 | PixelFormat::QoiMono8 |
@@ -115,7 +114,7 @@ impl AcBuffer {
                 if err != AcErr::Success {
                     return Err(error.err(err));
                 }
-                let result = match get_data(&self.name.join(), decompressed, len) {
+                let result = match get_data(&self.name.join(), decompressed) {
                     Ok(data) => Ok(data),
                     Err(err) => Err(error.pass(err)),
                 };
@@ -126,7 +125,7 @@ impl AcBuffer {
                 result
             }
             _ => {
-                match get_data(&self.name.join(), buffer, len) {
+                match get_data(&self.name.join(), buffer) {
                     Ok(data) => Ok(data),
                     Err(err) => Err(error.pass(err)),
                 }
@@ -156,13 +155,13 @@ impl AcBuffer {
         let timestamp_ns = self.timestamp(buffer)?;
         log::trace!("{}.get_image | timestamp: {} ns)", self.name, timestamp_ns);
         log::trace!("{}.get_image | {}x{}, {:.2} MB", self.name, width, height, (bytes as f64) / 1048576.0);
-        match self.image_data(buffer, bytes) {
-            Ok(mut img) => {
+        match self.image_data(buffer) {
+            Ok(img) => {
                 let src = unsafe { opencv::core::Mat::new_rows_cols_with_data_unsafe(
                     height as i32,
                     width as i32,
                     self.pixel_format.cv_format(),
-                    img.as_mut_ptr() as *mut std::ffi::c_void,
+                    img as *mut std::ffi::c_void,
                     opencv::core::Mat_AUTO_STEP,
                 ) };
                 match src {
