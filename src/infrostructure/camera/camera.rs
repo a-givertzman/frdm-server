@@ -74,9 +74,14 @@ impl Camera {
                                         let device_serial = ac_system.device_serial(dev).unwrap();
                                         log::trace!("{}.read | Device {} serial: {}", dbg, dev, device_serial);
                                         let device_mac = ac_system.device_mac(dev).unwrap();
+                                        log::trace!("{}.read | Device {} MAC: {}", dbg, dev, device_mac);
                                         let device_ip = ac_system.device_ip(dev).unwrap();
                                         log::trace!("{}.read | Device {} IP: {}", dbg, dev, device_ip);
-                                        log::info!("{}.read | Device {}: {:?} | {:?} | {:?} | {:?} | {:?}", dbg, dev, device_vendor, device_model, device_serial, device_mac, device_ip);
+                                        let device_firmware = ac_system.device_firmware(dev).unwrap();
+                                        log::trace!("{}.read | Device {} Firmware: {}", dbg, dev, device_firmware);
+                                        log::info!(
+                                            "{}.read | Device {}: {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
+                                            dbg, dev, device_vendor, device_model, device_serial, device_mac, device_ip, device_firmware);
                                     }
                                     match &conf.index {
                                         Some(index) => {

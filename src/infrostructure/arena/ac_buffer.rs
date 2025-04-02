@@ -1,7 +1,6 @@
 use opencv::imgproc::cvt_color;
 use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
-
 use crate::infrostructure::arena::{
     ac_err::AcErr, ac_image::AcImage,
     bindings::{acBufferGetSizeFilled, acDeviceRequeueBuffer, acImageGetData, acImageGetHeight, acImageGetTimestampNs, acImageGetWidth},
@@ -38,7 +37,7 @@ impl AcBuffer {
         if err != AcErr::Success {
             return Err(error.err(err));
         };
-        log::debug!("{}.get_image | bytes: {}; ", self.name, bytes);
+        log::trace!("{}.get_image | bytes: {} mb", self.name, (bytes as f64) / 1048576.0);
         // get and display width
         let mut width = 0;
         let err = AcErr::from(unsafe { acImageGetWidth(self.buffer, &mut width) });
@@ -66,6 +65,7 @@ impl AcBuffer {
         if err != AcErr::Success {
             return Err(error.err(err));
         };
+        log::trace!("{}.get_image | {}x{}, {:.2} MB", self.name, width, height, (bytes as f64) / 1048576.0);
         let src = unsafe { opencv::core::Mat::new_rows_cols_with_data_unsafe(
             height as i32,
             width as i32,
@@ -87,11 +87,11 @@ impl AcBuffer {
                             opencv::imgproc::COLOR_BayerRG2RGB,
                             3,
                         ) {
-                            Ok(_) => Ok(AcImage { width, height, timestamp: timestamp_ns as usize, mat: dst }),
+                            Ok(_) => Ok(AcImage { width, height, timestamp: timestamp_ns as usize, mat: dst, bytes }),
                             Err(err) => Err(error.pass_with("Convert Error", err.to_string())),
                         }
                     }
-                    _ => Ok(AcImage { width, height, timestamp: timestamp_ns as usize, mat: src })
+                    _ => Ok(AcImage { width, height, timestamp: timestamp_ns as usize, mat: src, bytes })
                 }
             }
             Err(err) => Err(error.pass_with("Create Error", err.to_string())),

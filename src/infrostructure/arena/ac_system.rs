@@ -65,7 +65,6 @@ impl AcSystem {
     // err = acSystemGetDeviceVendor(hSystem, i, pBuf, &len);
     ///
     /// Returns the Vendor name of a device
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
     pub fn device_vendor(&self, dev: usize) -> Result<String, Error> {
         unsafe {
@@ -82,7 +81,6 @@ impl AcSystem {
     }
     ///
     /// Returns the Model name of a device
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
     pub fn device_model(&self, dev: usize) -> Result<String, Error> {
         unsafe {
@@ -102,7 +100,6 @@ impl AcSystem {
     /// A serial number differentiates between devices. Each LUCID device has a unique serial
     /// number. LUCID serial numbers are numeric, but the serial numbers of other
     /// vendors may be alphanumeric.
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
     pub fn device_serial(&self, dev: usize) -> Result<String, Error> {
         unsafe {
@@ -121,7 +118,6 @@ impl AcSystem {
     // err = acSystemGetDeviceMacAddressStr(hSystem, i, pBuf, &len);
     ///
     /// Returns the MAC address of a device on the network, returning it as a string.
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
     pub fn device_mac(&self, dev: usize) -> Result<String, Error> {
         unsafe {
@@ -137,7 +133,6 @@ impl AcSystem {
     }
     ///
     /// Returns the IP address of a device on the network, returning it as a string.
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
     pub fn device_ip(&self, dev: usize) -> Result<String, Error> {
         unsafe {
@@ -148,6 +143,21 @@ impl AcSystem {
             match err {
                 AcErr::Success => Ok(result),
                 _ => Err(Error::new(&self.name, "device_ip").err(err)),
+            }
+        }
+    }
+    ///
+    /// Returns the Firmware version of a device.
+    /// - `dev` - Index of the device
+    pub fn device_firmware(&self, dev: usize) -> Result<String, Error> {
+        unsafe {
+            let mut result = FfiStr::<1024>::new();
+            let err = AcErr::from(super::bindings::acSystemGetDeviceVersion(self.system, dev, result.as_mut_ptr(), &mut result.len));
+            let result = result.to_string();
+            log::trace!("{}.device_firmware | Device {} Version: {:?}", self.name, dev, result);
+            match err {
+                AcErr::Success => Ok(result),
+                _ => Err(Error::new(&self.name, "device_firmware").err(err)),
             }
         }
     }

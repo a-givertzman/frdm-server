@@ -1,4 +1,4 @@
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
+use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, time::Instant};
 use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
 use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
@@ -303,12 +303,21 @@ impl AcDevice {
                                             match err {
                                                 AcErr::Success => {
                                                     log::debug!("{}.read | Retriving images...", dbg);
+                                                    let mut fps = Fps::new();
                                                     loop {
                                                         log::trace!("{}.read | Read image...", dbg);
                                                         match self.get_buffer() {
                                                             Ok(buffer) => {
                                                                 match buffer.get_image() {
                                                                     Ok(img) => {
+                                                                        fps.add();
+                                                                        log::debug!(
+                                                                            "{}.read | {}x{}, {:.2} MB, {} FPS",
+                                                                            dbg, 
+                                                                            img.width, img.height, 
+                                                                            (img.bytes as f64) / 1048576.0,
+                                                                            fps,
+                                                                        );
                                                                         (on_event)(img)
                                                                     }
                                                                     Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
@@ -383,5 +392,36 @@ impl Drop for AcDevice {
                 _ => log::error!("{}.drop | Error: {}", self.name, err),
             }
         }
+    }
+}
+
+struct Fps {
+    time: Instant,
+    times: f64,
+    avarage: f64,
+}
+impl Fps {
+    pub fn new() -> Self {
+        Self { time: Instant::now(), times: 0.0, avarage: 0.0 }
+    }
+    pub fn restart(&mut self) {
+        self.time = Instant::now();
+        self.times = 0.0;
+        self.avarage = 0.0;
+    }
+    pub fn add(&mut self) {
+        let elapsed = self.time.elapsed().as_secs_f64();
+        self.times += 1.0;
+        self.avarage = self.times / elapsed;
+    }
+}
+impl std::fmt::Display for Fps {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.3}", self.avarage)
+    }
+}
+impl std::fmt::Debug for Fps {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.3}", self.avarage)
     }
 }

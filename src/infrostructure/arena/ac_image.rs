@@ -5,4 +5,5 @@ pub struct AcImage {
     pub height: usize,
     pub timestamp: usize,
     pub mat: opencv::core::Mat,
+    pub bytes: usize,
 }
