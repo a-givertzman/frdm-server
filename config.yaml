@@ -12,7 +12,7 @@ service Camera Camera1:
     # pixel-format:  QOI_BayerRG8
     exposure:
         auto: Off                   # Off / Continuous
-        time: 14000                   # microseconds
+        time: 25000                   # microseconds
     auto-packet-size: true          # StreamAutoNegotiatePacketSize
     channel-packet-size: Max        # Maximizing packet size increases frame rate
     resend-packet: true             # StreamPacketResendEnable
