@@ -307,7 +307,7 @@ impl AcDevice {
                                                     loop {
                                                         log::trace!("{}.read | Read image...", dbg);
                                                         match self.get_buffer() {
-                                                            Ok(buffer) => {
+                                                            Ok(mut buffer) => {
                                                                 log::trace!("{}.read | Buffer: {:?}", dbg, buffer.len());
                                                                 match buffer.image() {
                                                                     Ok(img) => {
