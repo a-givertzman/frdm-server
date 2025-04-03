@@ -94,16 +94,13 @@ impl Camera {
                                                 });
                                                 if let Err(err) = result {
                                                     log::warn!("{}.read | Error: {}", dbg, err);
-                                                    break;
                                                 }
                                             } else {
                                                 log::warn!("{}.read | Specified device index '{}' out of found devices count '{}'", dbg, index, devices);
-                                                break;
                                             }
                                         }
                                         None => {
                                             log::error!("{}.read | Device index - is not specified in the camera conf", dbg);
-                                            break;
                                         }
                                     }
                                 } else {
@@ -112,13 +109,11 @@ impl Camera {
                             }
                             None => {
                                 log::warn!("{}.read | No devices detected, Possible AcSystem is not executed first", dbg);
-                                break;
                             }
                         }
                     }
                     Err(err) => {
                         log::warn!("{}.read | Error: {}", dbg, err);
-                        break;
                     }
                 }
                 std::thread::sleep(Duration::from_secs(1));
