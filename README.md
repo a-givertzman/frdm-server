@@ -80,3 +80,8 @@ Web page: https://sa-lab.dev/projects-frdm.html#project__overview
     ./frdm-server
     ```
 
+## Regenerate bindings
+
+```bash
+bindgen src/infrostructure/arena/wrappers.h -o src/infrostructure/arena/bindings.rs -- "-Ilucid_arena_sdk_include_path"
+```
