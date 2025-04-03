@@ -1,4 +1,4 @@
-use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, time::Instant};
+use std::{io::Write, sync::{atomic::{AtomicBool, Ordering}, Arc}, time::Instant};
 use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
 use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
@@ -10,6 +10,14 @@ use super::{
         acDevice, acDeviceGetNodeMap, acNodeMap, acSystem, acSystemCreateDevice, acSystemDestroyDevice
     }, channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate
 };
+///
+/// ANSI Escape codes
+/// https://web.archive.org/web/20121225024852/http://www.climagic.org/mirrors/VT100_Escape_Codes.html
+/// 
+/// Cursor UP 1 line
+const UP: &str = "\x1b[1A";
+/// Clear line
+const CLEARLN: &str = "\x1b[2K";
 
 ///
 /// Represents a Arena SDK device, used to configure and stream a device.
@@ -306,14 +314,14 @@ impl AcDevice {
                                                     let mut fps = Fps::new();
                                                     loop {
                                                         log::trace!("{}.read | Read image...", dbg);
+                                                        println!("");
                                                         match self.get_buffer() {
                                                             Ok(mut buffer) => {
                                                                 match buffer.image() {
                                                                     Ok(img) => {
-                                                                        log::trace!("{}.image | {}x{}, {:.2} MB", dbg, img.width, img.height, (img.bytes as f64) / 1048576.0);
                                                                         fps.add();
                                                                         log::debug!(
-                                                                            "{}.read | {}x{}, {:.2} MB, {} FPS",
+                                                                            "{}.read | {}x{}, {:.2} MB, {} FPS{UP}{CLEARLN}{UP}\r",
                                                                             dbg, 
                                                                             img.width, img.height, 
                                                                             (img.bytes as f64) / 1048576.0,
