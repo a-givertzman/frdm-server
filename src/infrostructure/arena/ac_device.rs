@@ -90,10 +90,10 @@ impl AcDevice {
     fn get_buffer(&self) -> Result<AcBuffer, Error> {
         let mut buffer: acBuffer = std::ptr::null_mut();
         let err = AcErr::from(unsafe { acDeviceGetBuffer(self.device, self.image_timeout, &mut buffer) });
-        match err {
-            AcErr::Success => Ok(AcBuffer::new(&self.name, self.device, buffer, self.conf.pixel_format)),
-                _ => Err(Error::new(&self.name, "get_buffer").err(err)),
+        if err != AcErr::Success {
+            return Err(Error::new(&self.name, "get_buffer").pass(err.to_string()));
         }
+        Ok(AcBuffer::new(&self.name, self.device, buffer, self.conf.pixel_format))
     }
     ///
     /// Set acquisition frame rate, FPS
@@ -215,26 +215,26 @@ impl AcDevice {
             Err(err) => Err(error.pass_with("Get ChannelPacketSize Node", err)),
         }
     }
-    ///
-    /// Resets device to factory defaults.
-    fn factory_reset(&self, node_map: &AcNodeMap) -> Result<(), Error> {
-        let dbg = self.name.join();
-        let error = Error::new(&dbg, "factory_reset");
-        match node_map.get_node("DeviceFactoryReset") {
-            Ok(node) => {
-                log::debug!(
-                    "{}.factory_reset | FactoryReset: \nis_writable: {} \n bool: {} \nint: {} \nfloat: {} \nstr: {}", dbg,
-                    node.is_writable(),
-                    node.get_bool_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
-                    node.get_int_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
-                    node.get_float_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
-                    node.get_str_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
-                );
-                Ok(())
-            }
-            Err(err) => Err(error.pass_with("Get ChannelPacketSize Node", err)),
-        }
-    }
+    // ///
+    // /// Resets device to factory defaults.
+    // fn factory_reset(&self, node_map: &AcNodeMap) -> Result<(), Error> {
+    //     let dbg = self.name.join();
+    //     let error = Error::new(&dbg, "factory_reset");
+    //     match node_map.get_node("DeviceFactoryReset") {
+    //         Ok(node) => {
+    //             log::debug!(
+    //                 "{}.factory_reset | FactoryReset: \nis_writable: {} \n bool: {} \nint: {} \nfloat: {} \nstr: {}", dbg,
+    //                 node.is_writable(),
+    //                 node.get_bool_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+    //                 node.get_int_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+    //                 node.get_float_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+    //                 node.get_str_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+    //             );
+    //             Ok(())
+    //         }
+    //         Err(err) => Err(error.pass_with("Get ChannelPacketSize Node", err)),
+    //     }
+    // }
     ///
     /// Image acquisition
     /// (1) sets acquisition mode
@@ -324,7 +324,10 @@ impl AcDevice {
                                                                     Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
                                                                 }
                                                             }
-                                                            Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
+                                                            Err(err) => {
+                                                                log::warn!("{}.read | Error: {}", dbg, err);
+                                                                break;
+                                                            }
                                                         };
                                                         if exit.load(Ordering::SeqCst) {
                                                             break;
@@ -402,11 +405,6 @@ struct Fps {
 impl Fps {
     pub fn new() -> Self {
         Self { time: Instant::now(), times: 0.0, avarage: 0.0 }
-    }
-    pub fn restart(&mut self) {
-        self.time = Instant::now();
-        self.times = 0.0;
-        self.avarage = 0.0;
     }
     pub fn add(&mut self) {
         let elapsed = self.time.elapsed().as_secs_f64();
