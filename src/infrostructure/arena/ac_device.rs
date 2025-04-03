@@ -1,4 +1,4 @@
-use std::{io::Write, sync::{atomic::{AtomicBool, Ordering}, Arc}, time::Instant};
+use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, time::Instant};
 use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
 use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
