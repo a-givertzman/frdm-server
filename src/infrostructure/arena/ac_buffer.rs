@@ -1,11 +1,12 @@
 use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
 use crate::infrostructure::arena::ac_err::AcErr;
-
 use super::{ac_image::AcImage, bindings::{acBuffer, acDevice}, image::Image, pixel_format::PixelFormat};
 
 ///
-/// Decompress received from Arena SDK buffer
+/// - Received image buffer from device,
+/// - Returns an [Image]
+/// - Decompress received from Arena SDK buffer if required
 pub struct AcBuffer {
     name: Name,
     device: acDevice,
@@ -77,6 +78,9 @@ impl AcBuffer {
         };
         Ok(timestamp as usize)
     }
+    ///
+    /// Returns a pointer to the beginning of the image's payload data.
+    /// The payload may include chunk data
     fn image_data(&self, buffer: acBuffer) -> Result<*mut u8, Error> {
         let error = Error::new(&self.name, "image_data");
         let mut result = std::ptr::null_mut();
@@ -87,9 +91,9 @@ impl AcBuffer {
         Ok(result)
     }
     ///
-    /// Converts image color space if required
-    fn convert_color(&self, image: AcImage) -> Result<Image, Error>{
-        let error = Error::new(&self.name, "convert_color");
+    /// Converts image format and color space from Arena SDK to OpenCv Mat
+    fn convert(&self, image: AcImage) -> Result<Image, Error>{
+        let error = Error::new(&self.name, "convert");
         let src = unsafe { opencv::core::Mat::new_rows_cols_with_data_unsafe(
             image.height as i32,
             image.width as i32,
@@ -102,7 +106,8 @@ impl AcBuffer {
                 PixelFormat::BayerRG8 | PixelFormat::BayerBG8 | PixelFormat::BayerGB8 |
                 PixelFormat::BayerRG10 | PixelFormat::BayerGR10 | PixelFormat::BayerBG10 | PixelFormat::BayerGB10 |
                 PixelFormat::BayerRG12 | PixelFormat::BayerGR12 | PixelFormat::BayerBG12 | PixelFormat::BayerGB12 |
-                PixelFormat::BayerRG16 | PixelFormat::BayerGR16 | PixelFormat::BayerBG16 | PixelFormat::BayerGB16 => {
+                PixelFormat::BayerRG16 | PixelFormat::BayerGR16 | PixelFormat::BayerBG16 | PixelFormat::BayerGB16 |
+                PixelFormat::QoiBayerRG8 => {
                     let mut dst = src.clone();
                     match opencv::imgproc::cvt_color(
                         &src, 
@@ -111,12 +116,12 @@ impl AcBuffer {
                         3,
                     ) {
                         Ok(_) => Ok(Image { width: image.width, height: image.height, timestamp: image.timestamp as usize, mat: dst, bytes: image.bytes }),
-                        Err(err) => Err(error.pass_with("Convert Error", err.to_string())),
+                        Err(err) => Err(error.pass_with("OpenCv COLOR_BayerRG2RGB conversion Error", err.to_string())),
                     }
                 }
                 _ => Ok(Image { width: image.width, height: image.height, timestamp: image.timestamp as usize, mat: src, bytes: image.bytes })
             }
-            Err(err) => Err(error.pass_with("Create Error", err.to_string())),
+            Err(err) => Err(error.pass_with("Create OpenCv Mat Error", err.to_string())),
         }
     }
     ///
@@ -131,22 +136,31 @@ impl AcBuffer {
             PixelFormat::QoiBayerRG8 | PixelFormat::QoiMono8 |
             PixelFormat::QoiRGB8 | PixelFormat::QoiBGR8 |
             PixelFormat::QoiYCbCr8 => {
-                let err = AcErr::from( unsafe { super::bindings:: acImageFactoryDecompressImage(self.input, &mut self.decompressed) } );
+                let err = AcErr::from( unsafe { super::bindings::acImageFactoryDecompressImage(self.input, &mut self.decompressed) } );
                 if err != AcErr::Success {
-                    return Err(error.err(err));
+                    return Err(error.pass_with("FactoryDecompress error", err.to_string()));
                 }
-                Ok::<(acBuffer, usize), Error>((self.decompressed, self.len(self.decompressed)?))
+                let mut bpp = 0;
+	            let err = AcErr::from(unsafe { super::bindings::acImageGetBitsPerPixel(self.decompressed, &mut bpp) });
+                if err != AcErr::Success {
+                    return Err(error.pass_with("GetBitsPerPixel error", err.to_string()));
+                }
+                log::debug!("{}.image | BitsPerPixel; {}", self.name, bpp);
+                let len = self.len(self.decompressed)?;
+                Ok::<(acBuffer, usize), Error>((self.decompressed, len))
             }
-            _ => Ok::<(acBuffer, usize), Error>((self.input, self.len(self.input)?))
+            _ => {
+                let len = self.len(self.input)?;
+                Ok::<(acBuffer, usize), Error>((self.input, len))
+            }
         }?;
         let (width, height, timestamp, data) = (
-            // self.len(buffer)?,
             self.width(buffer)?,
             self.height(buffer)?,
             self.timestamp(buffer)?,
             self.image_data(buffer)?,
         );
-        self.convert_color(
+        self.convert(
             AcImage { width, height, timestamp, bytes, data }
         )
     }
@@ -159,6 +173,8 @@ impl Drop for AcBuffer {
         if err != AcErr::Success {
             log::warn!("{}.drop | Error; {}", self.name, err);
         };
+        // !!! Images created with the image factory must be destroyed (acImageFactoryDestroy) when no longer needed;
+        // !!! otherwise, memory will leak.
         if !self.decompressed.is_null() {
             let err = AcErr::from(unsafe { super::bindings::acImageFactoryDestroy(self.decompressed) });
             if err != AcErr::Success {

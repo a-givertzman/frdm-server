@@ -7,8 +7,8 @@ service Camera Camera1:
     # address: 192.168.10.12:2020
     # Mono8/10/12/16, Bayer8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411 | Default and fastest BayerRG8
     # pixel-format:  Mono8
-    # pixel-format:  BayerRG8
-    pixel-format:  QOI_Mono8
+    pixel-format:  BayerRG8
+    # pixel-format:  QOI_Mono8
     # pixel-format:  QOI_BayerRG8
     exposure:
         auto: Off                   # Off / Continuous
