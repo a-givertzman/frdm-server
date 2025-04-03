@@ -152,7 +152,7 @@ impl AcBuffer {
                 if err != AcErr::Success {
                     return Err(error.pass_with("FactoryDecompress error", err.to_string()));
                 }
-                log::debug!("{}.image | BitsPerPixel; {:?}", self.name, self.bpp(self.decompressed));
+                log::trace!("{}.image | BitsPerPixel; {:?}", self.name, self.bpp(self.decompressed));
                 let len = self.len(self.input).unwrap_or(0);
                 Ok::<(acBuffer, usize), Error>((self.decompressed, len))
             }
