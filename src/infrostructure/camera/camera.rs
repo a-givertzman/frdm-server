@@ -3,7 +3,7 @@ use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc}, thread::JoinHandle,
 use opencv::videoio::VideoCaptureTrait;
 use sal_core::error::Error;
 use sal_sync::services::entity::{dbg_id::DbgId, name::Name};
-use crate::infrostructure::arena::{ac_device::AcDevice, ac_image::AcImage, ac_system::AcSystem};
+use crate::infrostructure::arena::{ac_device::AcDevice, ac_system::AcSystem, image::Image};
 use super::{camera_conf::CameraConf, pimage::PImage};
 ///
 /// # Description to the [Camera] class
@@ -13,8 +13,8 @@ pub struct Camera {
     dbg: DbgId,
     name: Name,
     conf: CameraConf,
-    send: mpsc::Sender<AcImage>,
-    recv: Option<mpsc::Receiver<AcImage>>,
+    send: mpsc::Sender<Image>,
+    recv: Option<mpsc::Receiver<Image>>,
     exit: Arc<AtomicBool>,
 }
 //
@@ -41,7 +41,7 @@ impl Camera {
     /// Returns channel recv to access farmes from camera
     /// - call `read` to start reading frames from camera
     /// - call `close` to stop reading and cleen up
-    pub fn stream(&mut self) -> mpsc::Receiver<AcImage> {
+    pub fn stream(&mut self) -> mpsc::Receiver<Image> {
         match self.recv.take() {
             Some(recv) => recv,
             None => {
@@ -74,9 +74,14 @@ impl Camera {
                                         let device_serial = ac_system.device_serial(dev).unwrap();
                                         log::trace!("{}.read | Device {} serial: {}", dbg, dev, device_serial);
                                         let device_mac = ac_system.device_mac(dev).unwrap();
+                                        log::trace!("{}.read | Device {} MAC: {}", dbg, dev, device_mac);
                                         let device_ip = ac_system.device_ip(dev).unwrap();
                                         log::trace!("{}.read | Device {} IP: {}", dbg, dev, device_ip);
-                                        log::info!("{}.read | Device {}: {:?} | {:?} | {:?} | {:?} | {:?}", dbg, dev, device_vendor, device_model, device_serial, device_mac, device_ip);
+                                        let device_firmware = ac_system.device_firmware(dev).unwrap();
+                                        log::trace!("{}.read | Device {} Firmware: {}", dbg, dev, device_firmware);
+                                        log::info!(
+                                            "{}.read | Device {}: {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
+                                            dbg, dev, device_vendor, device_model, device_serial, device_mac, device_ip, device_firmware);
                                     }
                                     match &conf.index {
                                         Some(index) => {
@@ -94,16 +99,22 @@ impl Camera {
                                                 log::warn!("{}.read | Specified device index '{}' out of found devices count '{}'", dbg, index, devices);
                                             }
                                         }
-                                        None => log::error!("{}.read | Device index - is not specified in the camera conf", dbg),
+                                        None => {
+                                            log::error!("{}.read | Device index - is not specified in the camera conf", dbg);
+                                        }
                                     }
                                 } else {
                                     log::warn!("{}.read | No devices detected on current network interface", dbg);
                                 }
                             }
-                            None => log::warn!("{}.read | No devices detected, Possible AcSystem is not executed first", dbg),
+                            None => {
+                                log::warn!("{}.read | No devices detected, Possible AcSystem is not executed first", dbg);
+                            }
                         }
                     }
-                    Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
+                    Err(err) => {
+                        log::warn!("{}.read | Error: {}", dbg, err);
+                    }
                 }
                 std::thread::sleep(Duration::from_secs(1));
                 if exit.load(Ordering::SeqCst) {
