@@ -1,17 +1,20 @@
-use opencv::imgproc::cvt_color;
 use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
-use crate::infrostructure::arena::{
-    ac_err::AcErr, ac_image::AcImage,
-};
+use crate::infrostructure::arena::ac_err::AcErr;
 
-use super::{bindings::{acBuffer, acDevice}, pixel_format::PixelFormat};
+use super::{ac_image::AcImage, bindings::{acBuffer, acDevice}, image::Image, pixel_format::PixelFormat};
 
+///
+/// Decompress received from Arena SDK buffer
 pub struct AcBuffer {
     name: Name,
-    // device: acDevice,
-    buffer: ImgData,
+    device: acDevice,
+    pub pixel_format: PixelFormat,
+    input: acBuffer,
+    decompressed: acBuffer,
 }
+//
+//
 impl AcBuffer {
     ///
     /// Returns new instance of the Device Node Map of kind:
@@ -19,125 +22,20 @@ impl AcBuffer {
     /// - TLStreamNodeMap
     pub fn new(parent: impl Into<String>, device: acDevice, buffer: acBuffer, pixel_format: PixelFormat) -> Self {
         let name = Name::new(parent.into(), format!("AcBuffer"));
-        let buffer = ImgData::new(&name, device, buffer, pixel_format);
-        Self {
-            name,
-            // device,
-            buffer,
-        }
-    }
-    ///
-    /// Returns filled bytes
-    pub fn len(&self) -> Result<usize, Error> {
-        self.buffer.len()
-    }
-    // ///
-    // /// Returns decompressed buffer (QOI compression)
-    // /// 
-    // /// Decompresses a compressed image (acBuffer).
-    // /// In doing so, it creates a completely new image,
-    // /// similar to a deep copy but with an uncompressed pixel format.
-    // /// Images created with the image factory must be destroyed (acImageFactoryDestroy)
-    // /// when no longer needed; otherwise, memory will leak.
-    // pub fn decompress(&self, buffer: acBuffer) -> Result<acBuffer, Error> {
-    //     let error = Error::new(&self.name, "decompress");
-    //     let mut result: acBuffer = std::ptr::null_mut();
-    //     let err = AcErr::from( unsafe { super::bindings::acImageFactoryDecompressImage(buffer, &mut result) } );
-    //     if err != AcErr::Success {
-    //         return Err(error.err(err));
-    //     };
-    //     Ok(result)
-    // }
-    ///
-    /// Retorns single image
-    pub fn image(&mut self) -> Result<AcImage, Error> {
-        let error = Error::new(&self.name, "get_image");
-        let bytes = self.buffer.len()?;
-        log::trace!("{}.get_image | bytes: {} mb", self.name, (bytes as f64) / 1048576.0);
-        let width = self.buffer.width()?;
-        log::trace!("{}.get_image | width: {}; ", self.name, width);
-        let height = self.buffer.height()?;
-        log::trace!("{}.get_image | height: {}; ", self.name, height);
-        let timestamp_ns = self.buffer.timestamp()?;
-        log::trace!("{}.get_image | timestamp: {} ns)", self.name, timestamp_ns);
-        log::trace!("{}.get_image | {}x{}, {:.2} MB", self.name, width, height, (bytes as f64) / 1048576.0);
-        match self.buffer.get() {
-            Ok(img) => {
-                let src = unsafe { opencv::core::Mat::new_rows_cols_with_data_unsafe(
-                    height as i32,
-                    width as i32,
-                    self.buffer.pixel_format.cv_format(),
-                    img as *mut std::ffi::c_void,
-                    opencv::core::Mat_AUTO_STEP,
-                ) };
-                match src {
-                    Ok(src) => match self.buffer.pixel_format {
-                        PixelFormat::BayerRG8 | PixelFormat::BayerBG8 | PixelFormat::BayerGB8 |
-                        PixelFormat::BayerRG10 | PixelFormat::BayerGR10 | PixelFormat::BayerBG10 | PixelFormat::BayerGB10 |
-                        PixelFormat::BayerRG12 | PixelFormat::BayerGR12 | PixelFormat::BayerBG12 | PixelFormat::BayerGB12 |
-                        PixelFormat::BayerRG16 | PixelFormat::BayerGR16 | PixelFormat::BayerBG16 | PixelFormat::BayerGB16 => {
-                            let mut dst = src.clone();
-                            match cvt_color(
-                                &src, 
-                                &mut dst, 
-                                opencv::imgproc::COLOR_BayerRG2RGB,
-                                3,
-                            ) {
-                                Ok(_) => Ok(AcImage { width, height, timestamp: timestamp_ns as usize, mat: dst, bytes }),
-                                Err(err) => Err(error.pass_with("Convert Error", err.to_string())),
-                            }
-                        }
-                        _ => Ok(AcImage { width, height, timestamp: timestamp_ns as usize, mat: src, bytes })
-                    }
-                    Err(err) => Err(error.pass_with("Create Error", err.to_string())),
-                }
-            }
-            Err(err) => Err(error.pass(err)),
-        }
-    }
-}
-//
-// 
-impl Drop for AcBuffer {
-    fn drop(&mut self) {
-    }
-}
-
-
-
-
-pub struct ImgData {
-    name: Name,
-    device: acDevice,
-    input: acBuffer,
-    out: Option<*mut u8>,
-    decompressed: Option<acBuffer>,
-    pub pixel_format: PixelFormat,
-}
-//
-//
-impl ImgData {
-    ///
-    /// Returns new instance of the Device Node Map of kind:
-    /// - DeviceNodeMap
-    /// - TLStreamNodeMap
-    pub fn new(parent: impl Into<String>, device: acDevice, buffer: acBuffer, pixel_format: PixelFormat) -> Self {
-        let name = Name::new(parent.into(), format!("ImgData"));
         Self {
             name,
             device,
             input: buffer,
-            out: None,
-            decompressed: None,
+            decompressed: std::ptr::null_mut(),
             pixel_format,
         }
     }
     ///
     /// Returns filled bytes
-    pub fn len(&self) -> Result<usize, Error> {
+    fn len(&self, buffer: acBuffer) -> Result<usize, Error> {
         let error = Error::new(&self.name, "len");
         let mut bytes = 0;
-        let err = AcErr::from(unsafe { super::bindings::acBufferGetSizeFilled(self.input, &mut bytes) });
+        let err = AcErr::from(unsafe { super::bindings::acBufferGetSizeFilled(buffer, &mut bytes) });
         if err != AcErr::Success {
             return Err(error.err(err));
         };
@@ -146,89 +44,123 @@ impl ImgData {
     ///
     /// Returns width of image buffer
     /// Images are self-describing, so the device does not need to be queried to get this information.
-    pub fn width(&self) -> Result<usize, Error> {
+    fn width(&self, buffer: acBuffer) -> Result<usize, Error> {
         let error = Error::new(&self.name, "width");
         let mut width = 0;
-        let err = AcErr::from(unsafe { super::bindings::acImageGetWidth(self.input, &mut width) });
+        let err = AcErr::from(unsafe { super::bindings::acImageGetWidth(buffer, &mut width) });
         if err != AcErr::Success {
-            return Err(error.err(err));
+            return Err(error.pass(err.to_string()));
         };
         Ok(width)
     }
     ///
     /// Returns height of image buffer
     /// Images are self-describing, so the device does not need to be queried to get this information.
-    pub fn height(&self) -> Result<usize, Error> {
+    fn height(&self, buffer: acBuffer) -> Result<usize, Error> {
         let error = Error::new(&self.name, "height");
         let mut height = 0;
-        let err = AcErr::from(unsafe { super::bindings::acImageGetHeight(self.input, &mut height) });
+        let err = AcErr::from(unsafe { super::bindings::acImageGetHeight(buffer, &mut height) });
         if err != AcErr::Success {
-            return Err(error.err(err));
+            return Err(error.pass(err.to_string()));
         };
         Ok(height)
     }
     ///
     /// Returns the timestamp of the image in nanoseconds.
     /// Images are self-describing, so the device does not need to be queried to get this information
-    pub fn timestamp(&self) -> Result<usize, Error> {
+    fn timestamp(&self, buffer: acBuffer) -> Result<usize, Error> {
         let error = Error::new(&self.name, "timestamp");
         let mut timestamp = 0;
-        let err = AcErr::from(unsafe { super::bindings::acImageGetTimestampNs(self.input, &mut timestamp) });
+        let err = AcErr::from(unsafe { super::bindings::acImageGetTimestampNs(buffer, &mut timestamp) });
         if err != AcErr::Success {
-            return Err(error.err(err));
+            return Err(error.pass(err.to_string()));
         };
         Ok(timestamp as usize)
     }
+    fn image_data(&self, buffer: acBuffer) -> Result<*mut u8, Error> {
+        let error = Error::new(&self.name, "image_data");
+        let mut result = std::ptr::null_mut();
+        let err = AcErr::from(unsafe { super::bindings::acImageGetData(buffer, &mut result) });
+        if err != AcErr::Success {
+            return Err(error.pass(err.to_string()));
+        };
+        Ok(result)
+    }
     ///
-    /// Returns a pointer to the beginning of the image's payload data.
-    /// The payload may include chunk data.
-    pub fn get(&mut self) -> Result<*mut u8, Error> {
-        let error = Error::new(&self.name, "get");
-        match self.out {
-            Some(out) => Ok(out),
-            None => {
-                match self.pixel_format {
-                    PixelFormat::QoiBayerRG8 | PixelFormat::QoiMono8 |
-                    PixelFormat::QoiRGB8 | PixelFormat::QoiBGR8 |
-                    PixelFormat::QoiYCbCr8 => {
-                        let mut decompressed = std::ptr::null_mut();
-                        self.decompressed = Some(decompressed);
-                        let err = AcErr::from( unsafe { super::bindings:: acImageFactoryDecompressImage(self.input, &mut decompressed) } );
-                        if err != AcErr::Success {
-                            return Err(error.err(err));
-                        }
-                        let mut result = std::ptr::null_mut();
-                        let err = AcErr::from(unsafe { super::bindings::acImageGetData(decompressed, &mut result) });
-                        if err != AcErr::Success {
-                            return Err(error.err(err));
-                        };
-                        self.out = Some(result);
-                        Ok(result)
-                    }
-                    _ => {
-                        let mut result = std::ptr::null_mut();
-                        let err = AcErr::from(unsafe { super::bindings::acImageGetData(self.input, &mut result) });
-                        if err != AcErr::Success {
-                            return Err(error.err(err));
-                        };
-                        self.out = Some(result);
-                        Ok(result)
+    /// Converts image color space if required
+    fn convert_color(&self, image: AcImage) -> Result<Image, Error>{
+        let error = Error::new(&self.name, "convert_color");
+        let src = unsafe { opencv::core::Mat::new_rows_cols_with_data_unsafe(
+            image.height as i32,
+            image.width as i32,
+            self.pixel_format.cv_format(),
+            image.data as _,
+            opencv::core::Mat_AUTO_STEP,
+        ) };
+        match src {
+            Ok(src) => match self.pixel_format {
+                PixelFormat::BayerRG8 | PixelFormat::BayerBG8 | PixelFormat::BayerGB8 |
+                PixelFormat::BayerRG10 | PixelFormat::BayerGR10 | PixelFormat::BayerBG10 | PixelFormat::BayerGB10 |
+                PixelFormat::BayerRG12 | PixelFormat::BayerGR12 | PixelFormat::BayerBG12 | PixelFormat::BayerGB12 |
+                PixelFormat::BayerRG16 | PixelFormat::BayerGR16 | PixelFormat::BayerBG16 | PixelFormat::BayerGB16 => {
+                    let mut dst = src.clone();
+                    match opencv::imgproc::cvt_color(
+                        &src, 
+                        &mut dst, 
+                        opencv::imgproc::COLOR_BayerRG2RGB,
+                        3,
+                    ) {
+                        Ok(_) => Ok(Image { width: image.width, height: image.height, timestamp: image.timestamp as usize, mat: dst, bytes: image.bytes }),
+                        Err(err) => Err(error.pass_with("Convert Error", err.to_string())),
                     }
                 }
+                _ => Ok(Image { width: image.width, height: image.height, timestamp: image.timestamp as usize, mat: src, bytes: image.bytes })
             }
+            Err(err) => Err(error.pass_with("Create Error", err.to_string())),
         }
+    }
+    ///
+    /// Returns image (acBuffer).
+    /// 
+    /// If required decompresses a compressed image (acBuffer).
+    /// In doing so, it creates a completely new image,
+    /// similar to a deep copy but with an uncompressed pixel format.
+    pub fn image(&mut self) -> Result<Image, Error> {
+        let error = Error::new(&self.name, "image");
+        let (buffer, bytes) = match self.pixel_format {
+            PixelFormat::QoiBayerRG8 | PixelFormat::QoiMono8 |
+            PixelFormat::QoiRGB8 | PixelFormat::QoiBGR8 |
+            PixelFormat::QoiYCbCr8 => {
+                let err = AcErr::from( unsafe { super::bindings:: acImageFactoryDecompressImage(self.input, &mut self.decompressed) } );
+                if err != AcErr::Success {
+                    return Err(error.err(err));
+                }
+                Ok::<(acBuffer, usize), Error>((self.decompressed, self.len(self.decompressed)?))
+            }
+            _ => Ok::<(acBuffer, usize), Error>((self.input, self.len(self.input)?))
+        }?;
+        let (width, height, timestamp, data) = (
+            // self.len(buffer)?,
+            self.width(buffer)?,
+            self.height(buffer)?,
+            self.timestamp(buffer)?,
+            self.image_data(buffer)?,
+        );
+        self.convert_color(
+            AcImage { width, height, timestamp, bytes, data }
+        )
     }
 }
 //
 //
-impl Drop for ImgData {
+impl Drop for AcBuffer {
     fn drop(&mut self) {
         let err = AcErr::from(unsafe { super::bindings::acDeviceRequeueBuffer(self.device, self.input) });
         if err != AcErr::Success {
             log::warn!("{}.drop | Error; {}", self.name, err);
         };
-        if let Some(decompressed) = self.decompressed {
-            let err = AcErr::from(unsafe { super::bindings::acImageFactoryDestroy(decompressed) });
+        if !self.decompressed.is_null() {
+            let err = AcErr::from(unsafe { super::bindings::acImageFactoryDestroy(self.decompressed) });
             if err != AcErr::Success {
                 log::warn!("{}.drop | Error; {}", self.name, err);
             };

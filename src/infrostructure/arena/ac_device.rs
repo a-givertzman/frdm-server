@@ -6,7 +6,7 @@ use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
 }}, camera::camera_conf::CameraConf};
 
 use super::{
-    ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
+    ac_buffer::AcBuffer, ac_err::AcErr, image::Image, ac_node_map::AcNodeMap, bindings::{
         acDevice, acDeviceGetNodeMap, acNodeMap, acSystem, acSystemCreateDevice, acSystemDestroyDevice
     }, channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate
 };
@@ -49,7 +49,7 @@ impl AcDevice {
     }
     ///
     /// 
-    pub fn listen(&mut self, on_event: impl Fn(AcImage)) -> Result<(), Error> {
+    pub fn listen(&mut self, on_event: impl Fn(Image)) -> Result<(), Error> {
         log::debug!("{}.listen | Started", self.name);
         unsafe {
             let err = AcErr::from(acSystemCreateDevice(self.system, self.index, &mut self.device));
@@ -245,7 +245,7 @@ impl AcDevice {
     /// (6) prints information from images
     /// (7) requeues buffers
     /// (8) stops the stream
-    fn read(&self, on_event: impl Fn(AcImage)) -> Result<(), Error> {
+    fn read(&self, on_event: impl Fn(Image)) -> Result<(), Error> {
         let dbg = self.name.join();
         let error = Error::new(&dbg, "read");
         let exit = self.exit.clone();
@@ -308,9 +308,9 @@ impl AcDevice {
                                                         log::trace!("{}.read | Read image...", dbg);
                                                         match self.get_buffer() {
                                                             Ok(mut buffer) => {
-                                                                log::trace!("{}.read | Buffer: {:?}", dbg, buffer.len());
                                                                 match buffer.image() {
                                                                     Ok(img) => {
+                                                                        log::trace!("{}.image | {}x{}, {:.2} MB", dbg, img.width, img.height, (img.bytes as f64) / 1048576.0);
                                                                         fps.add();
                                                                         log::debug!(
                                                                             "{}.read | {}x{}, {:.2} MB, {} FPS",

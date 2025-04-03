@@ -2,7 +2,7 @@
 
 mod arena {
     use std::{sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, mpsc, Arc, Once}, thread, time::{Duration, Instant}};
-    use crate::infrostructure::{arena::{ac_device::AcDevice, ac_image::AcImage, ac_system::AcSystem}, camera::camera_conf::CameraConf};
+    use crate::infrostructure::{arena::{ac_device::AcDevice, image::Image, ac_system::AcSystem}, camera::camera_conf::CameraConf};
     use sal_sync::services::entity::dbg_id::DbgId;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
@@ -59,7 +59,7 @@ mod arena {
         "#).unwrap();
         let conf = CameraConf::from_yaml(&dbg, &conf);
         let time = Instant::now();
-        let (send, recv) = mpsc::channel::<AcImage>();
+        let (send, recv) = mpsc::channel::<Image>();
         let disp_handle = std::thread::spawn(move || {
             let dbg = dbg_1;
             let window = "Retrived";
