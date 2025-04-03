@@ -79,6 +79,18 @@ impl AcBuffer {
         Ok(timestamp as usize)
     }
     ///
+    /// Returns bits per pixel of the image.
+    /// Images are self-describing, so the device does not need to be queried to get this information
+    fn bpp(&self, buffer: acBuffer) -> Result<usize, Error> {
+        let error = Error::new(&self.name, "bpp");
+        let mut bpp = 0;
+        let err = AcErr::from(unsafe { super::bindings::acImageGetBitsPerPixel(buffer, &mut bpp) });
+        if err != AcErr::Success {
+            return Err(error.pass(err.to_string()));
+        }
+        Ok(bpp)
+    }
+    ///
     /// Returns a pointer to the beginning of the image's payload data.
     /// The payload may include chunk data
     fn image_data(&self, buffer: acBuffer) -> Result<*mut u8, Error> {
@@ -140,17 +152,12 @@ impl AcBuffer {
                 if err != AcErr::Success {
                     return Err(error.pass_with("FactoryDecompress error", err.to_string()));
                 }
-                let mut bpp = 0;
-	            let err = AcErr::from(unsafe { super::bindings::acImageGetBitsPerPixel(self.decompressed, &mut bpp) });
-                if err != AcErr::Success {
-                    return Err(error.pass_with("GetBitsPerPixel error", err.to_string()));
-                }
-                log::debug!("{}.image | BitsPerPixel; {}", self.name, bpp);
-                let len = self.len(self.decompressed)?;
+                log::debug!("{}.image | BitsPerPixel; {:?}", self.name, self.bpp(self.decompressed));
+                let len = self.len(self.input).unwrap_or(0);
                 Ok::<(acBuffer, usize), Error>((self.decompressed, len))
             }
             _ => {
-                let len = self.len(self.input)?;
+                let len = self.len(self.input).unwrap_or(0);
                 Ok::<(acBuffer, usize), Error>((self.input, len))
             }
         }?;
