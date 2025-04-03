@@ -341,15 +341,12 @@ impl AcDevice {
                                                             break;
                                                         }
                                                     }
-                                                    // stop stream
                                                     log::debug!("{}.read | Stop stream...", dbg);
                                                     let err = AcErr::from(unsafe { acDeviceStopStream(self.device) });
                                                     if err != AcErr::Success {
                                                         return Err(error.pass_with("DeviceStopStream Error", err.to_string()));
                                                     }
                                                     Ok(())
-                                                    // return node to its initial values
-                                                    // self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial)?;
                                                 }
                                                 _ => Err(error.pass_with("DeviceStartStream Error", err.to_string())),
                                             }
@@ -372,11 +369,6 @@ impl AcDevice {
                     },
                     Err(err) => Err(error.pass_with("Get `initial_acquisition_mode` Error", err)),
                 }
-                // match self.tls_stream_node() {
-                //     Err(err) => return Err(Error(format!("{}.read | GetTLStreamNodeMap Error: {}", dbg, err))),
-                //     Ok(h_tlstream_node_map) => {
-                //     }
-                // }
             },
             Err(err) => Err(error.pass_with("Get node map error", err)),
         }
