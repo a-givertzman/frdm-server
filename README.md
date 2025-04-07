@@ -7,6 +7,8 @@ Web page: <https://sa-lab.dev/projects-frdm.html#project__overview>
 ## Lens
 
 [LUCID Vision Labs](https://thinklucid.com/category/lenses-lens-tubes/)
+[Optical calculations](https://www.vision-doctor.com/en/service-en/sen-t5/optical-calculations.html)
+[Calculating the depth of field (DOF)](https://www.vision-doctor.com/en/service-en/sen-t5/optical-calculations/calculation-depth-of-field.html)
 
 Lens focal length | Image width | Image hight | Field depth    | Image deformation
 ------------------| ----------: | ----------: | -------------: | ------------------:
