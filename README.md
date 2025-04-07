@@ -14,7 +14,7 @@ Lens focal length | Image width  | Image hight | Field depth    | Image deformat
 ------------------| ----------:  | ----------: | -------------: | ------------------:
 4 mm              | 400...500 mm |      -      |  100..150 mm   |  approx 10..30 px
 12 mm             |     150.5 mm |      -      |      45.0 mm   |  approx 2..5 px
-16 mm             |     110.9 mm |      -      |      30.0 mm   |  approx 1..2 px
+16 mm             |     110.9 mm |      -      |      20.0 mm   |  approx 1..2 px
 25 mm             |      60.9 mm |      -      |       1.0 mm   |  approx < 1 px
 
 ## Installation
