@@ -10,6 +10,9 @@ Web page: <https://sa-lab.dev/projects-frdm.html#project__overview>
 [Optical calculations](https://www.vision-doctor.com/en/service-en/sen-t5/optical-calculations.html)
 [Calculating the depth of field (DOF)](https://www.vision-doctor.com/en/service-en/sen-t5/optical-calculations/calculation-depth-of-field.html)
 
+
+**Lens test on working distance 200 mm**
+
 Lens focal length | Image width  | Image hight | Field depth    | Image deformation
 ------------------| ----------:  | ----------: | -------------: | ------------------:
 4 mm              | 400...500 mm |      -      |  100..150 mm   |  approx 10..30 px
