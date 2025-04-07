@@ -12,10 +12,10 @@ Web page: <https://sa-lab.dev/projects-frdm.html#project__overview>
 
 Lens focal length | Image width | Image hight | Field depth    | Image deformation
 ------------------| ----------: | ----------: | -------------: | ------------------:
-4 mm              |  40...50    |      -      |    10..15      |  approx 10..30 px
-12 mm             |     15.5    |      -      |       4.5      |  approx 2..5 px
-16 mm             |     11.9    |      -      |       3.0      |  approx 1..2 px
-25 mm             |      6.9    |      -      |       1.0      |  approx < 1 px
+4 mm              |  40...50 mm |      -      |    10..15 mm   |  approx 10..30 px
+12 mm             |     15.5 mm |      -      |       4.5 mm   |  approx 2..5 px
+16 mm             |     11.9 mm |      -      |       3.0 mm   |  approx 1..2 px
+25 mm             |      6.9 mm |      -      |       1.0 mm   |  approx < 1 px
 
 ## Installation
 
