@@ -77,9 +77,10 @@ mod fast_scan {
     //
     #[test]
     fn contours() -> opencv::Result<()> {
-        let img = imgcodecs::imread("src/test/unit/scan/fast/test_photo.jpg",imgcodecs::IMREAD_COLOR).unwrap();
+        let img = imgcodecs::imread("src/test/unit/scan/fast/test_photo2.jpg",imgcodecs::IMREAD_COLOR).unwrap();
         highgui::named_window("img", highgui::WINDOW_AUTOSIZE);
         let kernel = imgproc::get_structuring_element(imgproc::MORPH_RECT, core::Size::new(3,3), core::Point::new(-1,-1))?;
+        let time = Instant::now();
         let mut gray_frame = Mat::default();
         let mut otsu_thresh = Mat::default();
         let mut opened = Mat::default();
@@ -89,6 +90,8 @@ mod fast_scan {
         imgproc::morphology_ex(&otsu_thresh, &mut opened, imgproc::MORPH_OPEN, &kernel, core::Point::new(-1,-1), 3, core::BORDER_CONSTANT, imgproc::morphology_default_border_value()?)?;
         core::bitwise_not_def(&opened.clone(), &mut opened);
         imgproc::canny_def(&opened, &mut edges, 100., 200.);
+        let elapsed = time.elapsed();
+        println!("Elapsed time: {}", elapsed.as_millis());
         highgui::imshow("img", &edges);
         highgui::wait_key(0);
         highgui::destroy_all_windows();
