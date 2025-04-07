@@ -11,6 +11,7 @@ Lens focal length | Image width | Image hight | Field depth
 4 mm              |  40...50    |      -      |    10..15
 12 mm             |     15.5    |      -      |       4.5
 16 mm             |     11.9    |      -      |       3.0
+25 mm             |      6.9    |      -      |       1.0
 
 ## Installation
 
