@@ -26,6 +26,77 @@ mod fast_scan {
     ///
     /// Testing fast scan
     #[test]
+    fn grad_one_frame() -> opencv::Result<()> {
+        let img = imgcodecs::imread("src/test/unit/scan/fast/test_photo2.jpg",imgcodecs::IMREAD_COLOR).unwrap();
+        highgui::named_window("img", highgui::WINDOW_AUTOSIZE);
+        let mut gray_frame = Mat::default();
+        imgproc::cvt_color(&img, &mut gray_frame, imgproc::COLOR_BGR2GRAY, 0)?;
+        //let mut gray_frame = gray_frame.roi(core::Rect::new(400,10,300,150))?;
+        let mut grad_x = Mat::default();
+        let mut grad_y = Mat::default();
+        let mut abs_grad_x = Mat::default();
+        let mut abs_grad_y = Mat::default();
+        let mut grad = Mat::default();
+        imgproc::sobel(&gray_frame,&mut grad_x, core::CV_16S, 1, 0, 1, 1.0, 0.0, core::BORDER_DEFAULT)?;
+        imgproc::sobel(&gray_frame,&mut grad_y, core::CV_16S, 0, 1, 1, 1.0, 0.0, core::BORDER_DEFAULT)?;
+        core::convert_scale_abs(&grad_x, &mut abs_grad_x, 1.0, 0.0)?;
+        core::convert_scale_abs(&grad_y, &mut abs_grad_y, 1.0, 0.0)?;
+        core::add_weighted(&abs_grad_x, 0.5, &abs_grad_y, 0.5, 0.0, &mut grad, -1)?;
+        highgui::imshow("img", &grad);
+        highgui::wait_key(0);
+        highgui::destroy_all_windows();
+        Ok(())
+    }
+    // 
+    //
+    #[test]
+    fn method_compare() -> opencv::Result<()> {
+        let img = imgcodecs::imread("src/test/unit/scan/fast/test_photo.jpg",imgcodecs::IMREAD_COLOR).unwrap();
+        highgui::named_window("img", highgui::WINDOW_AUTOSIZE);
+        let kernel = imgproc::get_structuring_element(imgproc::MORPH_RECT, core::Size::new(3,3), core::Point::new(-1,-1))?;
+        let mut gray_frame = Mat::default();
+        imgproc::cvt_color(&img, &mut gray_frame, imgproc::COLOR_BGR2GRAY, 0)?;
+        let mut grad_x = Mat::default();
+        let mut grad_y = Mat::default();
+        let mut abs_grad_x = Mat::default();
+        let mut abs_grad_y = Mat::default();
+        let mut grad = Mat::default();
+        let mut edges = Mat::default();
+        imgproc::sobel(&gray_frame,&mut grad_x, core::CV_16S, 1, 0, 1, 1.0, 0.0, core::BORDER_DEFAULT)?;
+        imgproc::sobel(&gray_frame,&mut grad_y, core::CV_16S, 0, 1, 1, 1.0, 0.0, core::BORDER_DEFAULT)?;
+        core::convert_scale_abs(&grad_x, &mut abs_grad_x, 1.0, 0.0)?;
+        core::convert_scale_abs(&grad_y, &mut abs_grad_y, 1.0, 0.0)?;
+        core::add_weighted(&abs_grad_x, 0.5, &abs_grad_y, 0.5, 0.0, &mut grad, -1)?;
+        imgproc::canny_def(&grad, &mut edges, 100., 200.);
+        highgui::imshow("img", &edges);
+        highgui::wait_key(0);
+        highgui::destroy_all_windows();
+        Ok(())  
+    }
+    //
+    //
+    #[test]
+    fn contours() -> opencv::Result<()> {
+        let img = imgcodecs::imread("src/test/unit/scan/fast/test_photo.jpg",imgcodecs::IMREAD_COLOR).unwrap();
+        highgui::named_window("img", highgui::WINDOW_AUTOSIZE);
+        let kernel = imgproc::get_structuring_element(imgproc::MORPH_RECT, core::Size::new(3,3), core::Point::new(-1,-1))?;
+        let mut gray_frame = Mat::default();
+        let mut otsu_thresh = Mat::default();
+        let mut opened = Mat::default();
+        let mut edges = Mat::default();
+        imgproc::cvt_color(&img, &mut gray_frame, imgproc::COLOR_BGR2GRAY, 0)?;
+        imgproc::threshold(&gray_frame, &mut otsu_thresh, 100., 255., imgproc::THRESH_OTSU)?;
+        imgproc::morphology_ex(&otsu_thresh, &mut opened, imgproc::MORPH_OPEN, &kernel, core::Point::new(-1,-1), 3, core::BORDER_CONSTANT, imgproc::morphology_default_border_value()?)?;
+        core::bitwise_not_def(&opened.clone(), &mut opened);
+        imgproc::canny_def(&opened, &mut edges, 100., 200.);
+        highgui::imshow("img", &edges);
+        highgui::wait_key(0);
+        highgui::destroy_all_windows();
+        Ok(())
+    }
+    //
+    //
+    #[test]
     fn grad_save() -> opencv::Result<()> {
         let mut cap = videoio::VideoCapture::from_file("src/test/unit/infrostructure/camera/video_test.mp4", videoio::CAP_ANY)?;
         if !cap.is_opened()? {
