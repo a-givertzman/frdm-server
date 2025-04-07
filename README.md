@@ -2,9 +2,11 @@
 
 Fiber Rope Defects Monitoring
 
-Web page: https://sa-lab.dev/projects-frdm.html#project__overview
+Web page: <https://sa-lab.dev/projects-frdm.html#project__overview>
 
 ## Lens
+
+[LUCID Vision Labs](https://thinklucid.com/category/lenses-lens-tubes/)
 
 Lens focal length | Image width | Image hight | Field depth    | Image deformation
 ------------------| ----------: | ----------: | -------------: | ------------------:
