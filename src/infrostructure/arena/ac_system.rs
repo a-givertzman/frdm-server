@@ -1,10 +1,9 @@
-use std::{ffi::CString, usize};
-
-use sal_sync::services::entity::{error::str_err::StrErr, name::Name};
+use sal_core::error::Error;
+use sal_sync::services::entity::name::Name;
 
 use crate::infrostructure::arena::bindings::acSystemUpdateDevices;
 
-use super::{ac_err::AcErr, bindings::{acCloseSystem, acOpenSystem, acSystem, acSystemGetNumDevices}, ffi_str::FfiStr};
+use super::{ac_err::AcErr, bindings::{self, acCloseSystem, acOpenSystem, acSystem, acSystemGetNumDevices}, ffi_str::FfiStr};
 
 ///
 /// Representation of the system object, the entry point into Arena SDK.
@@ -30,7 +29,9 @@ impl AcSystem {
     }
     ///
     /// 
-    pub fn run(&mut self) -> Result<(), StrErr> {
+    pub fn run(&mut self) -> Result<(), Error> {
+        let error = Error::new(&self.name, "run");
+        log::info!("{}.run | Arena SDK: {:?}", self.name, self.version().unwrap_or("Error get version".into()));
         unsafe {
             let err = AcErr::from(acOpenSystem(&mut self.system));
             match err {
@@ -45,19 +46,13 @@ impl AcSystem {
                                     self.devices = Some(devices);
                                     Ok(())
                                 }
-                                _ => {
-                                    Err(StrErr(format!("{}.run | Error: {}", self.name, err)))
-                                }
+                                _ => Err(error.pass_with("acSystemGetNumDevices", err.to_string())),
                             }
                         }
-                        _ => {
-                            Err(StrErr(format!("{}.run | Error: {}", self.name, err)))
-                        }
+                        _ => Err(error.pass_with("acSystemUpdateDevices", err.to_string())),
                     }
                 }
-                _ => {
-                    Err(StrErr(format!("{}.run | Error: {}", self.name, err)))
-                }
+                _ => Err(error.pass_with("acOpenSystem", err.to_string())),
             }
         }
     }
@@ -67,13 +62,25 @@ impl AcSystem {
         self.devices
     }
     ///
-    /// 
-    // err = acSystemGetDeviceVendor(hSystem, i, pBuf, &len);
+    /// Returns SDK build version
+    /// - `dev` - Index of the device
+    pub fn version(&self) -> Result<String, Error> {
+        unsafe {
+            let mut result = FfiStr::<1024>::new();
+            log::trace!("{}.version | SDK Version...", self.name);
+            let err = AcErr::from(super::bindings::acGetVersion(result.as_mut_ptr() as *mut i8, &mut result.len));
+            let result = result.to_string();
+            log::trace!("{}.version | SDK Version: {}", self.name, result);
+            match err {
+                AcErr::Success => Ok(result),
+                _ => Err(Error::new(&self.name, "version").err(err)),
+            }
+        }
+    }
     ///
     /// Returns the Vendor name of a device
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
-    pub fn device_vendor(&self, dev: usize) -> Result<String, StrErr> {
+    pub fn device_vendor(&self, dev: usize) -> Result<String, Error> {
         unsafe {
             let mut result = FfiStr::<1024>::new();
             log::trace!("{}.device_vendor | Device {}...", self.name, dev);
@@ -82,15 +89,14 @@ impl AcSystem {
             log::trace!("{}.device_vendor | Device {} Model: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
-                _ => Err(StrErr(format!("{}.device_vendor | Error: {}", self.name, err))),
+                _ => Err(Error::new(&self.name, "device_vendor").err(err)),
             }
         }
     }
     ///
     /// Returns the Model name of a device
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
-    pub fn device_model(&self, dev: usize) -> Result<String, StrErr> {
+    pub fn device_model(&self, dev: usize) -> Result<String, Error> {
         unsafe {
             let mut result = FfiStr::<1024>::new();
             log::trace!("{}.device_model | Device {}...", self.name, dev);
@@ -99,7 +105,7 @@ impl AcSystem {
             log::trace!("{}.device_model | Device {} Model: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
-                _ => Err(StrErr(format!("{}.device_model | Error: {}", self.name, err))),
+                _ => Err(Error::new(&self.name, "device_model").err(err)),
             }
         }
     }
@@ -108,9 +114,8 @@ impl AcSystem {
     /// A serial number differentiates between devices. Each LUCID device has a unique serial
     /// number. LUCID serial numbers are numeric, but the serial numbers of other
     /// vendors may be alphanumeric.
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
-    pub fn device_serial(&self, dev: usize) -> Result<String, StrErr> {
+    pub fn device_serial(&self, dev: usize) -> Result<String, Error> {
         unsafe {
             let mut result = FfiStr::<1024>::new();
             let err = AcErr::from(super::bindings::acSystemGetDeviceSerial(self.system, dev, result.as_mut_ptr(), &mut result.len));
@@ -118,7 +123,7 @@ impl AcSystem {
             log::trace!("{}.device_serial | Device {} Serial: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
-                _ => Err(StrErr(format!("{}.device_serial | Error: {}", self.name, err))),
+                _ => Err(Error::new(&self.name, "device_serial").err(err)),
             }
         }
     }
@@ -127,9 +132,8 @@ impl AcSystem {
     // err = acSystemGetDeviceMacAddressStr(hSystem, i, pBuf, &len);
     ///
     /// Returns the MAC address of a device on the network, returning it as a string.
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
-    pub fn device_mac(&self, dev: usize) -> Result<String, StrErr> {
+    pub fn device_mac(&self, dev: usize) -> Result<String, Error> {
         unsafe {
             let mut result = FfiStr::<1024>::new();
             let err = AcErr::from(super::bindings::acSystemGetDeviceMacAddressStr(self.system, dev, result.as_mut_ptr(), &mut result.len));
@@ -137,15 +141,14 @@ impl AcSystem {
             log::trace!("{}.device_mac | Device {} MAC: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
-                _ => Err(StrErr(format!("{}.device_mac | Error: {}", self.name, err))),
+                _ => Err(Error::new(&self.name, "device_mac").err(err)),
             }
         }
     }
     ///
     /// Returns the IP address of a device on the network, returning it as a string.
-    /// - `h_system` - The acSystem object
     /// - `dev` - Index of the device
-    pub fn device_ip(&self, dev: usize) -> Result<String, StrErr> {
+    pub fn device_ip(&self, dev: usize) -> Result<String, Error> {
         unsafe {
             let mut result = FfiStr::<1024>::new();
             let err = AcErr::from(super::bindings::acSystemGetDeviceIpAddressStr(self.system, dev, result.as_mut_ptr(), &mut result.len));
@@ -153,22 +156,34 @@ impl AcSystem {
             log::trace!("{}.device_ip | Device {} IP: {:?}", self.name, dev, result);
             match err {
                 AcErr::Success => Ok(result),
-                _ => Err(StrErr(format!("{}.device_ip | Error: {}", self.name, err))),
+                _ => Err(Error::new(&self.name, "device_ip").err(err)),
             }
         }
     }
     ///
-    /// Cleans up the system (acSystem) and deinitializes the Arena SDK, deallocating all memory.
-    pub fn close(&self) -> Result<(), StrErr> {
+    /// Returns the Firmware version of a device.
+    /// - `dev` - Index of the device
+    pub fn device_firmware(&self, dev: usize) -> Result<String, Error> {
         unsafe {
-            let err = AcErr::from(acCloseSystem(self.system));
+            let mut result = FfiStr::<1024>::new();
+            let err = AcErr::from(super::bindings::acSystemGetDeviceVersion(self.system, dev, result.as_mut_ptr(), &mut result.len));
+            let result = result.to_string();
+            log::trace!("{}.device_firmware | Device {} Version: {:?}", self.name, dev, result);
             match err {
-                AcErr::Success => Ok(()),
-                _ => Err(StrErr(format!("{}.close | Error: {}", self.name, err))),
+                AcErr::Success => Ok(result),
+                _ => Err(Error::new(&self.name, "device_firmware").err(err)),
             }
         }
     }
-
+    // ///
+    // /// Cleans up the system (acSystem) and deinitializes the Arena SDK, deallocating all memory.
+    // pub fn close(&self) -> Result<(), Error> {
+    //     let err = AcErr::from(unsafe { acCloseSystem(self.system) });
+    //     match err {
+    //         AcErr::Success => Ok(()),
+    //         _ => Err(Error(format!("{}.close | Error: {}", self.name, err))),
+    //     }
+    // }
 }
 //
 //

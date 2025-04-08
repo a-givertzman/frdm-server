@@ -1,14 +1,13 @@
 #[cfg(test)]
 
 mod camera {
-    use std::{net::SocketAddr, os::linux::net::SocketAddrExt, sync::Once, time::{Duration, Instant}};
-    use sal_sync::services::conf::conf_tree::ConfTree;
+    use std::{sync::Once, time::Duration};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use opencv::{
-        highgui, imgcodecs::{self, imread, IMREAD_COLOR}, imgproc, prelude::*, videoio, Result
+        prelude::*, videoio
     };
-    use crate::{domain::dbg::dbgid::DbgId, infrostructure::camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}};
+    use crate::{domain::dbg::dbgid::DbgId, infrostructure::{arena::{channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate, pixel_format::PixelFormat}, camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -39,20 +38,102 @@ mod camera {
                 1,
                 serde_yaml::from_str(r#"
                 service Camera Camera1:
-                    fps: 30
+                    fps: Min
                     resolution: 
                         width: 1200
                         height: 800
+                    index: 0
                     address: 192.168.10.12:2020
+                    pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
+                    exposure:
+                        auto: Off               # Off / Continuous
+                        time: 5000              # microseconds
+                    auto-packet-size: true
+                    channel-packet-size: Min
+                    resend-packet: false
                 "#).unwrap(),
                 CameraConf {
                     name: "/test/Camera1".into(),
-                    fps: 30,
+                    fps: FrameRate::Min,
                     resolution: CameraResolution {
                         width: 1200,
                         height: 800,
                     },
-                    address: "192.168.10.12:2020".parse().unwrap(),
+                    index: Some(0),
+                    address: Some("192.168.10.12:2020".parse().unwrap()),
+                    pixel_format: PixelFormat::BayerBG8,
+                    exposure: Exposure::new(ExposureAuto::Off, 5000.0),
+                    auto_packet_size: true,
+                    channel_packet_size: ChannelPacketSize::Min,
+                    resend_packet: false,
+                }        
+            ),
+            (
+                2,
+                serde_yaml::from_str(r#"
+                service Camera Camera1:
+                    fps: Max
+                    resolution: 
+                        width: 1200
+                        height: 800
+                    index: 0
+                    address: 192.168.10.12:2020
+                    pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
+                    exposure:
+                        auto: Off               # Off / Continuous
+                        time: 5000              # microseconds
+                    auto-packet-size: true
+                    channel-packet-size: Max
+                    resend-packet: false
+                "#).unwrap(),
+                CameraConf {
+                    name: "/test/Camera1".into(),
+                    fps: FrameRate::Max,
+                    resolution: CameraResolution {
+                        width: 1200,
+                        height: 800,
+                    },
+                    index: Some(0),
+                    address: Some("192.168.10.12:2020".parse().unwrap()),
+                    pixel_format: PixelFormat::BayerBG8,
+                    exposure: Exposure::new(ExposureAuto::Off, 5000.0),
+                    auto_packet_size: true,
+                    channel_packet_size: ChannelPacketSize::Max,
+                    resend_packet: false,
+                }        
+            ),
+            (
+                3,
+                serde_yaml::from_str(r#"
+                service Camera Camera1:
+                    fps: 30
+                    resolution: 
+                        width: 1200
+                        height: 800
+                    index: 0
+                    address: 192.168.10.12:2020
+                    pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
+                    exposure:
+                        auto: Off               # Off / Continuous
+                        time: 5000              # microseconds
+                    auto-packet-size: true
+                    channel-packet-size: 1024
+                    resend-packet: false
+                "#).unwrap(),
+                CameraConf {
+                    name: "/test/Camera1".into(),
+                    fps: FrameRate::Val(30.0),
+                    resolution: CameraResolution {
+                        width: 1200,
+                        height: 800,
+                    },
+                    index: Some(0),
+                    address: Some("192.168.10.12:2020".parse().unwrap()),
+                    pixel_format: PixelFormat::BayerBG8,
+                    exposure: Exposure::new(ExposureAuto::Off, 5000.0),
+                    auto_packet_size: true,
+                    channel_packet_size: ChannelPacketSize::Val(1024),
+                    resend_packet: false,
                 }        
             ),
         ];
@@ -78,13 +159,19 @@ mod camera {
                 1,
                 Camera::new(CameraConf{
                     name: "/test/Camera1".into(),
-                    fps: 30,
+                    fps: FrameRate::Val(30.0),
                     resolution: CameraResolution {
                         width: 1200,
                         height: 800,
                     },
-                    address: "192.168.10.12:2020".parse().unwrap(),
-                }).read("src/test/unit/infrostructure/camera/video_test.mp4"),
+                    index: Some(0),
+                    address: Some("192.168.10.12:2020".parse().unwrap()),
+                    pixel_format: PixelFormat::BayerBG8,
+                    exposure: Exposure::new(ExposureAuto::Off, 5000.0),
+                    auto_packet_size: true,
+                    channel_packet_size: ChannelPacketSize::Max,
+                    resend_packet: false,
+                }).from_file("src/test/unit/infrostructure/camera/video_test.mp4"),
                 videoio::VideoCapture::from_file("src/test/unit/infrostructure/camera/video_test.mp4", videoio::CAP_ANY).unwrap(),
             ),
         ];

@@ -1,5 +1,3 @@
-use std::ffi::CString;
-
 ///
 /// ```ignore
 /// let mut result = FfiStr::new(1024);

@@ -2,7 +2,7 @@
 
 mod arena {
     use std::{sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, mpsc, Arc, Once}, thread, time::{Duration, Instant}};
-    use crate::infrostructure::arena::{ac_device::AcDevice, ac_image::AcImage, ac_system::AcSystem, exposure::{Exposure, ExposureAuto}, pixel_format::PixelFormat};
+    use crate::infrostructure::{arena::{ac_device::AcDevice, image::Image, ac_system::AcSystem}, camera::camera_conf::CameraConf};
     use sal_sync::services::entity::dbg_id::DbgId;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
@@ -21,9 +21,11 @@ mod arena {
     ///  - ...
     fn init_each() -> () {}
     ///
-    /// Testing such functionality / behavior
+    /// Testing TRI028S-CC Image aqusion
+    /// 
+    /// [TRI028S-CC Technical spec](https://thinklucid.com/product/triton-2-8-mp-imx429/)
     #[test]
-    fn list_devices() {
+    fn listen_device() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
@@ -31,20 +33,33 @@ mod arena {
         let dbg_1 = dbg.clone();
         let dbg_2 = dbg.clone();
         log::debug!("\n{}", dbg);
-        let test_duration = TestDuration::new(&dbg, Duration::from_secs(30));
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(40));
         test_duration.run().unwrap();
-        // Pixel format `Mono8` - Monochrom / `BGR8` - Color
-        let pixel_format = PixelFormat::BGR8;
-        // Exposure Time 	20.5 μs to 10 s (Normal) / 1 μs to 5 μs (Short Mode)
-        let exposure = Exposure::new(ExposureAuto::Off, 7000.0);
-        let read_time = Duration::from_secs(20);
+        let read_time = Duration::from_secs(30);
         let frames = Arc::new(AtomicUsize::new(0));
         let frames_clone = frames.clone();
         let exit = Arc::new(AtomicBool::new(false));
         let exit_1 = exit.clone();
         let exit_2 = exit.clone();
+        let conf = serde_yaml::from_str(r#"
+            service Camera Camera1:
+                fps: Max                    # Max / Min / 30.0
+                resolution: 
+                    width: 1200
+                    height: 800
+                index: 0
+                # address: 192.168.10.12:2020
+                pixel-format: BayerRG8          # Mono8/10/12/16, BayerRG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411 | Default and fastest BayerRG8
+                exposure:
+                    auto: Off                   # Off / Continuous
+                    time: 7000                   # microseconds
+                auto-packet-size: true          # StreamAutoNegotiatePacketSize
+                channel-packet-size: Max        # Maximizing packet size increases frame rate, Max / Min / 1500
+                resend-packet: true             # StreamPacketResendEnable
+        "#).unwrap();
+        let conf = CameraConf::from_yaml(&dbg, &conf);
         let time = Instant::now();
-        let (send, recv) = mpsc::channel::<AcImage>();
+        let (send, recv) = mpsc::channel::<Image>();
         let disp_handle = std::thread::spawn(move || {
             let dbg = dbg_1;
             let window = "Retrived";
@@ -87,7 +102,7 @@ mod arena {
                                 log::info!("Device {}: {:?} | {:?} | {:?} | {:?} | {:?}", dev, device_vendor, device_model, device_serial, device_mac, device_ip);
                             }
                             let selection = 0;
-                            let mut device = AcDevice::new(&dbg, ac_system.system, selection, pixel_format, exposure, Some(exit_1));
+                            let mut device = AcDevice::new(&dbg, ac_system.system, selection, conf, Some(exit_1));
                             let result = device.listen(|frame| {
                                 if let Err(err) = send.send(frame) {
                                     log::warn!("{} | Send Error; {}", dbg, err);
@@ -95,7 +110,7 @@ mod arena {
                                 frames_clone.fetch_add(1, Ordering::SeqCst);
                             });
                             if let Err(err) = result {
-                                log::warn!("{} | Error; {}", dbg, err);
+                                log::warn!("{} | Error: {}", dbg, err);
                             }
                         }
                         None => {
