@@ -1,4 +1,4 @@
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
+use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, time::Instant};
 use sal_core::error::Error;
 use sal_sync::services::entity::name::Name;
 use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
@@ -6,10 +6,18 @@ use crate::infrostructure::{arena::{ac_access_mode::AcAccessMode, bindings::{
 }}, camera::camera_conf::CameraConf};
 
 use super::{
-    ac_buffer::AcBuffer, ac_err::AcErr, ac_image::AcImage, ac_node_map::AcNodeMap, bindings::{
+    ac_buffer::AcBuffer, ac_err::AcErr, image::Image, ac_node_map::AcNodeMap, bindings::{
         acDevice, acDeviceGetNodeMap, acNodeMap, acSystem, acSystemCreateDevice, acSystemDestroyDevice
     }, channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate
 };
+///
+/// ANSI Escape codes
+/// https://web.archive.org/web/20121225024852/http://www.climagic.org/mirrors/VT100_Escape_Codes.html
+/// 
+/// Cursor UP 1 line
+const UP: &str = "\x1b[1A";
+/// Clear line
+const CLEARLN: &str = "\x1b[2K";
 
 ///
 /// Represents a Arena SDK device, used to configure and stream a device.
@@ -49,7 +57,7 @@ impl AcDevice {
     }
     ///
     /// 
-    pub fn listen(&mut self, on_event: impl Fn(AcImage)) -> Result<(), Error> {
+    pub fn listen(&mut self, on_event: impl Fn(Image)) -> Result<(), Error> {
         log::debug!("{}.listen | Started", self.name);
         unsafe {
             let err = AcErr::from(acSystemCreateDevice(self.system, self.index, &mut self.device));
@@ -90,10 +98,10 @@ impl AcDevice {
     fn get_buffer(&self) -> Result<AcBuffer, Error> {
         let mut buffer: acBuffer = std::ptr::null_mut();
         let err = AcErr::from(unsafe { acDeviceGetBuffer(self.device, self.image_timeout, &mut buffer) });
-        match err {
-            AcErr::Success => Ok(AcBuffer::new(&self.name, self.device, buffer, self.conf.pixel_format)),
-                _ => Err(Error::new(&self.name, "get_buffer").err(err)),
+        if err != AcErr::Success {
+            return Err(Error::new(&self.name, "get_buffer").pass(err.to_string()));
         }
+        Ok(AcBuffer::new(&self.name, self.device, buffer, self.conf.pixel_format))
     }
     ///
     /// Set acquisition frame rate, FPS
@@ -215,26 +223,26 @@ impl AcDevice {
             Err(err) => Err(error.pass_with("Get ChannelPacketSize Node", err)),
         }
     }
-    ///
-    /// Resets device to factory defaults.
-    fn factory_reset(&self, node_map: &AcNodeMap) -> Result<(), Error> {
-        let dbg = self.name.join();
-        let error = Error::new(&dbg, "factory_reset");
-        match node_map.get_node("DeviceFactoryReset") {
-            Ok(node) => {
-                log::debug!(
-                    "{}.factory_reset | FactoryReset: \nis_writable: {} \n bool: {} \nint: {} \nfloat: {} \nstr: {}", dbg,
-                    node.is_writable(),
-                    node.get_bool_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
-                    node.get_int_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
-                    node.get_float_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
-                    node.get_str_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
-                );
-                Ok(())
-            }
-            Err(err) => Err(error.pass_with("Get ChannelPacketSize Node", err)),
-        }
-    }
+    // ///
+    // /// Resets device to factory defaults.
+    // fn factory_reset(&self, node_map: &AcNodeMap) -> Result<(), Error> {
+    //     let dbg = self.name.join();
+    //     let error = Error::new(&dbg, "factory_reset");
+    //     match node_map.get_node("DeviceFactoryReset") {
+    //         Ok(node) => {
+    //             log::debug!(
+    //                 "{}.factory_reset | FactoryReset: \nis_writable: {} \n bool: {} \nint: {} \nfloat: {} \nstr: {}", dbg,
+    //                 node.is_writable(),
+    //                 node.get_bool_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+    //                 node.get_int_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+    //                 node.get_float_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+    //                 node.get_str_value().map_or_else(|err| format!("{err}"), |v| format!("{v}")),
+    //             );
+    //             Ok(())
+    //         }
+    //         Err(err) => Err(error.pass_with("Get ChannelPacketSize Node", err)),
+    //     }
+    // }
     ///
     /// Image acquisition
     /// (1) sets acquisition mode
@@ -245,7 +253,7 @@ impl AcDevice {
     /// (6) prints information from images
     /// (7) requeues buffers
     /// (8) stops the stream
-    fn read(&self, on_event: impl Fn(AcImage)) -> Result<(), Error> {
+    fn read(&self, on_event: impl Fn(Image)) -> Result<(), Error> {
         let dbg = self.name.join();
         let error = Error::new(&dbg, "read");
         let exit = self.exit.clone();
@@ -303,12 +311,22 @@ impl AcDevice {
                                             match err {
                                                 AcErr::Success => {
                                                     log::debug!("{}.read | Retriving images...", dbg);
+                                                    let mut fps = Fps::new();
                                                     loop {
                                                         log::trace!("{}.read | Read image...", dbg);
+                                                        println!("");
                                                         match self.get_buffer() {
-                                                            Ok(buffer) => {
-                                                                match buffer.get_image() {
+                                                            Ok(mut buffer) => {
+                                                                match buffer.image() {
                                                                     Ok(img) => {
+                                                                        fps.add();
+                                                                        log::debug!(
+                                                                            "{}.read | {}x{}, {:.2} MB, {} FPS{UP}{CLEARLN}{UP}\r",
+                                                                            dbg, 
+                                                                            img.width, img.height, 
+                                                                            (img.bytes as f64) / 1048576.0,
+                                                                            fps,
+                                                                        );
                                                                         (on_event)(img)
                                                                     }
                                                                     Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
@@ -316,21 +334,19 @@ impl AcDevice {
                                                             }
                                                             Err(err) => {
                                                                 log::warn!("{}.read | Error: {}", dbg, err);
+                                                                break;
                                                             }
                                                         };
                                                         if exit.load(Ordering::SeqCst) {
                                                             break;
                                                         }
                                                     }
-                                                    // stop stream
                                                     log::debug!("{}.read | Stop stream...", dbg);
                                                     let err = AcErr::from(unsafe { acDeviceStopStream(self.device) });
                                                     if err != AcErr::Success {
                                                         return Err(error.pass_with("DeviceStopStream Error", err.to_string()));
                                                     }
                                                     Ok(())
-                                                    // return node to its initial values
-                                                    // self.set_node_value(node_map, "TransportStreamProtocol", &p_transport_stream_protocol_initial)?;
                                                 }
                                                 _ => Err(error.pass_with("DeviceStartStream Error", err.to_string())),
                                             }
@@ -353,11 +369,6 @@ impl AcDevice {
                     },
                     Err(err) => Err(error.pass_with("Get `initial_acquisition_mode` Error", err)),
                 }
-                // match self.tls_stream_node() {
-                //     Err(err) => return Err(Error(format!("{}.read | GetTLStreamNodeMap Error: {}", dbg, err))),
-                //     Ok(h_tlstream_node_map) => {
-                //     }
-                // }
             },
             Err(err) => Err(error.pass_with("Get node map error", err)),
         }
@@ -383,5 +394,31 @@ impl Drop for AcDevice {
                 _ => log::error!("{}.drop | Error: {}", self.name, err),
             }
         }
+    }
+}
+
+struct Fps {
+    time: Instant,
+    times: f64,
+    avarage: f64,
+}
+impl Fps {
+    pub fn new() -> Self {
+        Self { time: Instant::now(), times: 0.0, avarage: 0.0 }
+    }
+    pub fn add(&mut self) {
+        let elapsed = self.time.elapsed().as_secs_f64();
+        self.times += 1.0;
+        self.avarage = self.times / elapsed;
+    }
+}
+impl std::fmt::Display for Fps {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.3}", self.avarage)
+    }
+}
+impl std::fmt::Debug for Fps {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.3}", self.avarage)
     }
 }

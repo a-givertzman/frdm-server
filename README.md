@@ -2,7 +2,23 @@
 
 Fiber Rope Defects Monitoring
 
-Web page: https://sa-lab.dev/projects-frdm.html#project__overview
+Web page: <https://sa-lab.dev/projects-frdm.html#project__overview>
+
+## Lens
+
+[LUCID Vision Labs](https://thinklucid.com/category/lenses-lens-tubes/)
+[Optical calculations](https://www.vision-doctor.com/en/service-en/sen-t5/optical-calculations.html)
+[Calculating the depth of field (DOF)](https://www.vision-doctor.com/en/service-en/sen-t5/optical-calculations/calculation-depth-of-field.html)
+
+
+**Lens test on working distance 200 mm**
+
+Lens focal length | Image width  | Image hight | Field depth    | Image deformation
+------------------| ----------:  | ----------: | -------------: | ------------------:
+4 mm              | 400...500 mm |      -      |  100..150 mm   |  approx 10..30 px
+12 mm             |     150.5 mm |      -      |      45.0 mm   |  approx 2..5 px
+16 mm             |     110.9 mm |      -      |      20.0 mm   |  approx 1..2 px
+25 mm             |      60.9 mm |      -      |       1.0 mm   |  approx < 1 px
 
 ## Installation
 
@@ -80,3 +96,8 @@ Web page: https://sa-lab.dev/projects-frdm.html#project__overview
     ./frdm-server
     ```
 
+## Regenerate bindings
+
+```bash
+bindgen src/infrostructure/arena/wrappers.h -o src/infrostructure/arena/bindings.rs -- "-Ilucid_arena_sdk_include_path"
+```
