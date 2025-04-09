@@ -41,6 +41,13 @@ strum_macros = "^0.27"
 opencv = "^0.94"
 #
 #
+# Photon
+photon-rs = {version = "0.3.2",default-features = false,git = "https://github.com/silvia-odwyer/photon",rev = "3b72d357848cd76be9363e87ad0cd02a19b988d2"}
+#
+#
+# Image
+#
+#
 # [build-dependencies]
 # cc = "^1.1"
 #
