@@ -1,4 +1,4 @@
-// #[cfg(test)]
+#[cfg(test)]
 
 mod arena {
     use std::{sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, mpsc, Arc, Once}, thread, time::{Duration, Instant}};
