@@ -31,7 +31,7 @@ Lens focal length | Image width  | Image hight | Field depth    | Image deformat
    sudo apt install libopencv-dev clang libclang-dev
     ```
 
-- Used Arena SDK on Linux (integrated using OpenCV)
+- Used Arena SDK for Linux (integrated using OpenCV)
     - **Importent:** Be shure the MTU for ethernet interfgace used by camera is set to 900 bytes
     - **Importent:** Also folluw [this instruction](src/infrostructure/arena/readme.md) to properly setup network inteface
     - Download Arena SDK v0.1.95 or later from [Downloads](https://thinklucid.com/downloads-hub/) (for Ubuntu)
