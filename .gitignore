@@ -25,3 +25,5 @@ Cargo.lock
 /target
 
 *.mp4
+*.jpg
+*.png

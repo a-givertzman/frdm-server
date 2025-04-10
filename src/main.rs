@@ -1,6 +1,7 @@
 mod domain;
 mod infrostructure;
 mod conf;
+mod scan;
 #[cfg(test)]
 mod test;
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};

@@ -5,7 +5,7 @@ mod camera {
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use opencv::{
-        prelude::*, videoio
+        highgui, prelude::*, videoio
     };
     use crate::{domain::dbg::dbgid::DbgId, infrostructure::{arena::{channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate, pixel_format::PixelFormat}, camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}}};
     ///
@@ -184,8 +184,12 @@ mod camera {
                         log::trace!("{} | step {} read: {:?}", dbg, step, read);
                         if read {
                             let result = camera.next().unwrap();
+                            highgui::imshow("Video", &result.frame);
                             assert!(result == PImage::new(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
                             frames += 1;
+                            if highgui::wait_key(30).unwrap() == 'q' as i32 {
+                                break;
+                            }
                         } else {
                             break;
                         }

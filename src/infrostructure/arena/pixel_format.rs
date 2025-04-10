@@ -68,6 +68,16 @@ pub enum PixelFormat {
     BayerRG10, BayerGR10, BayerBG10, BayerGB10,
     BayerRG12, BayerGR12, BayerBG12, BayerGB12,
     BayerRG16, BayerGR16, BayerBG16, BayerGB16,
+    #[serde(alias="QOIBayerRG8", alias="QOI_BayerRG8")]
+    QoiBayerRG8,
+    #[serde(alias="QOIMono8", alias="QOI_Mono8")]
+    QoiMono8,
+    #[serde(alias="QOIRGB8", alias="QOI_RGB8")]
+    QoiRGB8,
+    #[serde(alias="QOIBGR8", alias="QOI_BGR8")]
+    QoiBGR8,
+    #[serde(alias="QOIYCbCr8", alias="QOI_YCbCr8")]
+    QoiYCbCr8,
 }
 impl PixelFormat {
     ///
@@ -110,6 +120,12 @@ impl PixelFormat {
             Self::BayerGR16 => String::from("BayerGR16"),
             Self::BayerBG16 => String::from("BayerBG16"),
             Self::BayerGB16 => String::from("BayerGB16"),
+
+            Self::QoiBayerRG8 => String::from("QOI_BayerRG8"),
+            Self::QoiMono8    => String::from("QOI_Mono8"),
+            Self::QoiRGB8     => String::from("QOI_RGB8"),
+            Self::QoiBGR8     => String::from("QOI_BGR8"),
+            Self::QoiYCbCr8   => String::from("QOI_YCbCr8"),
         }
     }
     ///
@@ -152,6 +168,12 @@ impl PixelFormat {
             Self::BayerGR16 => opencv::core::CV_16UC1,
             Self::BayerBG16 => opencv::core::CV_16UC1,
             Self::BayerGB16 => opencv::core::CV_16UC1,
+
+            Self::QoiBayerRG8 => opencv::core::CV_8UC1,
+            Self::QoiMono8    => opencv::core::CV_8UC1,
+            Self::QoiRGB8     => opencv::core::CV_8UC3,
+            Self::QoiBGR8     => opencv::core::CV_8UC3,
+            Self::QoiYCbCr8   => opencv::core::CV_8UC3,
         }
     }
 }

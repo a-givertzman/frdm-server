@@ -2,7 +2,7 @@ pub(super) mod ac_access_mode;
 pub(super) mod ac_buffer;
 pub mod ac_device;
 pub(super) mod ac_err;
-pub mod ac_image;
+pub mod image;
 pub(super) mod ac_node_map;
 pub(super) mod ac_node;
 pub mod ac_system;
