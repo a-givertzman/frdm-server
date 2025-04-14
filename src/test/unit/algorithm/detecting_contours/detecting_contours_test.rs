@@ -3,9 +3,10 @@
 mod detecting_contours {
     use std::{sync::Once, time::Duration};
     use photon_rs::native::{open_image, save_image};
+    use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{algorithm::detecting_contours::detecting_contours::DetectingContours, domain::{dbg::dbgid::DbgId, eval::eval::Eval}};
+    use crate::{algorithm::detecting_contours::detecting_contours::DetectingContours, domain::eval::eval::Eval};
     ///
     ///
     static INIT: Once = Once::new();
@@ -27,7 +28,7 @@ mod detecting_contours {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = DbgId::root("detecting_contours");
+        let dbg = Dbg::own("detecting_contours");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(dbg, Duration::from_secs(5));
         test_duration.run().unwrap();
