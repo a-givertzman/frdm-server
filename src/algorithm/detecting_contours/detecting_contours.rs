@@ -3,8 +3,12 @@ use crate::domain::{dbg::dbgid::DbgId, eval::eval::Eval};
 use super::detecting_contours_ctx::DetectingContoursCtx;
 use photon_rs::monochrome::grayscale;
 use photon_rs::monochrome::threshold;
-use photon_rs::conv::detect_45_deg_lines;
-use photon_rs::conv::gaussian_blur;
+use photon_rs::conv::{
+    edge_detection,
+    identity,
+    noise_reduction,
+    gaussian_blur,
+};
 ///
 /// Algorithm of finding rope contours on image
 pub struct DetectingContours {
@@ -32,8 +36,10 @@ impl DetectingContours {
         let mut result = self.input_frame.clone();
         grayscale(&mut result);
         gaussian_blur(&mut result, 1_i32);
-        detect_45_deg_lines(&mut result);
-        threshold(&mut result, 4_u32);
+        identity(&mut result);
+        edge_detection(&mut result);
+        noise_reduction(&mut result);
+        threshold(&mut result, 7_u32);
         result
     }
 }

@@ -29,16 +29,24 @@ mod detecting_contours {
         init_each();
         let dbg = DbgId::root("detecting_contours");
         log::debug!("\n{}", dbg);
-        let test_duration = TestDuration::new(dbg, Duration::from_secs(1));
+        let test_duration = TestDuration::new(dbg, Duration::from_secs(5));
         test_duration.run().unwrap();
         let test_data = [
-            // (
-            //     1,
-            //     "src/test/unit/algorithm/detecting_contours/testing_files/rope_1.jpeg",
-            // ),
+            (
+                1,
+                "src/test/unit/algorithm/detecting_contours/testing_files/rope_1.jpeg",
+            ),
             (
                 2,
                 "src/test/unit/algorithm/detecting_contours/testing_files/rope_2.jpeg",
+            ),
+            (
+                3,
+                "src/test/unit/algorithm/detecting_contours/testing_files/rope_3.jpg",
+            ),
+            (
+                4,
+                "src/test/unit/algorithm/detecting_contours/testing_files/rope_4.jpeg",
             ),
         ];
         for (step,img_path) in test_data {
