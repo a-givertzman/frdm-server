@@ -1,5 +1,6 @@
 use photon_rs::PhotonImage;
-use crate::domain::{dbg::dbgid::DbgId, eval::eval::Eval};
+use sal_core::dbg::Dbg;
+use crate::domain::eval::eval::Eval;
 use super::detecting_contours_ctx::DetectingContoursCtx;
 use photon_rs::monochrome::grayscale;
 use photon_rs::monochrome::threshold;
@@ -12,7 +13,7 @@ use photon_rs::conv::{
 ///
 /// Algorithm of finding rope contours on image
 pub struct DetectingContours {
-    dbgid: DbgId,
+    dbg: Dbg,
     // rope frame to detecting
     input_frame: PhotonImage,
     // detected contours
@@ -25,7 +26,7 @@ impl DetectingContours {
     /// New instance [DetectingContours]
     pub fn new(input_frame: PhotonImage) -> Self {
         Self {
-            dbgid: DbgId::root("DetectingContours"),
+            dbg: Dbg::own("DetectingContours"),
             input_frame,
             result: None,
         }
