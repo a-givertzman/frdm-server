@@ -25,25 +25,27 @@ impl Sort {
 impl Eval<(), SortByAngCtx> for Sort {
     fn eval(&mut self, _: ()) -> SortByAngCtx {
         let mut ctx = self.eval.eval(());
-        let dot0 = ctx.points[ctx.start as usize];
+        ctx.points.swap(ctx.start, 0);
+        let dot0 = ctx.points[0];
         ctx.points.sort_by(|dot1, dot2| {
             let ang = (dot1.x - dot0.x) * (dot2.y - dot0.y) - (dot1.y - dot0.y) * (dot2.x - dot0.x);
-            if ang > 0 {
+            if ang < 0 {
                 Ordering::Greater
-            } else if ang < 0 {
+            } else if ang > 0 {
                 Ordering::Less                    
             } else {
                 Ordering::Equal
             }
         });
+
         SortByAngCtx { points: ctx.points, start: ctx.start }
     }
 }
 
 ///
 /// 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SortByAngCtx {
     pub points: Vec<Dot<isize>>,
-    pub start: isize,
+    pub start: usize,
 }
