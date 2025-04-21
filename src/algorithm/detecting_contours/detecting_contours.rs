@@ -5,10 +5,9 @@ use super::detecting_contours_ctx::DetectingContoursCtx;
 use photon_rs::monochrome::grayscale;
 use photon_rs::monochrome::threshold;
 use photon_rs::conv::{
-    edge_detection,
-    identity,
     noise_reduction,
     gaussian_blur,
+    sobel_vertical,
 };
 ///
 /// Algorithm of finding rope contours on image
@@ -36,9 +35,8 @@ impl DetectingContours {
     fn get_contours(&self) -> PhotonImage {
         let mut result = self.input_frame.clone();
         grayscale(&mut result);
-        gaussian_blur(&mut result, 1_i32);
-        identity(&mut result);
-        edge_detection(&mut result);
+        gaussian_blur(&mut result, 3_i32);
+        sobel_vertical(&mut result);
         noise_reduction(&mut result);
         threshold(&mut result, 7_u32);
         result
