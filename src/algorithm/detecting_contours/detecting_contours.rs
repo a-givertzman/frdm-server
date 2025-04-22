@@ -41,7 +41,7 @@ impl DetectingContours {
         threshold(&mut result, 7_u32);
         result
     }
-}
+}   
 //
 //
 impl Eval<(), DetectingContoursCtx> for DetectingContours {

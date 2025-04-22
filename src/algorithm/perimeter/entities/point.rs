@@ -1,6 +1,6 @@
 ///
 /// Represent point on image
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Point {
     pub rgba: Vec<u8>,
     pub x: u32,
