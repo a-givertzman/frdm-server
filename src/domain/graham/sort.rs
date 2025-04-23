@@ -41,7 +41,6 @@ impl Eval<(), SortByAngCtx> for Sort {
         SortByAngCtx { points: ctx.points, start: ctx.start }
     }
 }
-
 ///
 /// 
 #[derive(Debug, Clone)]

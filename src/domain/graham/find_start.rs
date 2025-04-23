@@ -1,7 +1,6 @@
 use crate::domain::eval::eval::Eval;
 
 use super::dot::Dot;
-
 ///
 /// First step of Graham scan
 /// Find lowest y coordinate point

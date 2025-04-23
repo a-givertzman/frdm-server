@@ -4,7 +4,7 @@ mod graham {
     use std::{sync::Once, time::{Duration, Instant}};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::domain::{dbg::dbgid::DbgId, eval::eval::Eval, graham::{build_hull::Build_hull, dot::Dot, find_start::FindStartCtx, sort::Sort, sort::SortByAngCtx}};
+    use crate::domain::{dbg::dbgid::DbgId, eval::eval::Eval, graham::{build_hull::BuildHull, dot::Dot, find_start::FindStartCtx, sort::Sort, sort::SortByAngCtx}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -37,7 +37,7 @@ mod graham {
             let target: Vec<Dot<isize>> = target.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
             let dots: Vec<Dot<isize>> = dots.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
             let time = Instant::now();
-            let result = Build_hull::new(
+            let result = BuildHull::new(
                 MocEval { ctx: SortByAngCtx { points: dots, start: *start } }
             ).eval(());
             log::debug!("result: {:#?};   elapsed: {:?}", result, time.elapsed());

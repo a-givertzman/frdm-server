@@ -6,14 +6,12 @@ use super::{dot::Dot, find_start::FindStartCtx, sort::SortByAngCtx};
 ///
 /// Third step of Graham scan
 /// Points are stored in stack, building the convex hill
-pub struct Build_hull {
+pub struct BuildHull {
     eval: Box<dyn Eval<(), SortByAngCtx>>,
 }
 //
 //
-impl Build_hull {
-    ///
-    /// Returns [SortByX] new instance
+impl BuildHull {
     pub fn new(eval: impl Eval<(), SortByAngCtx> + 'static) -> Self {
         Self {
             eval: Box::new(eval),
@@ -22,8 +20,8 @@ impl Build_hull {
 }
 //
 //
-impl Eval<(), HullCtx> for Build_hull {
-    fn eval(&mut self, _: ()) -> HullCtx {
+impl Eval<(), BuildHullCtx> for BuildHull {
+    fn eval(&mut self, _: ()) -> BuildHullCtx {
         let mut ctx = self.eval.eval(());
         let mut hull = Vec::new();
         hull.push(ctx.points[ctx.start]);
@@ -42,13 +40,12 @@ impl Eval<(), HullCtx> for Build_hull {
                 }
             }
         }
-        HullCtx { hull }
+        BuildHullCtx { hull }
     }
 }
-
 ///
 /// 
 #[derive(Debug)]
-pub struct HullCtx {
+pub struct BuildHullCtx {
     pub hull: Vec<Dot<isize>>,
 }
