@@ -35,7 +35,7 @@ impl DetectingContours {
     fn get_contours(&self) -> PhotonImage {
         let mut result = self.input_frame.clone();
         grayscale(&mut result);
-        gaussian_blur(&mut result, 3_i32);
+        gaussian_blur(&mut result, 4_i32);
         sobel_vertical(&mut result);
         noise_reduction(&mut result);
         threshold(&mut result, 7_u32);

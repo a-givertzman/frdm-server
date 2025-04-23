@@ -35,7 +35,7 @@ mod detecting_contours {
         let test_data = [
             (
                 1,
-                "src/test/unit/algorithm/detecting_contours/testing_files/rope_0.jpeg",
+                "src/test/unit/algorithm/detecting_contours/testing_files/rope_1.jpeg",
             ),
             // (
             //     2,
