@@ -1,7 +1,6 @@
 use crate::domain::eval::eval::Eval;
 
 use super::dot::Dot;
-
 ///
 /// First step of Graham scan
 /// Find lowest y coordinate point
@@ -31,7 +30,7 @@ impl Eval<(), FindStartCtx> for FindStart {
                 dot1.y.cmp(&dot2.y)
             });
         match start {
-            Some((start, _)) => FindStartCtx { points, start: start as isize },
+            Some((start, _)) => FindStartCtx { points, start: start as usize },
             None => FindStartCtx { points, start: 0 },
         }
     }
@@ -41,5 +40,5 @@ impl Eval<(), FindStartCtx> for FindStart {
 #[derive(Debug, Clone)]
 pub struct FindStartCtx {
     pub points: Vec<Dot<isize>>,
-    pub start: isize,
+    pub start: usize,
 }
