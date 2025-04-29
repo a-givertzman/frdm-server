@@ -1,11 +1,11 @@
 #[cfg(test)]
 
 mod edge_detection_test {
-    use std::{sync::Once, time::{Duration, Instant}};
-    use opencv::{core::{Mat, MatExprTraitConst, MatTrait, MatTraitConst, Vec3b}, highgui, imgcodecs};
+    use std::{sync::Once, time::Duration};
+    use opencv::{core::{MatTrait, Vec3b}, highgui, imgcodecs};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{domain::{dbg::dbgid::DbgId, eval::eval::Eval, graham::{dot::Dot, find_start::{FindStart, FindStartCtx}, sort::Sort}}, infrostructure::camera::pimage::PImage, scan::edge_detection::{self, EdgeDetection}};
+    use crate::{domain::dbg::dbgid::DbgId, infrostructure::camera::pimage::PImage, scan::edge_detection::EdgeDetection};
     ///
     ///
     static INIT: Once = Once::new();
@@ -35,7 +35,7 @@ mod edge_detection_test {
             "src/test/unit/scan/edge_detection/test_photo2.png",
             imgcodecs::IMREAD_GRAYSCALE,
         ).unwrap();
-        let mut edges = EdgeDetection::new(PImage::new(img.clone()));
+        let edges = EdgeDetection::new(PImage::new(img.clone()));
         let mut img_of_edges = imgcodecs::imread(
             "src/test/unit/scan/edge_detection/test_photo2.png",
             imgcodecs::IMREAD_COLOR,
@@ -44,22 +44,20 @@ mod edge_detection_test {
             if dot.x >= 0 && dot.y >= 0 {
                 let x = dot.x as i32;
                 let y = dot.y as i32;
-                *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]); // BGR: красный
+                *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
             }
         }
-
-        // Рисуем нижний край (зеленым)
         for dot in &edges.lower_edge {
             if dot.x >= 0 && dot.y >= 0 {
                 let x = dot.x as i32;
                 let y = dot.y as i32;
-                *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]); // BGR: зеленый
+                *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
             }
         }
-        highgui::named_window("img", highgui::WINDOW_AUTOSIZE);
-        highgui::imshow("img", &img_of_edges);
-        highgui::wait_key(0);
-        highgui::destroy_all_windows();
+        highgui::named_window("img", highgui::WINDOW_AUTOSIZE).unwrap();
+        highgui::imshow("img", &img_of_edges).unwrap();
+        highgui::wait_key(0).unwrap();
+        highgui::destroy_all_windows().unwrap();
         test_duration.exit();
     }
 }
