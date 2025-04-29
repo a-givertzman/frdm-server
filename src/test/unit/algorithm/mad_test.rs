@@ -1,6 +1,6 @@
 #[cfg(test)]
 
-mod expansion_contraction {
+mod mad {
     use std::{sync::Once, time::{Duration, Instant}};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
@@ -34,7 +34,7 @@ mod expansion_contraction {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = DbgId::root("expansion_contraction");
+        let dbg = DbgId::root("mad");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
