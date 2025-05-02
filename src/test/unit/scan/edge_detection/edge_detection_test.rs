@@ -5,7 +5,7 @@ mod edge_detection_test {
     use opencv::{core::{MatTrait, Vec3b}, highgui, imgcodecs};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{domain::dbg::dbgid::DbgId, infrostructure::camera::pimage::PImage, scan::edge_detection::EdgeDetection};
+    use crate::{domain::{dbg::dbgid::DbgId, eval::eval::Eval}, infrostructure::camera::pimage::PImage, scan::edge_detection::EdgeDetection};
     ///
     ///
     static INIT: Once = Once::new();
@@ -35,7 +35,7 @@ mod edge_detection_test {
             "src/test/unit/scan/edge_detection/test_photo2.png",
             imgcodecs::IMREAD_GRAYSCALE,
         ).unwrap();
-        let edges = EdgeDetection::new(PImage::new(img.clone()));
+        let edges = EdgeDetection::new(PImage::new(img.clone())).eval(());
         let mut img_of_edges = imgcodecs::imread(
             "src/test/unit/scan/edge_detection/test_photo2.png",
             imgcodecs::IMREAD_COLOR,
