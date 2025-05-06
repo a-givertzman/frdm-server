@@ -6,7 +6,7 @@ mod edge_detection_test {
     use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{algorithm::EdgeDetection, domain::{eval::eval::Eval, graham::dot::Dot}, infrostructure::arena::image::Image};
+    use crate::{algorithm::EdgeDetection, domain::{eval::eval::Eval, graham::dot::Dot}, infrostructure::arena::Image};
     ///
     ///
     static INIT: Once = Once::new();

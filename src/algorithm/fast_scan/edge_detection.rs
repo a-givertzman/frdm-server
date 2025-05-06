@@ -1,6 +1,6 @@
 use opencv::core::MatTraitConst;
 use sal_core::error::Error;
-use crate::{domain::{eval::eval::Eval, graham::dot::Dot}, infrostructure::arena::image::Image};
+use crate::{domain::{eval::eval::Eval, graham::dot::Dot}, infrostructure::arena::Image};
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
 /// Take [Image]
