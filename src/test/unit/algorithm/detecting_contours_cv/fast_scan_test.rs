@@ -1,12 +1,11 @@
 #[cfg(test)]
 
 mod fast_scan {
-    use std::{net::SocketAddr, os::linux::net::SocketAddrExt, sync::Once, time::{Duration, Instant}};
+    use std::{sync::Once, time::Instant};
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use opencv::{
         core::{self, DMatch, KeyPoint, NORM_HAMMING}, features2d::{self, BFMatcher}, highgui, imgcodecs::{self}, imgproc, prelude::*, videoio::{self, VideoWriter}
     };
-    use sal_sync::services::entity::dbg_id::DbgId;
     ///
     ///
     static INIT: Once = Once::new();

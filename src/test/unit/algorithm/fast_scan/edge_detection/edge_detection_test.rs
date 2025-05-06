@@ -2,11 +2,11 @@
 
 mod edge_detection_test {
     use std::{sync::Once, time::Duration};
-    use opencv::{core::{Mat, MatTrait, MatTraitConst, Vec3b}, highgui, imgcodecs, imgproc};
-    use sal_core::dbg::Dbg;
+    use opencv::{core::{Mat, MatTrait, Vec3b}, highgui, imgcodecs, imgproc};
+    use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{domain::{eval::eval::Eval, graham::dot::Dot}, infrostructure::camera::pimage::PImage, scan::edge_detection::EdgeDetection};
+    use crate::{algorithm::EdgeDetection, domain::{eval::eval::Eval, graham::dot::Dot}, infrostructure::arena::image::Image};
     ///
     ///
     static INIT: Once = Once::new();
@@ -30,7 +30,7 @@ mod edge_detection_test {
             path,
             imgcodecs::IMREAD_GRAYSCALE,
         ).unwrap();
-        let edges = EdgeDetection::new(PImage::new(img.clone())).eval(());
+        let edges = EdgeDetection::new(FakePassImg::new(Image::with(img.clone()))).eval(()).unwrap();
         let mut img_of_edges = imgcodecs::imread(
             path,
             imgcodecs::IMREAD_COLOR,
@@ -63,15 +63,15 @@ mod edge_detection_test {
         let img = Mat::from_slice_2d(&matrix).unwrap();
         let mut img_of_edges = Mat::default();
         imgproc::cvt_color(&img, &mut img_of_edges, imgproc::COLOR_GRAY2BGR, 0).unwrap();
-        let edges = EdgeDetection::new(PImage::new(img)).eval(());
-        for dot in &edges.upper_edge {
+        let result = EdgeDetection::new(FakePassImg::new(Image::with(img))).eval(()).unwrap();
+        for dot in &result.upper_edge {
             if dot.x >= 0 && dot.y >= 0 {
                 let x = dot.x as i32;
                 let y = dot.y as i32;
                 *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
             }
         }
-        for dot in &edges.lower_edge {
+        for dot in &result.lower_edge {
             if dot.x >= 0 && dot.y >= 0 {
                 let x = dot.x as i32;
                 let y = dot.y as i32;
@@ -92,39 +92,46 @@ mod edge_detection_test {
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(dbg, Duration::from_secs(100));
         test_duration.run().unwrap();
-        let test_data = [
+        let test_data: [(i32, Image, Result<(&[i32; 12], &[i32; 12]), Error>); 2] = [
             (
                 1,
-                PImage::new( Mat::from_slice_2d(&MATRIX1).unwrap()),
-                (
+                Image::with( Mat::from_slice_2d(&MATRIX1).unwrap()),
+                Ok((
                     &[0,1, 1,0, 2,0, 3,1, 4,0, 5,0],
                     &[0,5, 1,4, 2,5, 3,5, 4,5, 5,4]
-                )
+                )),
             ),
             (
                 2,
-                PImage::new( Mat::from_slice_2d(&MATRIX2).unwrap()),
-                (
+                Image::with( Mat::from_slice_2d(&MATRIX2).unwrap()),
+                Ok((
                     &[0,2, 1,1, 2,0, 3,1, 4,0, 5,1],
                     &[0,3, 1,4, 2,4, 3,5, 4,4, 5,3]
-                )
+                )),
             )
         ];
         for (step, img, target) in test_data {
-            let edges = EdgeDetection::new(img).eval(());
-            let result = (edges.upper_edge, edges.lower_edge);
-            let target_upper: Vec<Dot<isize>> = target.0.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
-            let target_lower: Vec<Dot<isize>> = target.1.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
-            let target = (target_upper, target_lower);
-            assert!(
-                result == target,
-                "step {} \nresult upper: {:?}\ntarget upper: {:?} \nresult lower: {:?}\ntarget lower: {:?}",
-                step,
-                result.0,
-                target.0,
-                result.1,
-                target.1
-            );
+            let result = EdgeDetection::new(FakePassImg::new(img)).eval(());
+            match (result, target) {
+                (Ok(result), Ok(target)) => {
+                    let result = (result.upper_edge, result.lower_edge);
+                    let target_upper: Vec<Dot<isize>> = target.0.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
+                    let target_lower: Vec<Dot<isize>> = target.1.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
+                    let target = (target_upper, target_lower);
+                    assert!(
+                        result == target,
+                        "step {} \nresult upper: {:?}\ntarget upper: {:?} \nresult lower: {:?}\ntarget lower: {:?}",
+                        step,
+                        result.0,
+                        target.0,
+                        result.1,
+                        target.1
+                    );
+                }
+                (Ok(result), Err(target)) => panic!("step {} \nresult: {:?}\ntarget: {:?}", step, result, target),
+                (Err(result), Ok(target)) => panic!("step {} \nresult: {:?}\ntarget: {:?}", step, result, target),
+                (Err(_), Err(_)) => {},
+            }
         }
         test_duration.exit();
         // to visualize matrix use:
@@ -145,6 +152,25 @@ mod edge_detection_test {
             [0, 1, 1, 1, 1, 0],
             [0, 0, 0, 1, 0, 0],
         ];
+    }
+    ///
+    /// Fake implements `Eval` for testing [EdgeDetection]
+    struct FakePassImg {
+        img: Image,
+    }
+    impl FakePassImg{
+        pub fn new(img: Image) -> Self {
+            Self { 
+                img,
+            }
+        }
+    }
+    //
+    //
+    impl Eval<(), Result<Image, Error>> for FakePassImg {
+        fn eval(&mut self, _: ()) -> Result<Image, Error> {
+            Ok(self.img.clone())
+        }
     }
 }
 //

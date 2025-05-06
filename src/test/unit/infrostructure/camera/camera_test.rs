@@ -10,10 +10,9 @@ mod camera {
     };
     use crate::infrostructure::{
         arena::{
-            channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto},
-            frame_rate::FrameRate, pixel_format::PixelFormat
+            channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate, image::Image, pixel_format::PixelFormat
         },
-        camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}
+        camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution}
     };
     ///
     ///
@@ -191,8 +190,8 @@ mod camera {
                         log::trace!("{} | step {} read: {:?}", dbg, step, read);
                         if read {
                             let result = camera.next().unwrap();
-                            highgui::imshow("Video", &result.frame);
-                            assert!(result == PImage::new(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
+                            highgui::imshow("Video", &result.mat).unwrap();
+                            assert!(result == Image::with(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
                             frames += 1;
                             if highgui::wait_key(30).unwrap() == 'q' as i32 {
                                 break;
