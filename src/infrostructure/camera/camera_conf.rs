@@ -1,6 +1,7 @@
 use std::{fs, net::SocketAddr};
-use sal_sync::services::{conf::conf_tree::ConfTree, entity::name::Name};
-use crate::{conf::service_config::ServiceConfig, infrostructure::arena::{channel_packet_size::ChannelPacketSize, exposure::Exposure, frame_rate::FrameRate, pixel_format::PixelFormat}};
+use sal_core::dbg::Dbg;
+use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
+use crate::infrostructure::arena::{ChannelPacketSize, Exposure, FrameRate, PixelFormat};
 use super::camera_resolution::CameraResolution;
 ///
 /// Configuration parameters for ip [Camera] class
@@ -91,36 +92,36 @@ impl CameraConf {
     /// channel-packet-size: Max        # Maximizing packet size increases frame rate
     /// resend-packet: true             # StreamPacketResendEnable
     /// ```
-    pub fn new(parent: impl Into<String>, conf_tree: &ConfTree) -> Self {
-        log::trace!("CameraConf.new | conf_tree: {:?}", conf_tree);
-        let self_id = format!("CameraConf({})", conf_tree.key);
-        let mut self_conf = ServiceConfig::new(&self_id, conf_tree.clone());
-        log::trace!("{}.new | self_conf: {:?}", self_id, self_conf);
-        let sufix = self_conf.sufix();
-        let name = Name::new(parent, if sufix.is_empty() {self_conf.name()} else {sufix});
-        let fps = self_conf.get_param_value("fps").unwrap();
+    pub fn new(parent: impl Into<String>, conf: &ConfTree) -> Self {
+        let parent = parent.into();
+        let me = conf.sufix_or(conf.name().unwrap());
+        let dbg = Dbg::new(&parent, format!("CameraConf({})", me));
+        log::trace!("{}.new | conf: {:?}", dbg, conf);
+        let name = Name::new(parent, me);
+        log::debug!("{}.new | name: {:?}", dbg, name);
+        let fps = conf.get("fps").unwrap();
         let fps: FrameRate = serde_yaml::from_value(fps).unwrap();
-        log::debug!("{}.new | fps: {:?}", self_id, fps);
-        let resolution = self_conf.get_param_conf("resolution").unwrap();
+        log::debug!("{}.new | fps: {:?}", dbg, fps);
+        let resolution = conf.get("resolution").unwrap();
         let resolution = CameraResolution::new(name.join(), &resolution);
-        log::debug!("{}.new | resolution: {:?}", self_id, resolution);
-        let index = self_conf.get_param_value("index").map(|ix| ix.as_u64().unwrap() as usize).ok();
-        log::debug!("{}.new | index: {:?}", self_id, index);
-        let address: Option<SocketAddr> = self_conf.get_param_value("address").map(|addr| addr.as_str().unwrap().parse().unwrap()).ok();
-        log::debug!("{}.new | address: {:?}", self_id, address);
-        let pixel_format = self_conf.get_param_value("pixel-format").unwrap();
+        log::debug!("{}.new | resolution: {:?}", dbg, resolution);
+        let index = conf.get("index").map(|ix: u64| ix as usize);
+        log::debug!("{}.new | index: {:?}", dbg, index);
+        let address: Option<SocketAddr> = conf.get("address").map(|addr: String| addr.parse().unwrap());
+        log::debug!("{}.new | address: {:?}", dbg, address);
+        let pixel_format = conf.get("pixel-format").unwrap();
         let pixel_format: PixelFormat = serde_yaml::from_value(pixel_format).unwrap();
-        log::debug!("{}.new | pixel-format: {:?}", self_id, pixel_format);
-        let exposure = self_conf.get_param_value("exposure").unwrap();
+        log::debug!("{}.new | pixel-format: {:?}", dbg, pixel_format);
+        let exposure = conf.get("exposure").unwrap();
         let exposure: Exposure = serde_yaml::from_value(exposure).unwrap();
-        log::debug!("{}.new | exposure: {:?}", self_id, exposure);
-        let auto_packet_size = self_conf.get_param_value("auto-packet-size").unwrap().as_bool().unwrap();
-        log::debug!("{}.new | auto-packet-size: {:?}", self_id, auto_packet_size);
-        let channel_packet_size = self_conf.get_param_value("channel-packet-size").unwrap();
+        log::debug!("{}.new | exposure: {:?}", dbg, exposure);
+        let auto_packet_size = conf.get("auto-packet-size").unwrap();
+        log::debug!("{}.new | auto-packet-size: {:?}", dbg, auto_packet_size);
+        let channel_packet_size = conf.get("channel-packet-size").unwrap();
         let channel_packet_size: ChannelPacketSize = serde_yaml::from_value(channel_packet_size).unwrap();
-        log::debug!("{}.new | channel-packet-size: {:?}", self_id, channel_packet_size);
-        let resend_packet = self_conf.get_param_value("resend-packet").unwrap().as_bool().unwrap();
-        log::debug!("{}.new | resend-packet: {:?}", self_id, resend_packet);
+        log::debug!("{}.new | channel-packet-size: {:?}", dbg, channel_packet_size);
+        let resend_packet = conf.get("resend-packet").unwrap();
+        log::debug!("{}.new | resend-packet: {:?}", dbg, resend_packet);
         Self {
             name,
             fps, 

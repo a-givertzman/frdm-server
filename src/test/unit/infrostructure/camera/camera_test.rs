@@ -10,9 +10,9 @@ mod camera {
     };
     use crate::infrostructure::{
         arena::{
-            channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate, image::Image, pixel_format::PixelFormat
+            ChannelPacketSize, Exposure, ExposureAuto, FrameRate, image::Image, PixelFormat,
         },
-        camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution}
+        camera::{Camera, CameraConf, CameraResolution}
     };
     ///
     ///

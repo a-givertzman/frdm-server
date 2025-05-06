@@ -2,10 +2,11 @@
 
 mod z_score {
     use std::{sync::Once, time::Duration};
+    use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 
-    use crate::{algorithm::expansion_contraction::mad::MAD, domain::{dbg::dbgid::DbgId, eval::eval::Eval, graham::dot::Dot}};
+    use crate::{algorithm::expansion_contraction::mad::MAD, domain::{eval::eval::Eval, graham::dot::Dot}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -27,9 +28,9 @@ mod z_score {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = DbgId::root("z_score");
+        let dbg = Dbg::own("z_score");
         log::debug!("\n{}", dbg);
-        let test_duration = TestDuration::new(dbg, Duration::from_secs(1));
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
         let test_data = [
             (
@@ -66,6 +67,7 @@ mod z_score {
         for (step, upper_points, lower_points) in test_data {
             let result = MAD::new(upper_points, lower_points)
             .eval(());
+            panic!("{dbg} | use log::debug only !!!");
             println!("{:?}",result.bond_up);
             println!("");
             println!("{:?}",result.bond_low);

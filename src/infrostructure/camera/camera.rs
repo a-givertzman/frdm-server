@@ -1,8 +1,8 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc}, thread::JoinHandle, time::Duration};
 
 use opencv::videoio::VideoCaptureTrait;
-use sal_core::error::Error;
-use sal_sync::services::entity::{dbg_id::DbgId, name::Name};
+use sal_core::{dbg::Dbg, error::Error};
+use sal_sync::services::entity::Name;
 use crate::infrostructure::arena::{ac_device::AcDevice, ac_system::AcSystem, image::Image};
 use super::camera_conf::CameraConf;
 ///
@@ -10,7 +10,7 @@ use super::camera_conf::CameraConf;
 /// - Connecting to the IP Camra
 /// - Receive frames from the `Camera`
 pub struct Camera {
-    dbg: DbgId,
+    dbg: Dbg,
     name: Name,
     conf: CameraConf,
     send: mpsc::Sender<Image>,
@@ -25,7 +25,7 @@ impl Camera {
     /// - [parent] - DbgId of parent entitie
     /// - `conf` - configuration parameters
     pub fn new(conf: CameraConf) -> Self {
-        let dbg = DbgId(conf.name.join());
+        let dbg = Dbg::new(conf.name.parent(), conf.name.me());
         log::trace!("{}.new | : ", dbg);
         let (send, recv) = mpsc::channel();
         Self {

@@ -1,5 +1,5 @@
 use sal_core::error::Error;
-use sal_sync::services::entity::name::Name;
+use sal_sync::services::entity::Name;
 use crate::infrostructure::arena::ac_err::AcErr;
 use super::{bindings::{acBuffer, acDevice}, image::Image, pixel_format::PixelFormat};
 
