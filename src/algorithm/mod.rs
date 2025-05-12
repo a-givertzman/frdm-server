@@ -1,7 +1,8 @@
-pub mod mad;
-mod fast_scan;
 mod detecting_contours;
 mod detecting_contours_cv;
+mod fast_scan;
+pub mod mad;
+pub mod width_emissions;
 
 pub use fast_scan::*;
 pub use detecting_contours::*;

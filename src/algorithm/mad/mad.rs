@@ -49,7 +49,7 @@ impl Eval<(), MADCtx> for MAD {
     fn eval(&mut self, _: ()) -> MADCtx {
         let median = Self::median(&self.sample);
         let mad = Self::mad(&self.sample, median);
-        let result = MADCtx { result: mad };
+        let result = MADCtx { median, mad };
         self.result = Some(result.clone());
         result
     }
@@ -58,5 +58,6 @@ impl Eval<(), MADCtx> for MAD {
 /// Store result of algorithm [MAD]
 #[derive(Debug, Clone, PartialEq)]
 pub struct MADCtx {
-    pub result: f32,
+    pub median: f32,
+    pub mad: f32,
 }
