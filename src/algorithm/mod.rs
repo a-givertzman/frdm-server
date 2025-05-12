@@ -1,4 +1,4 @@
-pub mod outliners_in_sample;
+pub mod mad;
 mod fast_scan;
 mod detecting_contours;
 mod detecting_contours_cv;
