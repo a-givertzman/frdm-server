@@ -75,7 +75,7 @@ impl Eval<(), MADCtx> for MAD {
 }
 ///
 /// Store result of algorithm [MAD]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MADCtx {
     pub bond_up: Vec<Bond<u16>>,
     pub bond_low: Vec<Bond<u16>>,

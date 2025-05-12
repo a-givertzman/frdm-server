@@ -6,7 +6,7 @@ mod z_score {
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 
-    use crate::{algorithm::expansion_contraction::mad::MAD, domain::{eval::eval::Eval, graham::dot::Dot}};
+    use crate::{algorithm::outliners_in_sample::{bond::Bond, z_score::{ZScore, ZScoreCtx}}, domain::{eval::eval::Eval, graham::dot::Dot}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -60,19 +60,25 @@ mod z_score {
                     Dot { x: 80, y: 40 },
                     Dot { x: 90, y: 45 },
                     Dot { x: 100, y: 50 },
-                ]
-
+                ],
+                ZScoreCtx {
+                    bond_up: [
+                            Bond { x: 40, y: 130 },
+                            Bond { x: 50, y: 135 },
+                            Bond { x: 60, y: 130 },
+                        ].to_vec(),
+                    bond_low: [
+                            Bond { x: 40, y: 20 },
+                            Bond { x: 50, y: 15 },
+                            Bond { x: 60, y: 20 },
+                        ].to_vec(),
+                }
             )
         ];
-        for (step, upper_points, lower_points) in test_data {
-            let result = MAD::new(upper_points, lower_points)
+        for (step, upper_points, lower_points, target) in test_data {
+            let result = ZScore::new(upper_points, lower_points)
             .eval(());
-            panic!("{dbg} | use log::debug only !!!");
-            println!("{:?}",result.bond_up);
-            println!("");
-            println!("{:?}",result.bond_low);
-
-            //assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
+            assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
         }
         test_duration.exit();
     }

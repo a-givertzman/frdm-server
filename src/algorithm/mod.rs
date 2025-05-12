@@ -1,4 +1,4 @@
-pub mod expansion_contraction;
+pub mod outliners_in_sample;
 mod fast_scan;
 mod detecting_contours;
 mod detecting_contours_cv;
