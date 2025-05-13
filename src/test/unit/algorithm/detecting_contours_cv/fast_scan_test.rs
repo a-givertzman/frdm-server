@@ -28,7 +28,7 @@ mod fast_scan {
         let dbg = "grad_one_frame";
         log::debug!("\n{}", dbg);
         let img = imgcodecs::imread(
-            "src/test/unit/scan/fast/test_photo2.jpg",
+            "src/test/unit/algorithm/detecting_contours/testing_files/rope_0.jpeg",
             imgcodecs::IMREAD_COLOR,
         ).unwrap();
         highgui::named_window("img", highgui::WINDOW_AUTOSIZE).unwrap();
@@ -87,7 +87,7 @@ mod fast_scan {
             &mut grad,
             -1
         ).unwrap();
-        highgui::imshow("img", &grad).unwrap();
+        highgui::imshow("img", &abs_grad_y).unwrap();
         highgui::wait_key(0).unwrap();
         highgui::destroy_all_windows().unwrap();
     }
@@ -99,7 +99,7 @@ mod fast_scan {
         let dbg = "method_compare";
         log::debug!("\n{}", dbg);
         let img = imgcodecs::imread(
-            "src/test/unit/scan/fast/test_photo.jpg",
+            "src/test/unit/algorithm/detecting_contours/testing_files/rope_0.jpeg",
             imgcodecs::IMREAD_COLOR,
         ).unwrap();
         highgui::named_window("img", highgui::WINDOW_AUTOSIZE).unwrap();
@@ -170,7 +170,7 @@ mod fast_scan {
             100.,
             200.
         ).unwrap();
-        highgui::imshow("img", &edges).unwrap();
+        highgui::imshow("img", &grad).unwrap();
         highgui::wait_key(0).unwrap();
         highgui::destroy_all_windows().unwrap();
     }
@@ -182,7 +182,7 @@ mod fast_scan {
         let dbg = "contours";
         log::debug!("\n{}", dbg);
         let img = imgcodecs::imread(
-            "src/test/unit/scan/fast/test_photo2.jpg",
+            "src/test/unit/algorithm/detecting_contours/testing_files/rope_31.jpeg",
             imgcodecs::IMREAD_COLOR,
         ).unwrap();
         highgui::named_window("img", highgui::WINDOW_AUTOSIZE).unwrap();
@@ -196,14 +196,21 @@ mod fast_scan {
         let mut otsu_thresh = Mat::default();
         let mut opened = Mat::default();
         let mut edges = Mat::default();
+        let mut blurred = Mat::default();
         imgproc::cvt_color(
             &img,
             &mut gray_frame,
             imgproc::COLOR_BGR2GRAY,
             0,
         ).unwrap();
-        imgproc::threshold(
+        imgproc::gaussian_blur_def(
             &gray_frame,
+            &mut blurred,
+            core::Size::new(21,21),
+            5.,
+        ).unwrap();
+        imgproc::threshold(
+            &blurred,
             &mut otsu_thresh,
             100.,
             255.,
@@ -228,7 +235,7 @@ mod fast_scan {
         ).unwrap();
         let elapsed = time.elapsed();
         log::debug!("Elapsed time: {}", elapsed.as_millis());
-        highgui::imshow("img", &edges).unwrap();
+        highgui::imshow("img", &gray_frame).unwrap();
         highgui::wait_key(0).unwrap();
         highgui::destroy_all_windows().unwrap();
     }
