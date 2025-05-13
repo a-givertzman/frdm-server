@@ -1,6 +1,7 @@
 mod detecting_contours;
 mod detecting_contours_cv;
 mod fast_scan;
+pub mod geometry_defect;
 pub mod mad;
 pub mod width_emissions;
 
