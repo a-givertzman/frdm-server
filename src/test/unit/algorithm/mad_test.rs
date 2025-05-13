@@ -6,7 +6,7 @@ mod mad {
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 
-    use crate::{algorithm::mad::{bond::Bond, mad::{MADCtx, MAD}}, domain::{eval::eval::Eval, graham::dot::Dot}};
+    use crate::{algorithm::mad::mad::MAD, domain::eval::eval::Eval};
     ///
     ///
     static INIT: Once = Once::new();
@@ -53,7 +53,7 @@ mod mad {
         ];
         for (step, sample, target) in test_data {
             let result = MAD::new(sample)
-            .eval(()).result;
+            .eval(()).mad;
             assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
         }
         test_duration.exit();

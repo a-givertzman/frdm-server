@@ -44,6 +44,12 @@ impl WidthEmissions {
                         y: self.initial_points_upper[i].y,
                     }
                 );
+                emissions.push(
+                    Bond {
+                        x: self.initial_points_lower[i].x,
+                        y: self.initial_points_lower[i].y,
+                    }
+                );
             }
         };
         emissions
@@ -66,5 +72,5 @@ impl Eval<(), WidthEmissionsCtx> for WidthEmissions {
 /// Store result of [WidthEmissions]
 #[derive(Clone)]
 pub struct WidthEmissionsCtx {
-    result: Vec<Bond<u16>>
+    pub result: Vec<Bond<u16>>
 }
