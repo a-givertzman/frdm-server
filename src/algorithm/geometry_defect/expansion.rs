@@ -48,7 +48,7 @@ impl Eval<(), ExpansionCtx> for Expansion {
             let upper_point = width_emissions_result.result[i];
             let lower_point = width_emissions_result.result[i+1];
             if (((upper_point.y as f32 - mad_of_upper_points.median)) > threshold * mad_of_upper_points.mad) &&
-               (((lower_point.y as f32 - mad_of_lower_points.median)) < threshold * mad_of_lower_points.mad) {
+               (((lower_point.y as f32 - mad_of_lower_points.median)) < -threshold * mad_of_lower_points.mad) {
                 result.push(
                     upper_point
                 );

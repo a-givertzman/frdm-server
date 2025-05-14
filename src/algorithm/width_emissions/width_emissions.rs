@@ -63,6 +63,8 @@ impl Eval<(), WidthEmissionsCtx> for WidthEmissions {
         let mad_result = MAD::new(self.points_width()).eval(());
         let result = WidthEmissionsCtx {
             result: self.emissions(mad_result.median, mad_result.mad,threshold),
+            median: mad_result.median,
+            mad: mad_result.mad
         };
         self.result = Some(result.clone());
         result
@@ -72,5 +74,7 @@ impl Eval<(), WidthEmissionsCtx> for WidthEmissions {
 /// Store result of [WidthEmissions]
 #[derive(Clone)]
 pub struct WidthEmissionsCtx {
-    pub result: Vec<Bond<u16>>
+    pub result: Vec<Bond<u16>>,
+    pub median: f32,
+    pub mad: f32
 }
