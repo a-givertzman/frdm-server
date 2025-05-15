@@ -3,5 +3,6 @@ mod detecting_contours_cv;
 mod fast_scan;
 mod contraction_test;
 mod expansion_test;
+mod groove_test;
 mod mad_test;
 mod width_emissions_test;
