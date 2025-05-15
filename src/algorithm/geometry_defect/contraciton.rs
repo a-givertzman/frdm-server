@@ -1,31 +1,31 @@
 use sal_core::dbg::Dbg;
 use crate::{algorithm::{mad::{bond::Bond, mad::MAD}, width_emissions::width_emissions::WidthEmissions}, domain::{eval::eval::Eval, graham::dot::Dot}};
 ///
-/// Detecting expansion on the rope
-pub struct Expansion {
+/// Detecting contraction on the rope
+pub struct Contraction {
     initial_points_upper: Vec<Dot<u16>>,
     initial_points_lower: Vec<Dot<u16>>,
     dbg: Dbg,
-    result: Option<ExpansionCtx>
+    result: Option<ContractionCtx>
 }
 //
 //
-impl Expansion {
+impl Contraction {
     ///
-    /// New instance [Expansion]
+    /// New instance [Contraction]
     pub fn new(initial_points_upper: Vec<Dot<u16>>, initial_points_lower: Vec<Dot<u16>>) -> Self {
         Self {
             initial_points_upper,
             initial_points_lower,
-            dbg: Dbg::own("Expansion"),
+            dbg: Dbg::own("Contraction"),
             result: None,
         }
     }
 }
 //
 //
-impl Eval<(), ExpansionCtx> for Expansion {
-    fn eval(&mut self, _: ()) -> ExpansionCtx {
+impl Eval<(), ContractionCtx> for Contraction {
+    fn eval(&mut self, _: ()) -> ContractionCtx {
         let width_emissions_result = WidthEmissions::new(
             self.initial_points_upper.clone(),
             self.initial_points_lower.clone()
@@ -47,8 +47,10 @@ impl Eval<(), ExpansionCtx> for Expansion {
         for i in (0..width_emissions_result.result.len()-1).step_by(2) {
             let upper_point = width_emissions_result.result[i];
             let lower_point = width_emissions_result.result[i+1];
-            if (((upper_point.y as f32 - mad_of_upper_points.median)) > threshold * mad_of_upper_points.mad) &&
-               (((lower_point.y as f32 - mad_of_lower_points.median)) < -threshold * mad_of_lower_points.mad) {
+            let deviation_upper = upper_point.y as f32 - mad_of_upper_points.median;
+            let deviation_lower = lower_point.y as f32 - mad_of_lower_points.median;
+            if (deviation_upper < -threshold * mad_of_upper_points.mad) &&
+               (deviation_lower > threshold * mad_of_lower_points.mad) {
                 result.push(
                     upper_point
                 );
@@ -57,7 +59,7 @@ impl Eval<(), ExpansionCtx> for Expansion {
                 );
             }
         }
-        let result = ExpansionCtx {
+        let result = ContractionCtx {
             result: result,
         };
         self.result = Some(result.clone());
@@ -65,8 +67,8 @@ impl Eval<(), ExpansionCtx> for Expansion {
     }
 }
 ///
-/// Store result of [Expansion]
+/// Store result of [Contraction]
 #[derive(Clone)]
-pub struct ExpansionCtx {
+pub struct ContractionCtx {
     pub result: Vec<Bond<u16>>
 }

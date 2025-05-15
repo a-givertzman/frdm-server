@@ -2,7 +2,7 @@ use crate::domain::eval::eval::Eval;
 ///
 /// Median Absolute Deviation
 pub struct MAD {
-    sample: Vec<u16>,
+    sample: Vec<i16>,
     result: Option<MADCtx>,
 }
 //
@@ -10,7 +10,7 @@ pub struct MAD {
 impl MAD {
     ///
     /// New instance [MAD]
-    pub fn new(sample: Vec<u16>) -> Self {
+    pub fn new(sample: Vec<i16>) -> Self {
         Self {
             sample,
             result: None,
@@ -18,7 +18,7 @@ impl MAD {
     }
     ///
     /// Calculate median
-    fn median(points: &[u16]) -> f32 {
+    fn median(points: &[i16]) -> f32 {
         let mut values: Vec<f32> = points.iter().map(|point| *point as f32).collect();
         values.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let len = values.len();
@@ -30,7 +30,7 @@ impl MAD {
     }
     ///
     /// Calculate Median Absolute Deviation
-    fn mad(sample: &[u16], median: f32) -> f32 {
+    fn mad(sample: &[i16], median: f32) -> f32 {
         let mut deviations: Vec<f32> = sample.iter()
             .map(|point| (*point as f32 - median).abs())
             .collect();

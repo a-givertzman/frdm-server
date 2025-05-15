@@ -1,12 +1,11 @@
 #[cfg(test)]
 
-mod expansion {
+mod contraction {
     use std::{sync::Once, time::Duration};
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-
-    use crate::{algorithm::{geometry_defect::expansion::Expansion, mad::bond::Bond, width_emissions::width_emissions::WidthEmissions}, domain::{eval::eval::Eval, graham::dot::Dot}};
+    use crate::{algorithm::{geometry_defect::contraciton::Contraction, mad::bond::Bond}, domain::{eval::eval::Eval, graham::dot::Dot}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -28,7 +27,7 @@ mod expansion {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = Dbg::own("expansion");
+        let dbg = Dbg::own("contraction");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
@@ -62,12 +61,6 @@ mod expansion {
                     Dot { x: 110 , y: 50 },
                 ],
                 vec![
-                    Bond { x: 50, y: 130 },
-                    Bond { x: 50, y: 20 },
-                    Bond { x: 60, y: 135 },
-                    Bond { x: 60, y: 15 },
-                    Bond { x: 70, y: 130 },
-                    Bond { x: 70, y: 20 }
                 ]
             ),
             (
@@ -76,11 +69,11 @@ mod expansion {
                     Dot { x: 10  , y: 100 },
                     Dot { x: 20  , y: 105 },
                     Dot { x: 30  , y: 110 },
-                    Dot { x: 40  , y: 120 },
-                    Dot { x: 50  , y: 130 },
-                    Dot { x: 60  , y: 135 },
-                    Dot { x: 70  , y: 130 },
-                    Dot { x: 80  , y: 120 },
+                    Dot { x: 40  , y: 90 },
+                    Dot { x: 50  , y: 80 },
+                    Dot { x: 60  , y: 75 },
+                    Dot { x: 70  , y: 70 },
+                    Dot { x: 80  , y: 90 },
                     Dot { x: 90  , y: 110 },
                     Dot { x: 100 , y: 105 },
                     Dot { x: 110 , y: 100 },
@@ -89,16 +82,22 @@ mod expansion {
                     Dot { x: 10  , y: 50 },
                     Dot { x: 20  , y: 45 },
                     Dot { x: 30  , y: 40 },
-                    Dot { x: 40  , y: 40 },
-                    Dot { x: 50  , y: 40 },
-                    Dot { x: 60  , y: 45 },
-                    Dot { x: 70  , y: 40 },
+                    Dot { x: 40  , y: 70 },
+                    Dot { x: 50  , y: 80 },
+                    Dot { x: 60  , y: 85 },
+                    Dot { x: 70  , y: 70 },
                     Dot { x: 80  , y: 40 },
                     Dot { x: 90  , y: 40 },
                     Dot { x: 100 , y: 45 },
                     Dot { x: 110 , y: 50 },
                 ],
                 vec![
+                    Bond { x: 50, y: 80 },
+                    Bond { x: 50, y: 80 },
+                    Bond { x: 60, y: 75 },
+                    Bond { x: 60, y: 85 },
+                    Bond { x: 70, y: 70 },
+                    Bond { x: 70, y: 70 },
                 ]
             ),
             (
@@ -134,7 +133,7 @@ mod expansion {
             ),
         ];
         for (step, initial_points_upper, initial_points_lower, target) in test_data {
-            let result = Expansion::new(
+            let result = Contraction::new(
                 initial_points_upper,   
                 initial_points_lower
             ).eval(());

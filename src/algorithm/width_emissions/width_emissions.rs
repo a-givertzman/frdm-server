@@ -23,10 +23,10 @@ impl WidthEmissions {
     }
     ///
     /// Compute width of initial dots
-    fn points_width(&self) -> Vec<u16> {
+    fn points_width(&self) -> Vec<i16> {
         let mut dots_width = Vec::new();
         for i in 0..self.initial_points_lower.len() { // `for` only for one vector cause they must be same length
-            let width = self.initial_points_upper[i].y - self.initial_points_lower[i].y;
+            let width = self.initial_points_upper[i].y as i16 - self.initial_points_lower[i].y as i16;
             dots_width.push(width);
         };
         dots_width
@@ -36,7 +36,7 @@ impl WidthEmissions {
     fn emissions(&self, median: f32, mad: f32, threshold: f32) -> Vec<Bond<u16>> {
         let mut emissions = Vec::new();
         for i in 0..self.initial_points_lower.len() { // `for` only for one vector cause they must be same length
-            let deviation = ((self.initial_points_upper[i].y - self.initial_points_lower[i].y) as f32 - median).abs();
+            let deviation = ((self.initial_points_upper[i].y as i16 - self.initial_points_lower[i].y as i16) as f32 - median).abs();
             if deviation > threshold * mad {
                 emissions.push(
                     Bond {

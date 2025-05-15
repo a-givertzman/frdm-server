@@ -1,12 +1,12 @@
 #[cfg(test)]
 
-mod mad {
+mod width_emissions {
     use std::{sync::Once, time::Duration};
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 
-    use crate::{algorithm::{mad::{bond::Bond, mad::{MADCtx, MAD}}, width_emissions::width_emissions::WidthEmissions}, domain::{eval::eval::Eval, graham::dot::Dot}};
+    use crate::{algorithm::{mad::bond::Bond, width_emissions::width_emissions::WidthEmissions}, domain::{eval::eval::Eval, graham::dot::Dot}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -28,7 +28,7 @@ mod mad {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = Dbg::own("mad");
+        let dbg = Dbg::own("width_emissions");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
@@ -61,14 +61,20 @@ mod mad {
                     Dot { x: 100 , y: 45 },
                     Dot { x: 110 , y: 50 },
                 ],
-                10.0,
+                vec![
+                    Bond { x: 50, y: 130 },
+                    Bond { x: 50, y: 20  },
+                    Bond { x: 60, y: 135 },
+                    Bond { x: 60, y: 15  },
+                    Bond { x: 70, y: 130 },
+                    Bond { x: 70, y: 20  }
+                ]
             )
         ];
         for (step, initial_points_upper, initial_points_lower, target) in test_data {
             let result = WidthEmissions::new(initial_points_upper, initial_points_lower)
             .eval(());
-            println!("{:?}", result.result);
-            //assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
+            assert!(result.result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result.result, target);
         }
         test_duration.exit();
     }
