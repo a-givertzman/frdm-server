@@ -6,7 +6,7 @@ mod edge_detection_test {
     use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{algorithm::EdgeDetection, domain::{eval::eval::Eval, graham::dot::Dot}, infrostructure::arena::Image};
+    use crate::{algorithm::EdgeDetection, domain::{Eval, graham::dot::Dot}, infrostructure::arena::Image};
     ///
     ///
     static INIT: Once = Once::new();
@@ -171,7 +171,7 @@ mod edge_detection_test {
     //
     //
     impl Eval<(), Result<Image, Error>> for FakePassImg {
-        fn eval(&mut self, _: ()) -> Result<Image, Error> {
+        fn eval(&self, _: ()) -> Result<Image, Error> {
             Ok(self.img.clone())
         }
     }

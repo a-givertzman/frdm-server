@@ -1,5 +1,5 @@
 use sal_core::dbg::Dbg;
-use crate::{algorithm::{mad::{bond::Bond, mad::MAD}, width_emissions::width_emissions::WidthEmissions}, domain::{eval::eval::Eval, graham::dot::Dot}};
+use crate::{algorithm::{mad::{bond::Bond, mad::Mad}, width_emissions::width_emissions::WidthEmissions}, domain::{Eval, graham::dot::Dot}};
 ///
 /// Detecting mound on the rope
 pub struct Mound {
@@ -25,18 +25,18 @@ impl Mound {
 //
 //
 impl Eval<(), MoundCtx> for Mound {
-    fn eval(&mut self, _: ()) -> MoundCtx {
+    fn eval(&self, _: ()) -> MoundCtx {
         let width_emissions_result = WidthEmissions::new(
             self.initial_points_upper.clone(),
             self.initial_points_lower.clone()
         ).eval(());
-        let mad_of_upper_points = MAD::new(
+        let mad_of_upper_points = Mad::new(
             self.initial_points_upper
                 .iter()
                 .map(|dot| dot.y as i16)
                 .collect()
         ).eval(());
-        let mad_of_lower_points = MAD::new(
+        let mad_of_lower_points = Mad::new(
             self.initial_points_lower
                 .iter()
                 .map(|dot| dot.y as i16)

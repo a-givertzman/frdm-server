@@ -5,7 +5,7 @@ mod graham {
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::domain::{eval::eval::Eval, graham::{dot::Dot, find_start::FindStartCtx, sort::Sort}};
+    use crate::domain::{Eval, graham::{dot::Dot, find_start::FindStartCtx, sort::Sort}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -50,7 +50,7 @@ mod graham {
     }
     struct MocEval { ctx: FindStartCtx }
     impl Eval<(), FindStartCtx> for MocEval {
-        fn eval(&mut self, _: ()) -> FindStartCtx {
+        fn eval(&self, _: ()) -> FindStartCtx {
             self.ctx.clone()
         }
     }

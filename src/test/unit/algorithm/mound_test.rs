@@ -6,7 +6,7 @@ mod mound {
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 
-    use crate::{algorithm::{geometry_defect::{groove::Groove, mound::Mound}, mad::bond::Bond}, domain::{eval::eval::Eval, graham::dot::Dot}};
+    use crate::{algorithm::{geometry_defect::{groove::Groove, mound::Mound}, mad::bond::Bond}, domain::{Eval, graham::dot::Dot}};
     ///
     ///
     static INIT: Once = Once::new();

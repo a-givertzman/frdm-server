@@ -6,7 +6,7 @@ mod expansion {
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 
-    use crate::{algorithm::{geometry_defect::expansion::Expansion, mad::bond::Bond, width_emissions::width_emissions::WidthEmissions}, domain::{eval::eval::Eval, graham::dot::Dot}};
+    use crate::{algorithm::{geometry_defect::expansion::Expansion, mad::bond::Bond, width_emissions::width_emissions::WidthEmissions}, domain::{Eval, graham::dot::Dot}};
     ///
     ///
     static INIT: Once = Once::new();

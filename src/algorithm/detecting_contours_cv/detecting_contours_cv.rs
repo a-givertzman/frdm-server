@@ -1,5 +1,5 @@
 use sal_core::error::Error;
-use crate::{domain::eval::eval::Eval, infrostructure::arena::Image};
+use crate::{domain::Eval, infrostructure::arena::Image};
 ///
 /// Take [Image]
 /// Return binarised [Image] with contours detected
@@ -22,7 +22,7 @@ impl DetectingContoursCv{
 //
 //
 impl Eval<(), Result<Image, Error>> for DetectingContoursCv {
-    fn eval(&mut self, _: ()) -> Result<Image, Error> {
+    fn eval(&self, _: ()) -> Result<Image, Error> {
         let error = Error::new("DetectingContoursCv", "eval");
         match self.ctx.eval(()) {
             Ok(image) => {

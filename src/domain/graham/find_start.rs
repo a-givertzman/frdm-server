@@ -1,4 +1,4 @@
-use crate::domain::eval::eval::Eval;
+use crate::domain::Eval;
 
 use super::dot::Dot;
 
@@ -22,7 +22,7 @@ impl FindStart {
 //
 //
 impl Eval<(), FindStartCtx> for FindStart {
-    fn eval(&mut self, _: ()) -> FindStartCtx {
+    fn eval(&self, _: ()) -> FindStartCtx {
         let points = self.points.take().unwrap();
         let start = points
             .iter()

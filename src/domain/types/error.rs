@@ -1,0 +1,1 @@
+pub type Error = sal_core::error::Error;

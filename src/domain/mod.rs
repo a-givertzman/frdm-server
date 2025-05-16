@@ -1,5 +1,9 @@
 //! 
 //! Kernel tools
 //! 
-pub mod eval;
+mod eval;
 pub mod graham;
+mod types;
+
+pub(crate) use eval::*;
+pub(crate) use types::*;

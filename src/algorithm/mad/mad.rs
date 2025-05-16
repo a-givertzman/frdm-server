@@ -1,25 +1,20 @@
-use crate::domain::eval::eval::Eval;
+use crate::domain::Eval;
+use super::MadCtx;
 ///
 /// Median Absolute Deviation
-pub struct MAD {
-    sample: Vec<i16>,
-    result: Option<MADCtx>,
-}
+pub struct Mad;
 //
 //
-impl MAD {
+impl Mad {
     ///
-    /// New instance [MAD]
-    pub fn new(sample: Vec<i16>) -> Self {
-        Self {
-            sample,
-            result: None,
-        }
+    /// New instance [Mad]
+    pub fn new() -> Self {
+        Self {}
     }
     ///
     /// Calculate median
-    fn median(points: &[i16]) -> f32 {
-        let mut values: Vec<f32> = points.iter().map(|point| *point as f32).collect();
+    fn median(points: &[usize]) -> f64 {
+        let mut values: Vec<f64> = points.iter().map(|point| *point as f64).collect();
         values.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let len = values.len();
         if len % 2 == 1 {
@@ -30,9 +25,9 @@ impl MAD {
     }
     ///
     /// Calculate Median Absolute Deviation
-    fn mad(sample: &[i16], median: f32) -> f32 {
-        let mut deviations: Vec<f32> = sample.iter()
-            .map(|point| (*point as f32 - median).abs())
+    fn mad(sample: &[usize], median: f64) -> f64 {
+        let mut deviations: Vec<f64> = sample.iter()
+            .map(|point| (*point as f64 - median).abs())
             .collect();
         deviations.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let len = deviations.len();
@@ -45,19 +40,10 @@ impl MAD {
 }
 //
 //
-impl Eval<(), MADCtx> for MAD {
-    fn eval(&mut self, _: ()) -> MADCtx {
-        let median = Self::median(&self.sample);
-        let mad = Self::mad(&self.sample, median);
-        let result = MADCtx { median, mad };
-        self.result = Some(result.clone());
-        result
+impl Eval<Vec<usize>, MadCtx> for Mad {
+    fn eval(&self, sample: Vec<usize>) -> MadCtx {
+        let median = Self::median(&sample);
+        let mad = Self::mad(&sample, median);
+        MadCtx { median, mad }
     }
-}
-///
-/// Store result of algorithm [MAD]
-#[derive(Debug, Clone, PartialEq)]
-pub struct MADCtx {
-    pub median: f32,
-    pub mad: f32,
 }

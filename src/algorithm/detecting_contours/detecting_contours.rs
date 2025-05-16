@@ -1,6 +1,6 @@
 use photon_rs::PhotonImage;
 use sal_core::dbg::Dbg;
-use crate::domain::eval::eval::Eval;
+use crate::domain::Eval;
 use super::detecting_contours_ctx::DetectingContoursCtx;
 use photon_rs::monochrome::grayscale;
 use photon_rs::monochrome::threshold;
@@ -47,7 +47,7 @@ impl DetectingContours {
 impl Eval<(), DetectingContoursCtx> for DetectingContours {
     ///
     /// Detecting rope contours
-    fn eval(&mut self, _: ()) -> DetectingContoursCtx {
+    fn eval(&self, _: ()) -> DetectingContoursCtx {
         DetectingContoursCtx { 
             result: self.get_contours() 
         }
