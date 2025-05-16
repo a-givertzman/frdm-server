@@ -1,5 +1,5 @@
 use sal_core::dbg::Dbg;
-use crate::{algorithm::{mad::{bond::Bond, mad::Mad}, width_emissions::width_emissions::WidthEmissions}, domain::{Eval, graham::dot::Dot}};
+use crate::{algorithm::{mad::{Bond, Mad}, width_emissions::width_emissions::WidthEmissions}, domain::{Eval, graham::dot::Dot}};
 
 use super::Threshold;
 ///
