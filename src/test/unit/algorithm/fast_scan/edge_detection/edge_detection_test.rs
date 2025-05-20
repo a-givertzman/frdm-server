@@ -6,7 +6,7 @@ mod edge_detection_test {
     use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{algorithm::EdgeDetection, domain::{Eval, graham::dot::Dot}, infrostructure::arena::Image};
+    use crate::{algorithm::{EdgeDetection, EdgeDetectionCtx}, domain::{graham::dot::Dot, Eval}, infrostructure::arena::Image};
     ///
     ///
     static INIT: Once = Once::new();
@@ -83,31 +83,39 @@ mod edge_detection_test {
         highgui::wait_key(0).unwrap();
         highgui::destroy_all_windows().unwrap();
     }
+    ///
+    /// Testing EdgeDetection.eval
     #[test]
     fn edge_detection() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        //
+        // to visualize matrix use:
+        let visualize_matrix = false;
         init_once();
         init_each();
         let dbg = Dbg::own("test");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(dbg, Duration::from_secs(100));
         test_duration.run().unwrap();
-        let test_data: [(i32, Image, Result<(&[i32; 12], &[i32; 12]), Error>); 2] = [
+        fn into_dots(dots: &[isize]) -> Vec<Dot<isize>> {
+            dots.chunks(2).map(|d| d.into()).collect()
+        }
+        let test_data: [(i32, Image, Result<EdgeDetectionCtx, Error>); 2] = [
             (
                 1,
                 Image::with( Mat::from_slice_2d(&MATRIX1).unwrap()),
-                Ok((
-                    &[0,1, 1,0, 2,0, 3,1, 4,0, 5,0],
-                    &[0,5, 1,4, 2,5, 3,5, 4,5, 5,4]
-                )),
+                Ok(EdgeDetectionCtx {
+                    upper_edge: into_dots(&[0,1, 1,0, 2,0, 3,1, 4,0, 5,0]),
+                    lower_edge: into_dots(&[0,5, 1,4, 2,5, 3,5, 4,5, 5,4]),
+                }),
             ),
             (
                 2,
                 Image::with( Mat::from_slice_2d(&MATRIX2).unwrap()),
-                Ok((
-                    &[0,2, 1,1, 2,0, 3,1, 4,0, 5,1],
-                    &[0,3, 1,4, 2,4, 3,5, 4,4, 5,3]
-                )),
+                Ok(EdgeDetectionCtx {
+                    upper_edge: into_dots(&[0,2, 1,1, 2,0, 3,1, 4,0, 5,1]),
+                    lower_edge: into_dots(&[0,3, 1,4, 2,4, 3,5, 4,4, 5,3]),
+                }),
             )
         ];
         for (step, img, target) in test_data {
@@ -117,19 +125,7 @@ mod edge_detection_test {
             ).eval(());
             match (result, target) {
                 (Ok(result), Ok(target)) => {
-                    let result = (result.upper_edge, result.lower_edge);
-                    let target_upper: Vec<Dot<isize>> = target.0.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
-                    let target_lower: Vec<Dot<isize>> = target.1.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
-                    let target = (target_upper, target_lower);
-                    assert!(
-                        result == target,
-                        "step {} \nresult upper: {:?}\ntarget upper: {:?} \nresult lower: {:?}\ntarget lower: {:?}",
-                        step,
-                        result.0,
-                        target.0,
-                        result.1,
-                        target.1
-                    );
+                    assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
                 }
                 (Ok(result), Err(target)) => panic!("step {} \nresult: {:?}\ntarget: {:?}", step, result, target),
                 (Err(result), Ok(target)) => panic!("step {} \nresult: {:?}\ntarget: {:?}", step, result, target),
@@ -137,8 +133,9 @@ mod edge_detection_test {
             }
         }
         test_duration.exit();
-        // to visualize matrix use:
-        // edge_visualization_matrix(MATRIX2);
+        if visualize_matrix {
+            edge_visualization_matrix(MATRIX2);
+        }
         static MATRIX1: [[u8; 6]; 6] = [
             [0, 1, 1, 0, 1, 1],
             [1, 0, 0, 1, 0, 0],
@@ -176,7 +173,3 @@ mod edge_detection_test {
         }
     }
 }
-//
-//
-// Questions:
-// in camera and arena used different dbgs

@@ -182,8 +182,8 @@ mod mound {
             let result = Mound::new(
                 threshold,
                 *Box::new(
-                        Mad::new()
-                    ),
+                    Mad::new()
+                ),
                 ctx,
             ).eval(());
             match result {
