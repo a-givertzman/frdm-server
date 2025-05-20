@@ -1,12 +1,21 @@
 #[cfg(test)]
 
 mod mad {
-    use std::{sync::Once, time::Duration};
+    use std::{
+        sync::Once, 
+        time::Duration
+    };
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-
-    use crate::{algorithm::mad::mad::Mad, domain::Eval};
+    use debugging::session::debug_session::{
+        DebugSession, 
+        LogLevel, 
+        Backtrace
+    };
+    use crate::{
+        algorithm::mad::Mad, 
+        domain::Eval
+    };
     ///
     ///
     static INIT: Once = Once::new();
@@ -52,9 +61,16 @@ mod mad {
             )
         ];
         for (step, sample, target) in test_data {
-            let result = Mad::new(sample)
-            .eval(()).mad;
-            assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
+            let result = Mad::new()
+                .eval(sample)
+            .mad;
+            assert!(
+                result == target, 
+                "step {} \nresult: {:?}\ntarget: {:?}", 
+                step, 
+                result, 
+                target
+            );
         }
         test_duration.exit();
     }

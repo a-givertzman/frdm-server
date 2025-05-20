@@ -1,12 +1,43 @@
 #[cfg(test)]
 
 mod expansion {
-    use std::{sync::Once, time::Duration};
+    use std::{
+        sync::Once, 
+        time::Duration
+    };
+    use indexmap::IndexMap;
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-
-    use crate::{algorithm::{geometry_defect::expansion::Expansion, mad::bond::Bond, width_emissions::width_emissions::WidthEmissions}, domain::{Eval, graham::dot::Dot}};
+    use debugging::session::debug_session::{
+        DebugSession, 
+        LogLevel, 
+        Backtrace
+    };
+    use crate::{
+        algorithm::{
+            geometry_defect::{
+                Expansion, 
+                ExpansionCtx, 
+                Threshold
+            }, 
+            mad::{
+                Bond, 
+                Mad
+            }, 
+            Context, 
+            ContextRead, 
+            ContextWrite, 
+            EvalResult, 
+            InitialCtx, 
+            InitialPoints, 
+            Side
+        }, 
+        domain::{
+            graham::dot::Dot, 
+            Eval
+        }, 
+        infrostructure::arena::Image
+    };
     ///
     ///
     static INIT: Once = Once::new();
@@ -35,32 +66,45 @@ mod expansion {
         let test_data = [
             (
                 1,
-                vec![
-                    Dot { x: 10  , y: 100 },
-                    Dot { x: 20  , y: 105 },
-                    Dot { x: 30  , y: 110 },
-                    Dot { x: 40  , y: 120 },
-                    Dot { x: 50  , y: 130 },
-                    Dot { x: 60  , y: 135 },
-                    Dot { x: 70  , y: 130 },
-                    Dot { x: 80  , y: 120 },
-                    Dot { x: 90  , y: 110 },
-                    Dot { x: 100 , y: 105 },
-                    Dot { x: 110 , y: 100 },
-                ],
-                vec![
-                    Dot { x: 10  , y: 50 },
-                    Dot { x: 20  , y: 45 },
-                    Dot { x: 30  , y: 40 },
-                    Dot { x: 40  , y: 30 },
-                    Dot { x: 50  , y: 20 },
-                    Dot { x: 60  , y: 15 },
-                    Dot { x: 70  , y: 20 },
-                    Dot { x: 80  , y: 30 },
-                    Dot { x: 90  , y: 40 },
-                    Dot { x: 100 , y: 45 },
-                    Dot { x: 110 , y: 50 },
-                ],
+                Threshold(1.1),
+                InitialPoints {
+                    sides: IndexMap::from(
+                        [
+                            (
+                                Side::Upper,
+                                vec![
+                                    Dot { x: 10  , y: 100 },
+                                    Dot { x: 20  , y: 105 },
+                                    Dot { x: 30  , y: 110 },
+                                    Dot { x: 40  , y: 120 },
+                                    Dot { x: 50  , y: 130 },
+                                    Dot { x: 60  , y: 135 },
+                                    Dot { x: 70  , y: 130 },
+                                    Dot { x: 80  , y: 120 },
+                                    Dot { x: 90  , y: 110 },
+                                    Dot { x: 100 , y: 105 },
+                                    Dot { x: 110 , y: 100 },
+                                ],
+                            ),
+                            (
+                                Side::Lower,
+                                vec![
+                                    Dot { x: 10  , y: 50 },
+                                    Dot { x: 20  , y: 45 },
+                                    Dot { x: 30  , y: 40 },
+                                    Dot { x: 40  , y: 30 },
+                                    Dot { x: 50  , y: 20 },
+                                    Dot { x: 60  , y: 15 },
+                                    Dot { x: 70  , y: 20 },
+                                    Dot { x: 80  , y: 30 },
+                                    Dot { x: 90  , y: 40 },
+                                    Dot { x: 100 , y: 45 },
+                                    Dot { x: 110 , y: 50 },
+                                ],
+                            )
+                        ]
+                    )
+                },
                 vec![
                     Bond { x: 50, y: 130 },
                     Bond { x: 50, y: 20 },
@@ -72,75 +116,139 @@ mod expansion {
             ),
             (
                 2,
-                vec![
-                    Dot { x: 10  , y: 100 },
-                    Dot { x: 20  , y: 105 },
-                    Dot { x: 30  , y: 110 },
-                    Dot { x: 40  , y: 120 },
-                    Dot { x: 50  , y: 130 },
-                    Dot { x: 60  , y: 135 },
-                    Dot { x: 70  , y: 130 },
-                    Dot { x: 80  , y: 120 },
-                    Dot { x: 90  , y: 110 },
-                    Dot { x: 100 , y: 105 },
-                    Dot { x: 110 , y: 100 },
-                ],
-                vec![
-                    Dot { x: 10  , y: 50 },
-                    Dot { x: 20  , y: 45 },
-                    Dot { x: 30  , y: 40 },
-                    Dot { x: 40  , y: 40 },
-                    Dot { x: 50  , y: 40 },
-                    Dot { x: 60  , y: 45 },
-                    Dot { x: 70  , y: 40 },
-                    Dot { x: 80  , y: 40 },
-                    Dot { x: 90  , y: 40 },
-                    Dot { x: 100 , y: 45 },
-                    Dot { x: 110 , y: 50 },
-                ],
+                Threshold(1.1),
+                InitialPoints {
+                    sides: IndexMap::from(
+                        [
+                            (
+                                Side::Upper,
+                                vec![
+                                    Dot { x: 10  , y: 100 },
+                                    Dot { x: 20  , y: 105 },
+                                    Dot { x: 30  , y: 110 },
+                                    Dot { x: 40  , y: 120 },
+                                    Dot { x: 50  , y: 130 },
+                                    Dot { x: 60  , y: 135 },
+                                    Dot { x: 70  , y: 130 },
+                                    Dot { x: 80  , y: 120 },
+                                    Dot { x: 90  , y: 110 },
+                                    Dot { x: 100 , y: 105 },
+                                    Dot { x: 110 , y: 100 },
+                                ],
+                            ),
+                            (
+                                Side::Lower,
+                                vec![
+                                    Dot { x: 10  , y: 50 },
+                                    Dot { x: 20  , y: 45 },
+                                    Dot { x: 30  , y: 40 },
+                                    Dot { x: 40  , y: 40 },
+                                    Dot { x: 50  , y: 40 },
+                                    Dot { x: 60  , y: 45 },
+                                    Dot { x: 70  , y: 40 },
+                                    Dot { x: 80  , y: 40 },
+                                    Dot { x: 90  , y: 40 },
+                                    Dot { x: 100 , y: 45 },
+                                    Dot { x: 110 , y: 50 },
+                                ],
+                            )
+                        ]
+                    )
+                },
                 vec![
                 ]
             ),
             (
                 3,
-                vec![
-                    Dot { x: 10  , y: 100 },
-                    Dot { x: 20  , y: 105 },
-                    Dot { x: 30  , y: 110 },
-                    Dot { x: 40  , y: 80 },
-                    Dot { x: 50  , y: 70 },
-                    Dot { x: 60  , y: 65 },
-                    Dot { x: 70  , y: 70 },
-                    Dot { x: 80  , y: 80 },
-                    Dot { x: 90  , y: 110 },
-                    Dot { x: 100 , y: 105 },
-                    Dot { x: 110 , y: 100 },
-                ],
-                vec![
-                    Dot { x: 10  , y: 50 },
-                    Dot { x: 20  , y: 45 },
-                    Dot { x: 30  , y: 40 },
-                    Dot { x: 40  , y: 30 },
-                    Dot { x: 50  , y: 20 },
-                    Dot { x: 60  , y: 15 },
-                    Dot { x: 70  , y: 20 },
-                    Dot { x: 80  , y: 30 },
-                    Dot { x: 90  , y: 40 },
-                    Dot { x: 100 , y: 45 },
-                    Dot { x: 110 , y: 50 },
-                ],
+                Threshold(1.1),
+                InitialPoints {
+                    sides: IndexMap::from(
+                        [
+                            (
+                                Side::Upper,
+                                vec![
+                                    Dot { x: 10  , y: 100 },
+                                    Dot { x: 20  , y: 105 },
+                                    Dot { x: 30  , y: 110 },
+                                    Dot { x: 40  , y: 80 },
+                                    Dot { x: 50  , y: 70 },
+                                    Dot { x: 60  , y: 65 },
+                                    Dot { x: 70  , y: 70 },
+                                    Dot { x: 80  , y: 80 },
+                                    Dot { x: 90  , y: 110 },
+                                    Dot { x: 100 , y: 105 },
+                                    Dot { x: 110 , y: 100 },
+                                ],
+                            ),
+                            (
+                                Side::Lower,
+                                vec![
+                                    Dot { x: 10  , y: 50 },
+                                    Dot { x: 20  , y: 45 },
+                                    Dot { x: 30  , y: 40 },
+                                    Dot { x: 40  , y: 30 },
+                                    Dot { x: 50  , y: 20 },
+                                    Dot { x: 60  , y: 15 },
+                                    Dot { x: 70  , y: 20 },
+                                    Dot { x: 80  , y: 30 },
+                                    Dot { x: 90  , y: 40 },
+                                    Dot { x: 100 , y: 45 },
+                                    Dot { x: 110 , y: 50 },
+                                ],
+                            )
+                        ]
+                    )
+                },
                 vec![
                 ]
             ),
         ];
-        for (step, initial_points_upper, initial_points_lower, target) in test_data {
+        for (step, threshold, initial_points, target) in test_data {
+            let mut ctx = MocEval {
+                ctx: Context::new(
+                    InitialCtx::new(
+                        Image::default()
+                    )
+                ),
+            };
+            ctx.ctx = ctx.ctx
+                .clone()
+                .write(initial_points)
+                .unwrap();
             let result = Expansion::new(
-                initial_points_upper,   
-                initial_points_lower
+                threshold,
+                *Box::new(Mad::new()),
+                ctx,
             ).eval(());
-            assert!(result.result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result.result, target);
+            match result {
+                Ok(result) => {
+                    let result = ContextRead::<ExpansionCtx>::read(&result)
+                        .result.clone();
+                    assert!(
+                        result == target, 
+                        "step {} \nresult: {:?}\ntarget: {:?}", 
+                        step, 
+                        result, 
+                        target
+                    );
+                },
+                Err(err) => panic!("step {} \nerror: {:#?}", step, err),
+            }
         }
         test_duration.exit();
+    }
+    ///
+    ///
+    #[derive(Debug, Clone)]
+    struct MocEval {
+        pub ctx: Context,
+    }
+    //
+    //
+    impl Eval<(), EvalResult> for MocEval {
+        fn eval(&self, _: ()) -> EvalResult {
+            Result::Ok(self.ctx.clone())
+        }
     }
 }
 

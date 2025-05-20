@@ -23,7 +23,7 @@ impl FindStart {
 //
 impl Eval<(), FindStartCtx> for FindStart {
     fn eval(&self, _: ()) -> FindStartCtx {
-        let points = self.points.take().unwrap();
+        let points = self.points.clone().take().unwrap();
         let start = points
             .iter()
             .enumerate()

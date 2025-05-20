@@ -1,55 +1,76 @@
 use sal_core::dbg::Dbg;
-use crate::{algorithm::{geometry_defect::Threshold, mad::{bond::Bond, mad::Mad}}, domain::{Eval, graham::dot::Dot}};
+use crate::{
+    algorithm::{
+            geometry_defect::Threshold, mad::{
+                Bond, 
+                MadCtx
+            }, ContextRead, ContextWrite, EvalResult, InitialPoints, Side
+        }, 
+    domain::{
+            graham::dot::Dot, 
+            Error, 
+            Eval
+        }
+    };
+use super::WidthEmissionsCtx;
 ///
 /// Finding width emissions the rope
 pub struct WidthEmissions {
     dbg: Dbg,
     threshold: Threshold,
-    initial_points_upper: Vec<Dot<usize>>,
-    initial_points_lower: Vec<Dot<usize>>,
-    result: Option<WidthEmissionsCtx>
+    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send>,
+    ctx: Box<dyn Eval<(), EvalResult> + Send>,
 }
 //
 //
 impl WidthEmissions {
     ///
     /// New instance [WidthEmissions]
-    pub fn new(threshold: Threshold, initial_points_upper: Vec<Dot<usize>>, initial_points_lower: Vec<Dot<usize>>) -> Self {
+    pub fn new(
+        threshold: Threshold,
+        mad: impl Eval<Vec<usize>, MadCtx> + Send + 'static,
+        ctx: impl Eval<(), EvalResult> + Send + 'static,
+    ) -> Self {
         Self {
             dbg: Dbg::own("WidthEmissions"),
             threshold,
-            initial_points_upper,
-            initial_points_lower,
-            result: None, 
+            mad: Box::new(mad),
+            ctx: Box::new(ctx),
         }
     }
     ///
     /// Compute width between initial dots
-    fn points_width(&self) -> Vec<usize> {
+    fn points_width(initial_points_upper: Vec<Dot<usize>>, initial_points_lower: Vec<Dot<usize>>) -> Vec<usize> {
         let mut dots_width = Vec::new();
-        for i in 0..self.initial_points_lower.len() { // `for` only for one vector cause they must be same length
-            let width = self.initial_points_upper[i].y - self.initial_points_lower[i].y;
+        for i in 0..initial_points_upper.len() { // `for` only for one vector cause they must be same length
+            let width = initial_points_upper[i].y - initial_points_lower[i].y;
             dots_width.push(width);
         };
         dots_width
     }
     ///
     /// Find emissions
-    fn emissions(&self, median: f64, mad: f64, threshold: f64) -> Vec<Bond<usize>> {
+    fn emissions(
+        initial_points_upper: Vec<Dot<usize>>, 
+        initial_points_lower: Vec<Dot<usize>>, 
+        median: f64, 
+        mad: f64, 
+        threshold: f64
+    ) -> Vec<Bond<usize>> {
         let mut emissions = Vec::new();
-        for i in 0..self.initial_points_lower.len() { // `for` only for one vector cause they must be same length
-            let deviation = ((self.initial_points_upper[i].y - self.initial_points_lower[i].y) as f64 - median).abs();
+        for i in 0..initial_points_upper.len() { // `for` only for one vector cause they must be same length
+            let deviation = ((initial_points_upper[i].y - initial_points_lower[i].y) as f64 - median).abs();
             if deviation > threshold * mad {
                 emissions.push(
                     Bond {
-                        x: self.initial_points_upper[i].x,
-                        y: self.initial_points_upper[i].y,
+                        x: initial_points_upper[i].x,
+                        y: initial_points_upper[i].y,
                     }
                 );
                 emissions.push(
                     Bond {
-                        x: self.initial_points_lower[i].x,
-                        y: self.initial_points_lower[i].y,
+                        x: initial_points_lower[i].x,
+                        y: initial_points_lower[i].y,
                     }
                 );
             }
@@ -59,19 +80,33 @@ impl WidthEmissions {
 }
 //
 //
-impl Eval<(), WidthEmissionsCtx> for WidthEmissions {
-    fn eval(&self, _: ()) -> WidthEmissionsCtx {
-        let mad_result = Mad::new(self.points_width()).eval(());
-        let result = WidthEmissionsCtx {
-            result: self.emissions(mad_result.median, mad_result.mad, self.threshold.0),
-        };
-        self.result = Some(result.clone());
-        result
+impl Eval<(), EvalResult> for WidthEmissions {
+    fn eval(&self, _: ()) -> EvalResult {
+        let error = Error::new(&self.dbg, "eval");
+        match self.ctx.eval(()) {
+            Ok(ctx) => {
+                let initial_points = ContextRead::<InitialPoints<usize>>::read(&ctx);
+                let initial_points_upper = initial_points.get(Side::Upper);
+                let initial_points_lower = initial_points.get(Side::Lower);
+                let mad_result = self.mad.eval(
+                    Self::points_width(
+                            initial_points_upper.clone(),
+                            initial_points_lower.clone(),
+                    )
+                );
+
+                let result = WidthEmissionsCtx {
+                    result: Self::emissions(
+                                initial_points_upper.clone(),
+                                initial_points_lower.clone(),
+                                mad_result.median,
+                                mad_result.mad,
+                                self.threshold.0
+                            ),
+                };
+                ctx.write(result)
+            },
+            Err(err) => Err(error.pass(err)),
+        }
     }
-}
-///
-/// Store result of [WidthEmissions]
-#[derive(Clone)]
-pub struct WidthEmissionsCtx {
-    pub result: Vec<Bond<usize>>
 }

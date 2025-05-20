@@ -1,10 +1,16 @@
-use super::expansion::Expansion;
+use super::{
+    Contraction, 
+    Expansion, 
+    Groove, 
+    Mound,
+};
+
 ///
 /// Enum of geometry defect type's
 pub enum GeometryDefectType {
     Expansion(Expansion),
-    Extraction,
-    Groove,
-    Mound,
+    Contraction(Contraction),
+    Groove(Groove),
+    Mound(Mound),
 
 }

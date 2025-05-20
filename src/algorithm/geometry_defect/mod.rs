@@ -1,9 +1,13 @@
-pub mod contraciton;
-pub mod expansion;
-pub mod geometry_defect_type;
-pub mod groove;
-pub mod mound;
-
+mod contraction;
+mod expansion;
+mod geometry_defect_type;
+mod groove;
+mod mound;
 mod threshold;
 
-pub use threshold::*;
+pub(crate) use contraction::*;
+pub(crate) use expansion::*;
+pub(crate) use geometry_defect_type::*;
+pub(crate) use groove::*;
+pub(crate) use mound::*;
+pub(crate) use threshold::*;

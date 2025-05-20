@@ -5,7 +5,7 @@ use crate::infrostructure::arena::Image;
 #[derive(Debug, Clone)]
 pub struct InitialCtx {
     dbg: Dbg,
-    /// TODO
+    /// initial fram of the rope
     pub src_frame: Image,
 } 
 //

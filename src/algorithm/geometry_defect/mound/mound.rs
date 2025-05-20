@@ -1,9 +1,27 @@
 use sal_core::dbg::Dbg;
-use crate::{algorithm::{mad::{Bond, MadCtx}, width_emissions::width_emissions::WidthEmissions, ContextRead, ContextWrite, EvalResult, InitialCtx, InitialPoints, Side}, domain::{Error, Eval}};
-use super::Threshold;
+use crate::{
+    algorithm::{
+        geometry_defect::Threshold, 
+        mad::{
+            Bond, 
+            MadCtx
+        }, 
+        width_emissions::WidthEmissionsCtx, 
+        ContextRead, 
+        ContextWrite, 
+        EvalResult, 
+        InitialPoints, 
+        Side
+    }, 
+    domain::{
+        Error, 
+        Eval
+    }
+};
+use super::MoundCtx;
 ///
-/// Detecting contraction on the rope
-pub struct Contraction {
+/// Detecting mound on the rope
+pub struct Mound {
     dbg: Dbg,
     threshold: Threshold,
     mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send>,
@@ -11,16 +29,16 @@ pub struct Contraction {
 }
 //
 //
-impl Contraction {
+impl Mound {
     ///
-    /// New instance [Contraction]
+    /// New instance [Mound]
     pub fn new(
         threshold: Threshold,
         mad: impl Eval<Vec<usize>, MadCtx> + Send + 'static,
         ctx: impl Eval<(), EvalResult> + Send + 'static,
     ) -> Self {
         Self {
-            dbg: Dbg::own("Contraction"),
+            dbg: Dbg::own("Groove"),
             threshold,
             mad: Box::new(mad),
             ctx: Box::new(ctx),
@@ -29,20 +47,15 @@ impl Contraction {
 }
 //
 //
-impl Eval<(), EvalResult> for Contraction {
+impl Eval<(), EvalResult> for Mound {
     fn eval(&self, _: ()) -> EvalResult {
         let error = Error::new(&self.dbg, "eval");
         match self.ctx.eval(()) {
             Ok(ctx) => {
-                let initial: &InitialCtx = ctx.read();
-                let initial_points: &InitialPoints<usize> = ctx.read();
+                let initial_points = ContextRead::<InitialPoints<usize>>::read(&ctx);
                 let initial_points_upper = initial_points.get(Side::Upper);
                 let initial_points_lower = initial_points.get(Side::Lower);
-                let width_emissions_result = WidthEmissions::new(
-                    self.threshold,
-                    initial_points_upper,
-                    initial_points_lower,
-                ).eval(());
+                let width_emissions_result = ContextRead::<WidthEmissionsCtx>::read(&ctx);
                 let mad_of_upper_points = self.mad.eval(
                     initial_points_upper.iter()
                         .map(|dot| dot.y)
@@ -61,28 +74,28 @@ impl Eval<(), EvalResult> for Contraction {
                     let lower_point = width_emissions_result.result[i+1];
                     let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
                     let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
-                    if (deviation_upper < -threshold * mad_of_upper_points.mad) &&
-                       (deviation_lower > threshold * mad_of_lower_points.mad) {
-                        result.push(
-                            upper_point
-                        );
+                    // checking mound on lower points
+                    if (deviation_upper.abs() < threshold * mad_of_upper_points.mad) &&
+                    (deviation_lower < -threshold * mad_of_lower_points.mad) {
                         result.push(
                             lower_point
                         );
                     }
+                    // checking mound on upper points
+                    else if (deviation_upper < -threshold * mad_of_upper_points.mad) &&
+                    (deviation_lower.abs() < threshold * mad_of_lower_points.mad) {
+                        result.push(
+                            upper_point
+                        );
+                    }
                 }
-                let result = ContractionCtx {
+                let result = MoundCtx {
                     result: result,
                 };
-                ctx.write(result)
-            }
+                ctx.write(result)             
+            },
             Err(err) => Err(error.pass(err)),
         }
+
     }
-}
-///
-/// Store result of [Contraction]
-#[derive(Debug, Clone, Default)]
-pub struct ContractionCtx {
-    pub result: Vec<Bond<usize>>
 }

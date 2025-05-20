@@ -1,5 +1,5 @@
 ///
-/// 
+/// Store threshols values for algorithm's
 #[derive(Debug, Clone, Copy)]
 pub struct Threshold(pub f64);
 //

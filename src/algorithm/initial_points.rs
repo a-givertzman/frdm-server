@@ -5,7 +5,7 @@ use crate::domain::graham::dot::Dot;
 /// TODO
 #[derive(Debug, Clone)]
 pub struct InitialPoints<T> {
-    sides: IndexMap<Side, Vec<Dot<T>>>,
+    pub sides: IndexMap<Side, Vec<Dot<T>>>,
 }
 impl<T: Copy> InitialPoints<T> {
     pub fn get(&self, side: Side) -> Vec<Dot<T>> {

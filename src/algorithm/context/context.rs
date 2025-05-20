@@ -1,4 +1,9 @@
-use crate::algorithm::{geometry_defect::contraciton::ContractionCtx, InitialCtx, InitialPoints};
+use crate::algorithm::{
+    geometry_defect::{ContractionCtx, ExpansionCtx, GrooveCtx, MoundCtx}, 
+    width_emissions::WidthEmissionsCtx, 
+    InitialCtx, 
+    InitialPoints
+};
 use super::testing_ctx::TestingCtx;
 ///
 /// # Calculation context
@@ -6,12 +11,20 @@ use super::testing_ctx::TestingCtx;
 /// - R/W access to the isoleted data of each step of computations
 #[derive(Debug, Clone)]
 pub struct Context {
-    /// where store ...
+    /// where store source frame
     pub(super) initial: InitialCtx,
-    /// 
+    /// points of rope perimeter
     pub(super) initial_points: InitialPoints<usize>,
-    /// TODO
+    /// points that deviate in width from the threshold
+    pub(super) width_emissions: WidthEmissionsCtx,
+    /// result of detecting defect 'Contraction'
     pub(super) contraction: ContractionCtx,
+    /// result of detecting defect 'Expansion'
+    pub(super) expansion: ExpansionCtx,
+    /// result of detecting defect 'Groove'
+    pub(super) groove: GrooveCtx,
+    /// result of detecting defect 'Mound'
+    pub(super) mound: MoundCtx,
     ///
     /// Uset for testing only
     #[allow(dead_code)]
@@ -27,7 +40,11 @@ impl Context {
         Self {
             initial,
             initial_points: InitialPoints::default(),
+            width_emissions: WidthEmissionsCtx::default(),
             contraction: ContractionCtx::default(),
+            expansion: ExpansionCtx::default(),
+            groove: GrooveCtx::default(),
+            mound: MoundCtx::default(),
             testing: None,
         }
     }
