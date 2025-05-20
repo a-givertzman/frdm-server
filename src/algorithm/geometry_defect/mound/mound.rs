@@ -68,22 +68,21 @@ impl Eval<(), EvalResult> for Mound {
                         .collect()
                 );
                 let mut result: Vec<Bond<usize>> = Vec::new();
-                let threshold = 1.1;
                 for i in (0..width_emissions_result.result.len()-1).step_by(2) {
                     let upper_point = width_emissions_result.result[i];
                     let lower_point = width_emissions_result.result[i+1];
                     let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
                     let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
                     // checking mound on lower points
-                    if (deviation_upper.abs() < threshold * mad_of_upper_points.mad) &&
-                    (deviation_lower < -threshold * mad_of_lower_points.mad) {
+                    if (deviation_upper.abs() < self.threshold.0 * mad_of_upper_points.mad) &&
+                    (deviation_lower < -self.threshold.0 * mad_of_lower_points.mad) {
                         result.push(
                             lower_point
                         );
                     }
                     // checking mound on upper points
-                    else if (deviation_upper < -threshold * mad_of_upper_points.mad) &&
-                    (deviation_lower.abs() < threshold * mad_of_lower_points.mad) {
+                    else if (deviation_upper < -self.threshold.0 * mad_of_upper_points.mad) &&
+                    (deviation_lower.abs() < self.threshold.0 * mad_of_lower_points.mad) {
                         result.push(
                             upper_point
                         );

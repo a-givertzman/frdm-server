@@ -1,8 +1,7 @@
 use indexmap::IndexMap;
 use crate::domain::graham::dot::Dot;
-
 ///
-/// TODO
+/// Storing points of ropes side's
 #[derive(Debug, Clone)]
 pub struct InitialPoints<T> {
     pub sides: IndexMap<Side, Vec<Dot<T>>>,
@@ -21,7 +20,7 @@ impl<T> Default for InitialPoints<T> {
     }
 }
 ///
-/// TODO
+/// Side of the rope
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Side {
     Upper,

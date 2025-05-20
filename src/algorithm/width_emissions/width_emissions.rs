@@ -94,7 +94,6 @@ impl Eval<(), EvalResult> for WidthEmissions {
                             initial_points_lower.clone(),
                     )
                 );
-
                 let result = WidthEmissionsCtx {
                     result: Self::emissions(
                                 initial_points_upper.clone(),
