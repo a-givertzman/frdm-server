@@ -36,10 +36,10 @@ impl Eval<(), Result<EdgeDetectionCtx, Error>> for EdgeDetection {
                         match image.mat.at_2d::<u8>(row, col) {
                             Ok(&pixel_value) => {
                                 if pixel_value >= threshold {
-                                    upper_edge.push(Dot {x: col as isize, y: row as isize});
+                                    upper_edge.push(Dot {x: col as usize, y: row as usize});
                                     break;
                                 }
-                            }
+                            }   
                             Err(err) => {
                                 return Err(error.pass_with("Input image format error", err.to_string()));
                             }
@@ -49,7 +49,7 @@ impl Eval<(), Result<EdgeDetectionCtx, Error>> for EdgeDetection {
                         match image.mat.at_2d::<u8>(row, col) {
                             Ok(&pixel_value) => {
                                 if pixel_value >= threshold {
-                                    lower_edge.push(Dot {x: col as isize, y: row as isize});
+                                    lower_edge.push(Dot {x: col as usize, y: row as usize});
                                     break;
                                 }
                             }

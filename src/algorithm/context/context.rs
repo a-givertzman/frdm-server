@@ -17,13 +17,13 @@ pub struct Context {
     pub(super) initial_points: InitialPoints<usize>,
     /// points that deviate in width from the threshold
     pub(super) width_emissions: WidthEmissionsCtx,
-    /// result of detecting defect 'Contraction'
+    /// result of calculation [Contraction](design/theory/geometry_rope_defects.md)
     pub(super) contraction: ContractionCtx,
-    /// result of detecting defect 'Expansion'
+    /// result of calculation [Expansion](design/theory/geometry_rope_defects.md)
     pub(super) expansion: ExpansionCtx,
-    /// result of detecting defect 'Groove'
+    /// result of calculation [Groove](design/theory/geometry_rope_defects.md)
     pub(super) groove: GrooveCtx,
-    /// result of detecting defect 'Mound'
+    /// result of calculation [Mound](design/theory/geometry_rope_defects.md)
     pub(super) mound: MoundCtx,
     ///
     /// Uset for testing only

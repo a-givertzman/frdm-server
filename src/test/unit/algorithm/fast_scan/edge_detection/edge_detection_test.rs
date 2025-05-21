@@ -118,8 +118,8 @@ mod edge_detection_test {
             match (result, target) {
                 (Ok(result), Ok(target)) => {
                     let result = (result.upper_edge, result.lower_edge);
-                    let target_upper: Vec<Dot<isize>> = target.0.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
-                    let target_lower: Vec<Dot<isize>> = target.1.chunks(2).map(|d| Dot { x: d[0] as isize, y: d[1] as isize }).collect();
+                    let target_upper: Vec<Dot<usize>> = target.0.chunks(2).map(|d| Dot { x: d[0] as usize, y: d[1] as usize }).collect();
+                    let target_lower: Vec<Dot<usize>> = target.1.chunks(2).map(|d| Dot { x: d[0] as usize, y: d[1] as usize }).collect();
                     let target = (target_upper, target_lower);
                     assert!(
                         result == target,

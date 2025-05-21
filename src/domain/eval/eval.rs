@@ -1,10 +1,16 @@
 ///
-/// TODO
+/// Trate defines common evaluation function for calculations classes
 pub trait Eval<In, Out> {
+    ///
+    /// Performs a calculation
+    /// - Returns [Out] contains results inside
     fn eval(&self, val: In) -> Out;
 }
 ///
-/// TODO
+/// Trate defines common mutable evaluation function for calculations classes
 pub trait EvalMut<In, Out> {
-    fn eval(&self, val: In) -> Out;
+    ///
+    /// Performs a calculation
+    /// - Returns [Out] contains results inside
+    fn eval(&mut self, val: In) -> Out;
 }
