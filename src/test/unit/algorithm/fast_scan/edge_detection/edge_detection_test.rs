@@ -125,7 +125,23 @@ mod edge_detection_test {
             ).eval(());
             match (result, target) {
                 (Ok(result), Ok(target)) => {
+<<<<<<< HEAD
                     assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
+=======
+                    let result = (result.upper_edge, result.lower_edge);
+                    let target_upper: Vec<Dot<usize>> = target.0.chunks(2).map(|d| Dot { x: d[0] as usize, y: d[1] as usize }).collect();
+                    let target_lower: Vec<Dot<usize>> = target.1.chunks(2).map(|d| Dot { x: d[0] as usize, y: d[1] as usize }).collect();
+                    let target = (target_upper, target_lower);
+                    assert!(
+                        result == target,
+                        "step {} \nresult upper: {:?}\ntarget upper: {:?} \nresult lower: {:?}\ntarget lower: {:?}",
+                        step,
+                        result.0,
+                        target.0,
+                        result.1,
+                        target.1
+                    );
+>>>>>>> f27d5484f39658f0e3160ee0856cff5675ec57a7
                 }
                 (Ok(result), Err(target)) => panic!("step {} \nresult: {:?}\ntarget: {:?}", step, result, target),
                 (Err(result), Ok(target)) => panic!("step {} \nresult: {:?}\ntarget: {:?}", step, result, target),
