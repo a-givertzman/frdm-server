@@ -586,4 +586,107 @@ mod fast_scan {
         cap.release().unwrap();
         highgui::destroy_all_windows().unwrap();
     }
+    //
+    //
+    #[test]
+    fn contours_compare() {
+        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        let dbg = "contours";
+        log::debug!("\n{}", dbg);
+        let img = imgcodecs::imread(
+            "src/test/unit/algorithm/detecting_contours/testing_files/rope_0.jpeg",
+            imgcodecs::IMREAD_COLOR,
+        ).unwrap();
+        let mut gray = core::Mat::default();
+        imgproc::cvt_color(&img, &mut gray, imgproc::COLOR_BGR2GRAY, 0).unwrap();
+        //
+        let mut blurred = core::Mat::default();
+        imgproc::gaussian_blur(&gray, &mut blurred, core::Size::new(3, 3), 0.0, 0.0, core::BORDER_DEFAULT).unwrap();
+        let mut canny = core::Mat::default();
+        imgproc::canny(&blurred, &mut canny, 2.0, 15.0, 3, true).unwrap();
+        //
+        let mut sobelx = core::Mat::default();
+        let mut sobely = core::Mat::default();
+        imgproc::sobel(&blurred, &mut sobelx, core::CV_8U, 1, 0, 3, 1.0, 0.0, core::BORDER_DEFAULT).unwrap();
+        imgproc::sobel(&blurred, &mut sobely, core::CV_8U, 0, 1, 3, 1.0, 0.0, core::BORDER_DEFAULT).unwrap();
+        let mut absx = core::Mat::default();
+        let mut absy = core::Mat::default();
+        core::convert_scale_abs(&sobelx, &mut absx, 1.0, 0.0).unwrap();
+        core::convert_scale_abs(&sobely, &mut absy, 1.0, 0.0).unwrap();
+        let mut grad = core::Mat::default();
+        core::add_weighted(&absx, 0.5, &absy, 0.5, 0.0, &mut grad, -1).unwrap();
+        let mut denoised = core::Mat::default();
+        imgproc::median_blur(&absx, &mut denoised, 3).unwrap();
+        //
+        let kernel_x = core::Mat::from_slice_2d(&[
+            &[-1.0, 0.0, 1.0],
+            &[-1.0, 0.0, 1.0],
+            &[-1.0, 0.0, 1.0],
+        ]).unwrap();
+        let kernel_y = core::Mat::from_slice_2d(&[
+            &[-1.0, -1.0, -1.0],
+            &[0.0, 0.0, 0.0],
+            &[1.0, 1.0, 1.0],
+        ]).unwrap();
+        let mut prewitt_x = core::Mat::default();
+        let mut prewitt_y = core::Mat::default();
+        imgproc::filter_2d(&gray, &mut prewitt_x, -1, &kernel_x, core::Point::new(-1, -1), 0.0, core::BORDER_DEFAULT).unwrap();
+        imgproc::filter_2d(&gray, &mut prewitt_y, -1, &kernel_y, core::Point::new(-1, -1), 0.0, core::BORDER_DEFAULT).unwrap();
+        let mut prewitt = core::Mat::default();
+        core::add_weighted(&prewitt_x, 0.5, &prewitt_y, 0.5, 0.0, &mut prewitt, -1).unwrap();
+        //
+        let mut scharr_x = core::Mat::default();
+        let mut scharr_y = core::Mat::default();
+        imgproc::scharr(&gray, &mut scharr_x, core::CV_8U, 1, 0, 1.0, 0.0, core::BORDER_DEFAULT).unwrap();
+        imgproc::scharr(&gray, &mut scharr_y, core::CV_8U, 0, 1, 1.0, 0.0, core::BORDER_DEFAULT).unwrap();
+        let mut scharr = core::Mat::default();
+        core::add_weighted(&scharr_x, 0.5, &scharr_y, 0.5, 0.0, &mut scharr, -1).unwrap();
+        //
+        let gabor_kernel = imgproc::get_gabor_kernel(
+            core::Size::new(21, 21),
+            5.0,
+            std::f64::consts::PI / 4.0,
+            10.0,
+            0.5,
+            0.0,
+            core::CV_32F,
+        ).unwrap();
+        let mut filtered = core::Mat::default();
+        imgproc::filter_2d(&gray, &mut filtered, core::CV_8U, &gabor_kernel, core::Point::new(-1, -1), 0.0, core::BORDER_DEFAULT).unwrap();
+        // Разность гауссианов
+        let mut blur1 = core::Mat::default();
+        let mut blur2 = core::Mat::default();
+        imgproc::gaussian_blur(&gray, &mut blur1, core::Size::new(5, 5), 0.0, 0.0, core::BORDER_DEFAULT).unwrap();
+        imgproc::gaussian_blur(&gray, &mut blur2, core::Size::new(9, 9), 0.0, 0.0, core::BORDER_DEFAULT).unwrap();
+        let mut dog = core::Mat::default();
+        core::subtract(&blur1, &blur2, &mut dog, &core::no_array(), -1).unwrap();
+        //
+        let kernel = core::Mat::from_slice_2d(&[
+            &[-1.0, -1.0, -1.0],
+            &[10.0, 10.0, 10.0],
+            &[-1.0, -1.0, -1.0],
+        ]).unwrap();
+        let mut filtered_custom = core::Mat::default();
+        imgproc::filter_2d(&denoised, &mut filtered_custom, -1, &kernel, core::Point::new(-1, -1), 0.0, core::BORDER_DEFAULT).unwrap();
+        //
+        let mut thresholded = core::Mat::default();
+        imgproc::threshold(&denoised, &mut thresholded, 7.0, 255.0, imgproc::THRESH_BINARY).unwrap();
+        let mut thresholded2 = core::Mat::default();
+        imgproc::threshold(&dog, &mut thresholded2, 100.0, 255.0, imgproc::THRESH_BINARY).unwrap();
+
+        highgui::named_window("Filtered (Gabor)", highgui::WINDOW_NORMAL).unwrap();
+        highgui::named_window("Scharr", highgui::WINDOW_NORMAL).unwrap();
+        highgui::named_window("DoG", highgui::WINDOW_NORMAL).unwrap();
+        highgui::named_window("Filtered Custom", highgui::WINDOW_NORMAL).unwrap();
+        highgui::named_window("Sobel Gradient", highgui::WINDOW_NORMAL).unwrap();
+        highgui::named_window("Canny", highgui::WINDOW_NORMAL).unwrap();
+        highgui::imshow("Filtered (Gabor)", &filtered).unwrap();
+        highgui::imshow("Scharr", &scharr).unwrap();
+        highgui::imshow("DoG", &dog).unwrap();
+        highgui::imshow("Filtered Custom", &filtered_custom).unwrap();
+        highgui::imshow("Sobel Gradient", &grad).unwrap();
+        highgui::imshow("Canny", &canny).unwrap();
+        highgui::wait_key(0).unwrap();
+        highgui::destroy_all_windows().unwrap();
+    }
 }
