@@ -1,9 +1,6 @@
 mod detecting_contours;
 mod detecting_contours_cv;
 mod fast_scan;
-mod contraction_test;
-mod expansion_test;
-mod groove_test;
+mod geometry_defect_test;
 mod mad_test;
 mod width_emissions_test;
-mod mound_test;

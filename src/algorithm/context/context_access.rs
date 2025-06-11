@@ -1,6 +1,12 @@
 use super::{context::Context};
 use crate::{
-    algorithm::{geometry_defect::{ContractionCtx, ExpansionCtx, GrooveCtx, MoundCtx}, width_emissions::WidthEmissionsCtx, InitialCtx, InitialPoints}, domain::Error 
+    algorithm::{
+        geometry_defect::GeometryDefectCtx, 
+        width_emissions::WidthEmissionsCtx, 
+        InitialCtx, 
+        InitialPoints
+    }, 
+    domain::Error 
 };
 ///
 /// Provides restricted write access to the [Context] members
@@ -53,53 +59,14 @@ impl ContextRead<WidthEmissionsCtx> for Context {
 }
 //
 //
-impl ContextWrite<ExpansionCtx> for Context {
-    fn write(mut self, value: ExpansionCtx) -> Result<Self, Error> {
-        self.expansion = value;
+impl ContextWrite<GeometryDefectCtx> for Context {
+    fn write(mut self, value: GeometryDefectCtx) -> Result<Self, Error> {
+        self.geometry_defect = value;
         Result::Ok(self)
     }
 }
-impl ContextRead<ExpansionCtx> for Context {
-    fn read(&self) -> &ExpansionCtx {
-        &self.expansion
-    }
-}
-//
-//
-impl ContextWrite<ContractionCtx> for Context {
-    fn write(mut self, value: ContractionCtx) -> Result<Self, Error> {
-        self.contraction = value;
-        Result::Ok(self)
-    }
-}
-impl ContextRead<ContractionCtx> for Context {
-    fn read(&self) -> &ContractionCtx {
-        &self.contraction
-    }
-}
-//
-//
-impl ContextWrite<GrooveCtx> for Context {
-    fn write(mut self, value: GrooveCtx) -> Result<Self, Error> {
-        self.groove = value;
-        Result::Ok(self)
-    }
-}
-impl ContextRead<GrooveCtx> for Context {
-    fn read(&self) -> &GrooveCtx {
-        &self.groove
-    }
-}
-//
-//
-impl ContextWrite<MoundCtx> for Context {
-    fn write(mut self, value: MoundCtx) -> Result<Self, Error> {
-        self.mound = value;
-        Result::Ok(self)
-    }
-}
-impl ContextRead<MoundCtx> for Context {
-    fn read(&self) -> &MoundCtx {
-        &self.mound
+impl ContextRead<GeometryDefectCtx> for Context {
+    fn read(&self) -> &GeometryDefectCtx {
+        &self.geometry_defect
     }
 }

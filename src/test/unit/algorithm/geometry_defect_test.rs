@@ -1,6 +1,6 @@
 #[cfg(test)]
 
-mod contraction {
+mod geometry_defect {
     use std::{
         sync::Once, 
         time::Duration
@@ -16,21 +16,11 @@ mod contraction {
     use crate::{
         algorithm::{
             geometry_defect::{
-                Contraction, 
-                ContractionCtx, 
-                Threshold
-            }, 
-            mad::{
+                GeometryDefect, GeometryDefectCtx, GeometryDefectType, Threshold
+            }, mad::{
                 Bond, 
                 Mad
-            }, 
-            Context, 
-            ContextRead, 
-            ContextWrite, 
-            EvalResult, 
-            InitialCtx, 
-            InitialPoints, 
-            Side
+            }, width_emissions::WidthEmissions, Context, ContextRead, ContextWrite, EvalResult, InitialCtx, InitialPoints, Side
         }, 
         domain::{
             graham::dot::Dot, 
@@ -59,7 +49,7 @@ mod contraction {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = Dbg::own("contraction");
+        let dbg = Dbg::own("geometry_defect");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
@@ -106,6 +96,12 @@ mod contraction {
                     )
                 },
                 vec![
+                    GeometryDefectType::Expansion(Bond { x: 50, y: 130 }), 
+                    GeometryDefectType::Expansion(Bond { x: 50, y: 20 }), 
+                    GeometryDefectType::Expansion(Bond { x: 60, y: 135 }), 
+                    GeometryDefectType::Expansion(Bond { x: 60, y: 15 }),
+                    GeometryDefectType::Expansion(Bond { x: 70, y: 130 }), 
+                    GeometryDefectType::Expansion(Bond { x: 70, y: 20 })
                 ]
             ),
             (
@@ -120,11 +116,11 @@ mod contraction {
                                     Dot { x: 10  , y: 100 },
                                     Dot { x: 20  , y: 105 },
                                     Dot { x: 30  , y: 110 },
-                                    Dot { x: 40  , y: 90 },
+                                    Dot { x: 40  , y: 85 },
                                     Dot { x: 50  , y: 80 },
                                     Dot { x: 60  , y: 75 },
                                     Dot { x: 70  , y: 70 },
-                                    Dot { x: 80  , y: 90 },
+                                    Dot { x: 80  , y: 85 },
                                     Dot { x: 90  , y: 110 },
                                     Dot { x: 100 , y: 105 },
                                     Dot { x: 110 , y: 100 },
@@ -138,8 +134,8 @@ mod contraction {
                                     Dot { x: 30  , y: 40 },
                                     Dot { x: 40  , y: 70 },
                                     Dot { x: 50  , y: 80 },
-                                    Dot { x: 60  , y: 85 },
-                                    Dot { x: 70  , y: 70 },
+                                    Dot { x: 60  , y: 73 },
+                                    Dot { x: 70  , y: 68 },
                                     Dot { x: 80  , y: 40 },
                                     Dot { x: 90  , y: 40 },
                                     Dot { x: 100 , y: 45 },
@@ -150,12 +146,14 @@ mod contraction {
                     )
                 },
                 vec![
-                    Bond { x: 50, y: 80 },
-                    Bond { x: 50, y: 80 },
-                    Bond { x: 60, y: 75 },
-                    Bond { x: 60, y: 85 },
-                    Bond { x: 70, y: 70 },
-                    Bond { x: 70, y: 70 },
+                    GeometryDefectType::Contraction(Bond { x: 40, y: 85 }), 
+                    GeometryDefectType::Contraction(Bond { x: 40, y: 70 }), 
+                    GeometryDefectType::Contraction(Bond { x: 50, y: 80 }), 
+                    GeometryDefectType::Contraction(Bond { x: 50, y: 80 }), 
+                    GeometryDefectType::Contraction(Bond { x: 60, y: 75 }), 
+                    GeometryDefectType::Contraction(Bond { x: 60, y: 73 }), 
+                    GeometryDefectType::Contraction(Bond { x: 70, y: 70 }), 
+                    GeometryDefectType::Contraction(Bond { x: 70, y: 68 })
                 ]
             ),
             (
@@ -170,11 +168,11 @@ mod contraction {
                                     Dot { x: 10  , y: 100 },
                                     Dot { x: 20  , y: 105 },
                                     Dot { x: 30  , y: 110 },
-                                    Dot { x: 40  , y: 80 },
-                                    Dot { x: 50  , y: 70 },
-                                    Dot { x: 60  , y: 65 },
+                                    Dot { x: 40  , y: 85 },
+                                    Dot { x: 50  , y: 80 },
+                                    Dot { x: 60  , y: 75 },
                                     Dot { x: 70  , y: 70 },
-                                    Dot { x: 80  , y: 80 },
+                                    Dot { x: 80  , y: 85 },
                                     Dot { x: 90  , y: 110 },
                                     Dot { x: 100 , y: 105 },
                                     Dot { x: 110 , y: 100 },
@@ -186,11 +184,11 @@ mod contraction {
                                     Dot { x: 10  , y: 50 },
                                     Dot { x: 20  , y: 45 },
                                     Dot { x: 30  , y: 40 },
-                                    Dot { x: 40  , y: 30 },
-                                    Dot { x: 50  , y: 20 },
-                                    Dot { x: 60  , y: 15 },
-                                    Dot { x: 70  , y: 20 },
-                                    Dot { x: 80  , y: 30 },
+                                    Dot { x: 40  , y: 50 },
+                                    Dot { x: 50  , y: 50 },
+                                    Dot { x: 60  , y: 53 },
+                                    Dot { x: 70  , y: 58 },
+                                    Dot { x: 80  , y: 50 },
                                     Dot { x: 90  , y: 40 },
                                     Dot { x: 100 , y: 45 },
                                     Dot { x: 110 , y: 50 },
@@ -200,6 +198,12 @@ mod contraction {
                     )
                 },
                 vec![
+                    GeometryDefectType::Mound(Bond { x: 30, y: 40 }), 
+                    GeometryDefectType::Mound(Bond { x: 50, y: 80 }), 
+                    GeometryDefectType::Mound(Bond { x: 60, y: 75 }), 
+                    GeometryDefectType::Contraction(Bond { x: 70, y: 70 }), 
+                    GeometryDefectType::Contraction(Bond { x: 70, y: 58 }), 
+                    GeometryDefectType::Mound(Bond { x: 90, y: 40 })
                 ]
             ),
         ];
@@ -215,14 +219,17 @@ mod contraction {
                 .clone()
                 .write(initial_points)
                 .unwrap();
-            let result = Contraction::new(
+            let result = GeometryDefect::new(
                 threshold,
                 *Box::new(Mad::new()),
-                ctx,
+                WidthEmissions::new(threshold, 
+                    *Box::new(Mad::new()), 
+                    ctx
+                ),
             ).eval(());
             match result {
                 Ok(result) => {
-                    let result = ContextRead::<ContractionCtx>::read(&result)
+                    let result = ContextRead::<GeometryDefectCtx>::read(&result)
                         .result.clone();
                     assert!(
                         result == target, 
