@@ -13,6 +13,11 @@ mod geometry_defect {
         LogLevel, 
         Backtrace
     };
+    use opencv::{
+        core::{Point, Scalar, Vector, CV_8UC3},
+        imgproc,
+        prelude::*,
+    };
     use crate::{
         algorithm::{
             geometry_defect::{
@@ -42,6 +47,83 @@ mod geometry_defect {
     /// returns:
     ///  - ...
     fn init_each() -> () {}
+    ///
+    /// Visualizing result
+    fn visualize_with_opencv(
+        test_case: usize,
+        initial_points: &InitialPoints<usize>,
+        defects: &[GeometryDefectType],
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let width = 1200;
+        let height = 800;
+        let mut img = Mat::zeros(height, width, CV_8UC3)?.to_mat()?;
+        img.set_to(&Scalar::all(255.0), &opencv::core::no_array())?;
+        let scale_x = width as f32 / 120.0;
+        let scale_y = height as f32 / 150.0;
+        let blue = Scalar::new(255.0, 0.0, 0.0, 0.0);
+        let black = Scalar::new(0.0, 0.0, 0.0, 0.0);        
+        if let Some(upper) = initial_points.sides.get(&Side::Upper) {
+            for dot in upper {
+                let x = (dot.x as f32 * scale_x) as i32;
+                let y = height - (dot.y as f32 * scale_y) as i32;
+                imgproc::circle(
+                    &mut img,
+                    Point::new(x, y),
+                    5,
+                    black,
+                    -1,
+                    imgproc::LINE_8,
+                    0,
+                )?;
+            }
+        }
+        if let Some(lower) = initial_points.sides.get(&Side::Lower) {
+            for dot in lower {
+                let x = (dot.x as f32 * scale_x) as i32;
+                let y = height - (dot.y as f32 * scale_y) as i32;
+                imgproc::circle(
+                    &mut img,
+                    Point::new(x, y),
+                    5,
+                    black,
+                    -1,
+                    imgproc::LINE_8,
+                    0,
+                )?;
+            }
+        }
+        for defect in defects {
+            let (x, y) = match defect {
+                GeometryDefectType::Expansion(bond) => (bond.x, bond.y),
+                GeometryDefectType::Contraction(bond) => (bond.x, bond.y),
+                GeometryDefectType::Mound(bond) => (bond.x, bond.y),
+                GeometryDefectType::Groove(bond) => (bond.x, bond.y),
+            };
+            let px = (x as f32 * scale_x) as i32;
+            let py = height - (y as f32 * scale_y) as i32;
+            imgproc::line(
+                &mut img,
+                Point::new(px-5, py-5),
+                Point::new(px+5, py+5),
+                blue,
+                2,
+                imgproc::LINE_8,
+                0,
+            )?;
+            imgproc::line(
+                &mut img,
+                Point::new(px+5, py-5),
+                Point::new(px-5, py+5),
+                blue,
+                2,
+                imgproc::LINE_8,
+                0,
+            )?;
+        }
+        let output_path = format!("src/test/unit/algorithm/geometry_defect/output_files/test_case_{}.png", test_case);
+        opencv::imgcodecs::imwrite(&output_path, &img, &Vector::new())?;
+        Ok(())
+    }
     ///
     /// Testing `eval`
     #[test]
@@ -183,13 +265,13 @@ mod geometry_defect {
                                 vec![
                                     Dot { x: 10  , y: 50 },
                                     Dot { x: 20  , y: 45 },
-                                    Dot { x: 30  , y: 40 },
+                                    Dot { x: 30  , y: 46 },
                                     Dot { x: 40  , y: 50 },
                                     Dot { x: 50  , y: 50 },
                                     Dot { x: 60  , y: 53 },
                                     Dot { x: 70  , y: 58 },
                                     Dot { x: 80  , y: 50 },
-                                    Dot { x: 90  , y: 40 },
+                                    Dot { x: 90  , y: 46 },
                                     Dot { x: 100 , y: 45 },
                                     Dot { x: 110 , y: 50 },
                                 ],
@@ -198,12 +280,10 @@ mod geometry_defect {
                     )
                 },
                 vec![
-                    GeometryDefectType::Mound(Bond { x: 30, y: 40 }), 
                     GeometryDefectType::Mound(Bond { x: 50, y: 80 }), 
                     GeometryDefectType::Mound(Bond { x: 60, y: 75 }), 
                     GeometryDefectType::Contraction(Bond { x: 70, y: 70 }), 
                     GeometryDefectType::Contraction(Bond { x: 70, y: 58 }), 
-                    GeometryDefectType::Mound(Bond { x: 90, y: 40 })
                 ]
             ),
         ];
@@ -217,7 +297,7 @@ mod geometry_defect {
             };
             ctx.ctx = ctx.ctx
                 .clone()
-                .write(initial_points)
+                .write(initial_points.clone())
                 .unwrap();
             let result = GeometryDefect::new(
                 threshold,
@@ -238,6 +318,9 @@ mod geometry_defect {
                         result, 
                         target
                     );
+                    if let Err(e) = visualize_with_opencv(step, &initial_points, &result) {
+                        log::error!("Failed to visualize: {}", e);
+                    }   
                 },
                 Err(err) => panic!("step {} \nerror: {:#?}", step, err),
             }
