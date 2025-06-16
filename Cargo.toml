@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-log = "^0.4"
-env_logger = "^0.11"
+log = "~0.4"
+env_logger = "~0.11"
 #
 #
 # sal-core = { path = "../sal-core/" }
@@ -18,25 +18,25 @@ api-tools = { git = "https://github.com/a-givertzman/rust-api-tools.git", tag = 
 sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git", tag = "0.2.0" }
 #
 # Collections
-indexmap = "^2.9"
-linked-hash-map = "^0.5"
-hashers = "^1.0"
+indexmap = "~2.9"
+linked-hash-map = "~0.5"
+hashers = "~1.0"
 #
 # Serde
 serde = { version = "^1.0", features = ["derive"] }
-serde_yaml = "^0.9"
-serde_json = "^1.0"
+serde_yaml = "~0.9"
+serde_json = "~1.0"
 #
 #
-regex = "^1.10"
+regex = "~1.11"
 #
 #
-strum = "^0.27"
-strum_macros = "^0.27"
+strum = "~0.27"
+strum_macros = "~0.27"
 #
 #
 # OpenCV
-opencv = "^0.94"
+opencv = "~0.94"
 #
 #
 # Photon image processing
@@ -49,4 +49,4 @@ photon-rs = { version = "0.3.2", default-features = false, git = "https://github
 # [build-dependencies]
 # cc = "^1.1"
 #
-libc = "^0.2"
+libc = "~0.2"
