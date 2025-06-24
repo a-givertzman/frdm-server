@@ -33,74 +33,58 @@ impl GeometryDefect {
         }
     }
     ///
-    /// Detecting expansion points
-    fn expansion(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, result: &mut Vec<GeometryDefectType>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) {
+    /// Detecting both sides width growing
+    fn expansion(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, result: &mut Vec<GeometryDefectType>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
         if (deviation_upper > self.threshold.0 * mad_of_upper_points.mad) &&
             (deviation_lower < -self.threshold.0 * mad_of_lower_points.mad) {
-            result.push(
-                GeometryDefectType::Expansion(upper_point)
-            );
-            result.push(
-                GeometryDefectType::Expansion(lower_point)
-            );
+            return Some(());
         }
+        None
     }
     ///
-    /// Detecting contraction points
-    fn contraction(&self, result: &mut Vec<GeometryDefectType>, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) {
+    /// Detecting both sides width reduction
+    fn compressing(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
         if (deviation_upper < -self.threshold.0 * mad_of_upper_points.mad) &&
             (deviation_lower > self.threshold.0 * mad_of_lower_points.mad) {
-            result.push(
-                GeometryDefectType::Contraction(upper_point)
-            );
-            result.push(
-                GeometryDefectType::Contraction(lower_point)
-            );
+            return Some(());
         }
+        None
     }
     ///
-    /// Detecting groove points
-    fn groove(&self, result: &mut Vec<GeometryDefectType>, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) {
+    /// Detecting one side raising
+    fn hill(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
         // checking groove on lower points
         if (deviation_upper.abs() < self.threshold.0 * mad_of_upper_points.mad) &&
         (deviation_lower > self.threshold.0 * mad_of_lower_points.mad) {
-            result.push(
-                GeometryDefectType::Groove(lower_point)
-            );
+            return Some(());
+            // checking groove on upper points
+        } else if (deviation_upper > self.threshold.0 * mad_of_upper_points.mad) &&
+            (deviation_lower.abs() < self.threshold.0 * mad_of_lower_points.mad) {
+            return Some(());
         }
-        // checking groove on upper points
-        else if (deviation_upper > self.threshold.0 * mad_of_upper_points.mad) &&
-        (deviation_lower.abs() < self.threshold.0 * mad_of_lower_points.mad) {
-            result.push(
-                GeometryDefectType::Groove(upper_point)
-            );
-        }
+        None
     }
     ///
-    /// Detecting mound points
-    fn mound(&self, result: &mut Vec<GeometryDefectType>, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) {
+    /// Detecting one side drooping
+    fn pit(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
         // checking mound on lower points
         if (deviation_upper.abs() < self.threshold.0 * mad_of_upper_points.mad) &&
-        (deviation_lower < -self.threshold.0 * mad_of_lower_points.mad) {
-            result.push(
-                GeometryDefectType::Mound(lower_point)
-            );
+            (deviation_lower < -self.threshold.0 * mad_of_lower_points.mad) {
+            return Some(());
+            // checking mound on upper points
+        } else if (deviation_upper < -self.threshold.0 * mad_of_upper_points.mad) &&
+            (deviation_lower.abs() < self.threshold.0 * mad_of_lower_points.mad) {
+            return Some(());
         }
-        // checking mound on upper points
-        else if (deviation_upper < -self.threshold.0 * mad_of_upper_points.mad) &&
-        (deviation_lower.abs() < self.threshold.0 * mad_of_lower_points.mad) {
-            result.push(
-                GeometryDefectType::Mound(upper_point)
-            );
-        }
+        None
     }   
 }
 //
@@ -136,12 +120,31 @@ impl Eval<(), EvalResult> for GeometryDefect {
                 for i in (0..width_emissions_result.len()-1).step_by(2) {
                     let upper_point = width_emissions_result[i];
                     let lower_point = width_emissions_result[i+1];
-                    self.expansion(upper_point, lower_point, &mut result, mad_of_upper_points.clone(), mad_of_lower_points.clone());
-                    self.contraction(&mut result, upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone());
-                    self.groove(&mut result, upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone());
-                    self.mound(&mut result, upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone());
-
+                    match self.expansion(upper_point, lower_point, &mut result, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
+                        Some(_) => result.push(GeometryDefectType::Expansion),
+                        None => match self.compressing(upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
+                            Some(_) => result.push(GeometryDefectType::Compressing),
+                            None => match self.hill(upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
+                                Some(_) => result.push(GeometryDefectType::Hill),
+                                None => match self.pit(upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
+                                    Some(_) => result.push(GeometryDefectType::Pit),
+                                    None => {}
+                                }
+                            }
+                        }
+                    }
                 }
+                result = result.into_iter().fold(vec![], |mut acc, defect| {
+                    match acc.last() {
+                        Some(prev) => {
+                            if prev != &defect {
+                                acc.push(defect);
+                            }
+                        }
+                        None => acc.push(defect),
+                    }
+                    acc
+                });
                 let result = GeometryDefectCtx {
                     result,
                 };
