@@ -34,7 +34,7 @@ impl GeometryDefect {
     }
     ///
     /// Detecting both sides width growing
-    fn expansion(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
+    fn expansion(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
         if (deviation_upper > self.threshold.0 * mad_of_upper_points.mad) &&
@@ -45,7 +45,7 @@ impl GeometryDefect {
     }
     ///
     /// Detecting both sides width reduction
-    fn compressing(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
+    fn compressing(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
         if (deviation_upper < -self.threshold.0 * mad_of_upper_points.mad) &&
@@ -56,7 +56,7 @@ impl GeometryDefect {
     }
     ///
     /// Detecting one side raising
-    fn hill(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
+    fn hill(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
         // checking groove on lower points
@@ -72,7 +72,7 @@ impl GeometryDefect {
     }
     ///
     /// Detecting one side drooping
-    fn pit(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
+    fn pit(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
         // checking mound on lower points
@@ -120,13 +120,13 @@ impl Eval<(), EvalResult> for GeometryDefect {
                 for i in (0..width_emissions_result.len()-1).step_by(2) {
                     let upper_point = width_emissions_result[i];
                     let lower_point = width_emissions_result[i+1];
-                    match self.expansion(upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
+                    match self.expansion(upper_point, lower_point, &mad_of_upper_points, &mad_of_lower_points) {
                         Some(_) => result.push(GeometryDefectType::Expansion),
-                        None => match self.compressing(upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
+                        None => match self.compressing(upper_point, lower_point, &mad_of_upper_points, &mad_of_lower_points) {
                             Some(_) => result.push(GeometryDefectType::Compressing),
-                            None => match self.hill(upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
+                            None => match self.hill(upper_point, lower_point, &mad_of_upper_points, &mad_of_lower_points) {
                                 Some(_) => result.push(GeometryDefectType::Hill),
-                                None => match self.pit(upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
+                                None => match self.pit(upper_point, lower_point, &mad_of_upper_points, &mad_of_lower_points) {
                                     Some(_) => result.push(GeometryDefectType::Pit),
                                     None => {}
                                 }
