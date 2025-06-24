@@ -34,7 +34,7 @@ impl GeometryDefect {
     }
     ///
     /// Detecting both sides width growing
-    fn expansion(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, result: &mut Vec<GeometryDefectType>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
+    fn expansion(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: MadCtx, mad_of_lower_points: MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
         if (deviation_upper > self.threshold.0 * mad_of_upper_points.mad) &&
@@ -120,7 +120,7 @@ impl Eval<(), EvalResult> for GeometryDefect {
                 for i in (0..width_emissions_result.len()-1).step_by(2) {
                     let upper_point = width_emissions_result[i];
                     let lower_point = width_emissions_result[i+1];
-                    match self.expansion(upper_point, lower_point, &mut result, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
+                    match self.expansion(upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
                         Some(_) => result.push(GeometryDefectType::Expansion),
                         None => match self.compressing(upper_point, lower_point, mad_of_upper_points.clone(), mad_of_lower_points.clone()) {
                             Some(_) => result.push(GeometryDefectType::Compressing),
