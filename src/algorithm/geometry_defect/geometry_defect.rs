@@ -33,7 +33,7 @@ impl GeometryDefect {
         }
     }
     ///
-    /// Detecting both sides width growing
+    /// Detecting [both sides width growing](design/references/GOST_33718-2015.pdf)
     fn expansion(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
@@ -44,7 +44,7 @@ impl GeometryDefect {
         None
     }
     ///
-    /// Detecting both sides width reduction
+    /// Detecting [both sides width reduction](design/references/GOST_33718-2015.pdf)
     fn compressing(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
@@ -55,15 +55,13 @@ impl GeometryDefect {
         None
     }
     ///
-    /// Detecting one side raising
-    fn hill(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
+    /// Detecting [one side drooping](design/references/GOST_33718-2015.pdf)
+    fn pit(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
-        // checking groove on lower points
         if (deviation_upper.abs() < self.threshold.0 * mad_of_upper_points.mad) &&
         (deviation_lower > self.threshold.0 * mad_of_lower_points.mad) {
             return Some(());
-            // checking groove on upper points
         } else if (deviation_upper > self.threshold.0 * mad_of_upper_points.mad) &&
             (deviation_lower.abs() < self.threshold.0 * mad_of_lower_points.mad) {
             return Some(());
@@ -71,15 +69,13 @@ impl GeometryDefect {
         None
     }
     ///
-    /// Detecting one side drooping
-    fn pit(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
+    /// Detecting [one side raising](design/references/GOST_33718-2015.pdf)
+    fn hill(&self, upper_point: Bond<usize>, lower_point: Bond<usize>, mad_of_upper_points: &MadCtx, mad_of_lower_points: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - mad_of_upper_points.median;
         let deviation_lower = lower_point.y as f64 - mad_of_lower_points.median;
-        // checking mound on lower points
         if (deviation_upper.abs() < self.threshold.0 * mad_of_upper_points.mad) &&
             (deviation_lower < -self.threshold.0 * mad_of_lower_points.mad) {
             return Some(());
-            // checking mound on upper points
         } else if (deviation_upper < -self.threshold.0 * mad_of_upper_points.mad) &&
             (deviation_lower.abs() < self.threshold.0 * mad_of_lower_points.mad) {
             return Some(());

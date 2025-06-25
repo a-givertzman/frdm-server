@@ -3,12 +3,12 @@
 /// containing the position of defect withing a frame
 #[derive(Debug, Clone, PartialEq)]
 pub enum GeometryDefectType {
-    /// Doc it...
+    /// Detecting both sides width growing
     Expansion,
-    /// Doc it...
+    /// Detecting both sides width reduction
     Compressing,
-    /// Doc it...
+    /// Detecting one side raising
     Hill,
-    /// Doc it...
+    /// Detecting one side drooping
     Pit,
 }
