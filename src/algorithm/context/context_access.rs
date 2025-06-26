@@ -1,10 +1,7 @@
 use super::{context::Context};
 use crate::{
     algorithm::{
-        geometry_defect::GeometryDefectCtx, 
-        width_emissions::WidthEmissionsCtx, 
-        InitialCtx, 
-        InitialPoints
+        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, EdgeDetectionCtx, InitialCtx, InitialPoints
     }, 
     domain::Error 
 };
@@ -33,15 +30,28 @@ impl ContextRead<InitialCtx> for Context {
 }
 //
 //
-impl ContextWrite<InitialPoints<usize>> for Context {
-    fn write(mut self, value: InitialPoints<usize>) -> Result<Self, Error> {
-        self.initial_points = value;
+impl ContextWrite<DetectingContoursCvCtx> for Context {
+    fn write(mut self, value: DetectingContoursCvCtx) -> Result<Self, Error> {
+        self.detecting_contours_cv = value;
         Result::Ok(self)
     }
 }
-impl ContextRead<InitialPoints<usize>> for Context {
-    fn read(&self) -> &InitialPoints<usize> {
-        &self.initial_points
+impl ContextRead<DetectingContoursCvCtx> for Context {
+    fn read(&self) -> &DetectingContoursCvCtx {
+        &self.detecting_contours_cv
+    }
+}
+//
+//
+impl ContextWrite<EdgeDetectionCtx> for Context {
+    fn write(mut self, value: EdgeDetectionCtx) -> Result<Self, Error> {
+        self.edge_detection = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<EdgeDetectionCtx> for Context {
+    fn read(&self) -> &EdgeDetectionCtx {
+        &self.edge_detection
     }
 }
 //

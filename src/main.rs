@@ -1,13 +1,16 @@
 mod algorithm;
-// mod conf;
+mod conf;
 mod domain;
 mod infrostructure;
 #[cfg(test)]
 mod test;
-extern crate photon_rs;
+// extern crate photon_rs;
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
+use domain::Eval;
 use infrostructure::camera::{Camera, CameraConf};
 use sal_core::dbg::Dbg;
+
+use crate::{algorithm::{geometry_defect::GeometryDefect, DetectingContoursCv, EdgeDetection, Initial, InitialCtx}, conf::{Conf, FastScanConf, FineScanConf}};
 ///
 /// Application entry point
 fn main() {
@@ -31,6 +34,24 @@ fn main() {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };
         opencv::highgui::wait_key(1).unwrap();
+        let conf = Conf {
+            fast_scan: FastScanConf {
+                geometry_defect_threshold: 1.1,
+            },
+            fine_scan: FineScanConf {},
+        };
+        let result = GeometryDefect::new(
+            conf.fast_scan.geometry_defect_threshold,
+            *Box::new(Mad::new()),
+            EdgeDetection::new(
+                DetectingContoursCv::new(
+                    Initial::new(
+                        InitialCtx::new(frame),
+                    ),
+                ),
+            ),
+        )
+        .eval(());
     }
     handle.join().unwrap()
 }

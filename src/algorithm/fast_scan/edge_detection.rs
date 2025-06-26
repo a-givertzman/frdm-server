@@ -1,19 +1,23 @@
 use opencv::core::MatTraitConst;
 use sal_core::error::Error;
-use crate::{domain::{Eval, graham::dot::Dot}, infrostructure::arena::Image};
+use crate::{
+    algorithm::{Context, ContextRead, ContextWrite, DetectingContoursCvCtx, EvalResult, InitialPoints},
+    domain::{graham::dot::Dot, Eval},
+    infrostructure::arena::Image,
+};
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
 /// Take [Image]
 /// Return vectors of [Dot] for upper and lower edges of rope
 pub struct EdgeDetection {
-    ctx: Box<dyn Eval<(), Result<Image, Error>>>,
+    ctx: Box<dyn Eval<(), Result<Context, Error>>>,
 }
 //
 //
-impl EdgeDetection{
+impl EdgeDetection {
     ///
     /// Returns [EdgeDetection] new instance
-    pub fn new(ctx: impl Eval<(), Result<Image, Error>> + 'static) -> Self {
+    pub fn new(ctx: impl Eval<(), Result<Context, Error>> + 'static) -> Self {
         Self { 
             ctx: Box::new(ctx),
         }
@@ -21,11 +25,12 @@ impl EdgeDetection{
 }
 //
 //
-impl Eval<(), Result<EdgeDetectionCtx, Error>> for EdgeDetection {
-    fn eval(&self, _: ()) -> Result<EdgeDetectionCtx, Error> {
+impl Eval<(), Result<Context, Error>> for EdgeDetection {
+    fn eval(&self, _: ()) -> EvalResult {
         let error = Error::new("EdgeDetection", "eval");
         match self.ctx.eval(()) {
-            Ok(image) => {
+            Ok(ctx) => {
+                let image = ContextRead::<DetectingContoursCvCtx>::read(&ctx).result;
                 let rows = image.mat.rows();
                 let cols = image.mat.cols();
                 let threshold = 1;
@@ -59,10 +64,10 @@ impl Eval<(), Result<EdgeDetectionCtx, Error>> for EdgeDetection {
                         }
                     }
                 }
-                Ok(EdgeDetectionCtx {
-                    upper_edge,
-                    lower_edge,
-                })
+                let result = EdgeDetectionCtx {
+                    result: InitialPoints::new(upper_edge, lower_edge),
+                };
+                ctx.write(result)
             }
             Err(err) => Err(error.pass(err)),
         }

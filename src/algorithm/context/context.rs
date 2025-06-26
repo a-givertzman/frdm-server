@@ -1,8 +1,5 @@
 use crate::algorithm::{
-    geometry_defect::GeometryDefectCtx, 
-    width_emissions::WidthEmissionsCtx, 
-    InitialCtx, 
-    InitialPoints
+    geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, InitialCtx, InitialPoints
 };
 use super::testing_ctx::TestingCtx;
 ///
@@ -13,8 +10,10 @@ use super::testing_ctx::TestingCtx;
 pub struct Context {
     /// where store source frame
     pub(super) initial: InitialCtx,
+    /// Filtered and binarised image
+    pub(super) detecting_contours_cv: DetectingContoursCvCtx,
     /// points of rope perimeter
-    pub(super) initial_points: InitialPoints<usize>,
+    pub(super) edge_detection: EdgeDetectionCtx,
     /// points that deviate in width from the threshold
     pub(super) width_emissions: WidthEmissionsCtx,
     /// result of detecting [GeometryDefect's](design/theory/geometry_rope_defects.md)
@@ -33,7 +32,8 @@ impl Context {
     pub fn new(initial: InitialCtx) -> Self {
         Self {
             initial,
-            initial_points: InitialPoints::default(),
+            detecting_contours_cv: DetectingContoursCvCtx::default(),
+            edge_detection: EdgeDetectionCtx::default(),
             width_emissions: WidthEmissionsCtx::default(),
             geometry_defect: GeometryDefectCtx::default(),
             testing: None,

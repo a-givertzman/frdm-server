@@ -4,9 +4,19 @@ use crate::domain::graham::dot::Dot;
 /// Storing points of ropes side's
 #[derive(Debug, Clone)]
 pub struct InitialPoints<T> {
-    pub sides: IndexMap<Side, Vec<Dot<T>>>,
+    sides: IndexMap<Side, Vec<Dot<T>>>,
 }
 impl<T: Copy> InitialPoints<T> {
+    ///
+    /// 
+    pub fn new(upper: Vec<Dot<T>>, lower: Vec<Dot<T>>) -> Self {
+        Self {
+            sides: IndexMap::from([
+                (Side::Upper, upper),
+                (Side::Lower, lower),
+            ])
+        }
+    }
     pub fn get(&self, side: Side) -> Vec<Dot<T>> {
         match self.sides.get(&side) {
             Some(side) => side.to_vec(),

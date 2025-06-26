@@ -1,1 +1,1 @@
-mod fast_scan_test;
+mod detecting_contours_cv_test;
