@@ -1,5 +1,5 @@
 use sal_core::error::Error;
-use crate::{algorithm::{Context, InitialCtx}, domain::Eval, infrostructure::arena::Image};
+use crate::{algorithm::{Context, InitialCtx}, domain::Eval};
 ///
 /// Takes [InitialCtx]
 /// Returns [Context] with only [InitialCtx]
@@ -21,7 +21,7 @@ impl Initial{
 //
 impl Eval<(), Result<Context, Error>> for Initial {
     fn eval(&self, _: ()) -> Result<Context, Error> {
-        let error = Error::new("Initial", "eval");
-        Ok(Context::new(self.ctx));
+        // let error = Error::new("Initial", "eval");
+        Ok(Context::new(self.ctx.clone()))
     }
 }

@@ -1,7 +1,16 @@
-use crate::{algorithm::InitialPoints, domain::graham::dot::Dot};
+use crate::{algorithm::InitialPoints};
 ///
 /// Context store of [EdgeDetection](src/scan/edge_detection.rs)
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EdgeDetectionCtx {
     pub result: InitialPoints<usize>,
+}
+//
+//
+impl Default for EdgeDetectionCtx {
+    fn default() -> Self {
+        Self { 
+            result: InitialPoints::default()
+         }
+    }
 }

@@ -5,7 +5,10 @@ mod graham {
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::domain::{Eval, graham::{dot::Dot, find_start::FindStartCtx, sort::Sort}};
+    use crate::{
+        algorithm::{Sort, FindStartCtx},
+        domain::{Dot, Eval},
+    };
     ///
     ///
     static INIT: Once = Once::new();

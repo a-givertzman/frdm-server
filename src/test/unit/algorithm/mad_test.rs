@@ -13,7 +13,7 @@ mod mad {
         Backtrace
     };
     use crate::{
-        algorithm::mad::Mad, 
+        algorithm::Mad, 
         domain::Eval
     };
     ///

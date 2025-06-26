@@ -3,7 +3,7 @@ use crate::{
     algorithm::{
         geometry_defect::{
             GeometryDefectCtx, GeometryDefectType, Threshold
-        }, mad::{Bond, MadCtx}, width_emissions::WidthEmissionsCtx, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, InitialPoints, Side
+        }, mad::{Bond, MadCtx}, width_emissions::WidthEmissionsCtx, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, Side
     }, 
     domain::{Error, Eval}
 };
@@ -12,8 +12,8 @@ use crate::{
 pub struct GeometryDefect {
     dbg: Dbg,
     threshold: Threshold,
-    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send>,
-    ctx: Box<dyn Eval<(), EvalResult> + Send>,
+    mad: Box<dyn Eval<Vec<usize>, MadCtx>>,
+    ctx: Box<dyn Eval<(), EvalResult>>,
 }
 //
 //
@@ -22,8 +22,8 @@ impl GeometryDefect {
     /// New instance [GeometryDefect]
     pub fn new(
         threshold: Threshold,
-        mad: impl Eval<Vec<usize>, MadCtx> + Send + 'static,
-        ctx: impl Eval<(), EvalResult> + Send + 'static,
+        mad: impl Eval<Vec<usize>, MadCtx> + 'static,
+        ctx: impl Eval<(), EvalResult> + 'static,
     ) -> Self {
         Self {
             dbg: Dbg::own("GeometryDefect"),
@@ -91,9 +91,9 @@ impl Eval<(), EvalResult> for GeometryDefect {
         match self.ctx.eval(()) {
             Ok(ctx) => {
                 let mut result: Vec<GeometryDefectType> = Vec::new();
-                let initial_points = ContextRead::<EdgeDetectionCtx>::read(&ctx).result;
-                let initial_points_upper = initial_points.get(Side::Upper);
-                let initial_points_lower = initial_points.get(Side::Lower);
+                let initial_points = ContextRead::<EdgeDetectionCtx>::read(&ctx);
+                let initial_points_upper = initial_points.result.get(Side::Upper);
+                let initial_points_lower = initial_points.result.get(Side::Lower);
                 let width_emissions_result = ContextRead::<WidthEmissionsCtx>::read(&ctx).result.clone();
                 if width_emissions_result.is_empty() {
                     let result = GeometryDefectCtx {

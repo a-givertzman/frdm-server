@@ -1,8 +1,6 @@
 use std::cmp::Ordering;
-
-use crate::domain::Eval;
-
-use super::{dot::Dot, find_start::FindStartCtx};
+use crate::domain::{Dot, Eval};
+use super::{find_start::FindStartCtx};
 ///
 /// Second step of Graham scan
 /// Points sorted in increasing order of the angle they and the `Start` point make with the x-axis.

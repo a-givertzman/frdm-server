@@ -1,7 +1,7 @@
 use super::{context::Context};
 use crate::{
     algorithm::{
-        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, EdgeDetectionCtx, InitialCtx, InitialPoints
+        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx,
     }, 
     domain::Error 
 };

@@ -1,6 +1,4 @@
-use crate::domain::Eval;
-
-use super::dot::Dot;
+use crate::domain::{Dot, Eval};
 
 ///
 /// First step of Graham scan

@@ -4,10 +4,10 @@ use crate::{
             geometry_defect::Threshold, mad::{
                 Bond, 
                 MadCtx
-            }, ContextRead, ContextWrite, EvalResult, InitialPoints, Side
+            }, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, Side
         }, 
     domain::{
-            graham::dot::Dot, 
+            Dot, 
             Error, 
             Eval
         }
@@ -85,9 +85,9 @@ impl Eval<(), EvalResult> for WidthEmissions {
         let error = Error::new(&self.dbg, "eval");
         match self.ctx.eval(()) {
             Ok(ctx) => {
-                let initial_points = ContextRead::<InitialPoints<usize>>::read(&ctx);
-                let initial_points_upper = initial_points.get(Side::Upper);
-                let initial_points_lower = initial_points.get(Side::Lower);
+                let edge_detection_ctx = ContextRead::<EdgeDetectionCtx>::read(&ctx);
+                let initial_points_upper = edge_detection_ctx.result.get(Side::Upper);
+                let initial_points_lower = edge_detection_ctx.result.get(Side::Lower);
                 let mad_result = self.mad.eval(
                     Self::points_width(
                             initial_points_upper.clone(),

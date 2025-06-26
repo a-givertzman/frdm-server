@@ -4,13 +4,13 @@ mod domain;
 mod infrostructure;
 #[cfg(test)]
 mod test;
-// extern crate photon_rs;
+//
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use domain::Eval;
 use infrostructure::camera::{Camera, CameraConf};
 use sal_core::dbg::Dbg;
 use crate::{
-    algorithm::{geometry_defect::GeometryDefect, DetectingContoursCv, EdgeDetection, Initial, InitialCtx},
+    algorithm::{GeometryDefect, Threshold, Mad, DetectingContoursCv, EdgeDetection, Initial, InitialCtx},
     conf::{Conf, FastScanConf, FineScanConf},
 };
 ///
@@ -38,7 +38,7 @@ fn main() {
         opencv::highgui::wait_key(1).unwrap();
         let conf = Conf {
             fast_scan: FastScanConf {
-                geometry_defect_threshold: 1.1,
+                geometry_defect_threshold: Threshold::min(),
             },
             fine_scan: FineScanConf {},
         };
@@ -54,6 +54,7 @@ fn main() {
             ),
         )
         .eval(());
+        _ = result;
     }
     handle.join().unwrap()
 }

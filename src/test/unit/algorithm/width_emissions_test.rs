@@ -4,7 +4,6 @@ mod width_emissions {
         sync::Once, 
         time::Duration
     };
-    use indexmap::IndexMap;
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{
@@ -14,27 +13,12 @@ mod width_emissions {
     };
     use crate::{
         algorithm::{
-            geometry_defect::Threshold, 
-            mad::{
-                Bond, 
-                Mad
-            }, 
-            width_emissions::{
-                WidthEmissions, 
-                WidthEmissionsCtx
-            }, 
-            Context, 
-            ContextRead, 
-            ContextWrite, 
-            EvalResult, 
-            InitialCtx, 
-            InitialPoints, 
-            Side
+            Threshold,
+            WidthEmissions, 
+            WidthEmissionsCtx,
+            Bond, Context, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, InitialCtx, InitialPoints, Mad,
         }, 
-        domain::{
-            graham::dot::Dot, 
-            Eval
-        }, 
+        domain::{Dot, Eval}, 
         infrostructure::arena::Image
     };
     ///
@@ -66,42 +50,34 @@ mod width_emissions {
             (
                 1,
                 Threshold(1.1),
-                InitialPoints {
-                    sides: IndexMap::from([
-                        (
-                            Side::Upper,
-                            vec![
-                                Dot { x: 10  , y: 100 },
-                                Dot { x: 20  , y: 105 },
-                                Dot { x: 30  , y: 110 },
-                                Dot { x: 40  , y: 120 },
-                                Dot { x: 50  , y: 130 },
-                                Dot { x: 60  , y: 135 },
-                                Dot { x: 70  , y: 130 },
-                                Dot { x: 80  , y: 120 },
-                                Dot { x: 90  , y: 110 },
-                                Dot { x: 100 , y: 105 },
-                                Dot { x: 110 , y: 100 },
-                            ],
-                        ),
-                        (
-                            Side::Lower,
-                            vec![
-                                Dot { x: 10  , y: 50 },
-                                Dot { x: 20  , y: 45 },
-                                Dot { x: 30  , y: 40 },
-                                Dot { x: 40  , y: 30 },
-                                Dot { x: 50  , y: 20 },
-                                Dot { x: 60  , y: 15 },
-                                Dot { x: 70  , y: 20 },
-                                Dot { x: 80  , y: 30 },
-                                Dot { x: 90  , y: 40 },
-                                Dot { x: 100 , y: 45 },
-                                Dot { x: 110 , y: 50 },
-                            ],
-                        )
-                    ]),
-                },
+                InitialPoints::new(
+                    vec![
+                        Dot { x: 10  , y: 100 },
+                        Dot { x: 20  , y: 105 },
+                        Dot { x: 30  , y: 110 },
+                        Dot { x: 40  , y: 120 },
+                        Dot { x: 50  , y: 130 },
+                        Dot { x: 60  , y: 135 },
+                        Dot { x: 70  , y: 130 },
+                        Dot { x: 80  , y: 120 },
+                        Dot { x: 90  , y: 110 },
+                        Dot { x: 100 , y: 105 },
+                        Dot { x: 110 , y: 100 },
+                    ],
+                    vec![
+                        Dot { x: 10  , y: 50 },
+                        Dot { x: 20  , y: 45 },
+                        Dot { x: 30  , y: 40 },
+                        Dot { x: 40  , y: 30 },
+                        Dot { x: 50  , y: 20 },
+                        Dot { x: 60  , y: 15 },
+                        Dot { x: 70  , y: 20 },
+                        Dot { x: 80  , y: 30 },
+                        Dot { x: 90  , y: 40 },
+                        Dot { x: 100 , y: 45 },
+                        Dot { x: 110 , y: 50 },
+                    ],
+                ),
                 vec![
                     Bond { x: 50, y: 130 },
                     Bond { x: 50, y: 20  },
@@ -122,7 +98,7 @@ mod width_emissions {
             };
             ctx.ctx = ctx.ctx
                 .clone()
-                .write(initial_points)
+                .write(EdgeDetectionCtx { result: initial_points })
                 .unwrap();
             let result = WidthEmissions::new(
                 threshold,

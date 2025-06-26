@@ -1,6 +1,7 @@
 use crate::infrostructure::arena::Image;
 ///
 /// Filtered and binarised image
+#[derive(Debug, Clone)]
 pub struct DetectingContoursCvCtx {
     pub result: Image,
 }

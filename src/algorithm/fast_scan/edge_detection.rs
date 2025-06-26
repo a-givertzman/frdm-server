@@ -2,8 +2,7 @@ use opencv::core::MatTraitConst;
 use sal_core::error::Error;
 use crate::{
     algorithm::{Context, ContextRead, ContextWrite, DetectingContoursCvCtx, EvalResult, InitialPoints},
-    domain::{graham::dot::Dot, Eval},
-    infrostructure::arena::Image,
+    domain::{Dot, Eval},
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
@@ -30,7 +29,7 @@ impl Eval<(), Result<Context, Error>> for EdgeDetection {
         let error = Error::new("EdgeDetection", "eval");
         match self.ctx.eval(()) {
             Ok(ctx) => {
-                let image = ContextRead::<DetectingContoursCvCtx>::read(&ctx).result;
+                let image = ContextRead::<DetectingContoursCvCtx>::read(&ctx).result.clone();
                 let rows = image.mat.rows();
                 let cols = image.mat.cols();
                 let threshold = 1;

@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use crate::domain::graham::dot::Dot;
+use crate::domain::Dot;
 ///
 /// Storing points of ropes side's
 #[derive(Debug, Clone)]
@@ -27,6 +27,11 @@ impl<T: Copy> InitialPoints<T> {
 impl<T> Default for InitialPoints<T> {
     fn default() -> Self {
         Self { sides: IndexMap::<Side, Vec<Dot<T>>>::new() }
+    }
+}
+impl<T: PartialEq> PartialEq for InitialPoints<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.sides == other.sides
     }
 }
 ///

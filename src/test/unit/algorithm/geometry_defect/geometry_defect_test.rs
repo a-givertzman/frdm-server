@@ -5,7 +5,6 @@ mod geometry_defect {
         sync::Once, 
         time::Duration
     };
-    use indexmap::IndexMap;
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{
@@ -15,23 +14,10 @@ mod geometry_defect {
     };
     use crate::{
         algorithm::{
-            geometry_defect::{
-                GeometryDefect, GeometryDefectCtx, GeometryDefectType, Threshold
-            }, 
-            mad::Mad, 
-            width_emissions::WidthEmissions, 
-            Context, 
-            ContextRead, 
-            ContextWrite, 
-            EvalResult, 
-            InitialCtx, 
-            InitialPoints, 
-            Side
+            GeometryDefect, GeometryDefectCtx, GeometryDefectType, Threshold,
+            WidthEmissions, Context, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, InitialCtx, InitialPoints, Mad,
         }, 
-        domain::{
-            graham::dot::Dot, 
-            Eval
-        }, 
+        domain::{Dot, Eval},
         infrostructure::arena::Image
     };
     ///
@@ -199,7 +185,7 @@ mod geometry_defect {
             };
             ctx.ctx = ctx.ctx
                 .clone()
-                .write(initial_points.clone())
+                .write(EdgeDetectionCtx{ result: initial_points.clone() })
                 .unwrap();
             let result = GeometryDefect::new(
                 threshold,

@@ -6,7 +6,7 @@ mod edge_detection_test {
     use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{algorithm::{EdgeDetection, EdgeDetectionCtx}, domain::{graham::dot::Dot, Eval}, infrostructure::arena::Image};
+    use crate::{algorithm::{Context, ContextRead, EdgeDetection, EdgeDetectionCtx, InitialCtx, InitialPoints, Side}, domain::{Dot, Eval}, infrostructure::arena::Image};
     ///
     ///
     static INIT: Once = Once::new();
@@ -30,19 +30,20 @@ mod edge_detection_test {
             path,
             imgcodecs::IMREAD_GRAYSCALE,
         ).unwrap();
-        let edges = EdgeDetection::new(FakePassImg::new(Image::with(img.clone()))).eval(()).unwrap();
+        let ctx = EdgeDetection::new(FakePassImg::new(Image::with(img.clone()))).eval(()).unwrap();
+        let edges: &EdgeDetectionCtx = ctx.read();
         let mut img_of_edges = imgcodecs::imread(
             path,
             imgcodecs::IMREAD_COLOR,
         ).unwrap();
-        for dot in &edges.upper_edge {
+        for dot in edges.result.get(Side::Upper) {
             if dot.x >= 0 && dot.y >= 0 {
                 let x = dot.x as i32;
                 let y = dot.y as i32;
                 *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
             }
         }
-        for dot in &edges.lower_edge {
+        for dot in edges.result.get(Side::Lower) {
             if dot.x >= 0 && dot.y >= 0 {
                 let x = dot.x as i32;
                 let y = dot.y as i32;
@@ -63,15 +64,16 @@ mod edge_detection_test {
         let img = Mat::from_slice_2d(&matrix).unwrap();
         let mut img_of_edges = Mat::default();
         imgproc::cvt_color(&img, &mut img_of_edges, imgproc::COLOR_GRAY2BGR, 0).unwrap();
-        let result = EdgeDetection::new(FakePassImg::new(Image::with(img))).eval(()).unwrap();
-        for dot in &result.upper_edge {
+        let ctx = EdgeDetection::new(FakePassImg::new(Image::with(img))).eval(()).unwrap();
+        let edges: &EdgeDetectionCtx = ctx.read();
+        for dot in edges.result.get(Side::Upper) {
             if dot.x >= 0 && dot.y >= 0 {
                 let x = dot.x as i32;
                 let y = dot.y as i32;
                 *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
             }
         }
-        for dot in &result.lower_edge {
+        for dot in edges.result.get(Side::Lower) {
             if dot.x >= 0 && dot.y >= 0 {
                 let x = dot.x as i32;
                 let y = dot.y as i32;
@@ -105,24 +107,32 @@ mod edge_detection_test {
                 1,
                 Image::with( Mat::from_slice_2d(&MATRIX1).unwrap()),
                 Ok(EdgeDetectionCtx {
-                    upper_edge: into_dots(&[0,1, 1,0, 2,0, 3,1, 4,0, 5,0]),
-                    lower_edge: into_dots(&[0,5, 1,4, 2,5, 3,5, 4,5, 5,4]),
+                    result: InitialPoints::new(
+                        into_dots(&[0,1, 1,0, 2,0, 3,1, 4,0, 5,0]),
+                        into_dots(&[0,5, 1,4, 2,5, 3,5, 4,5, 5,4]),
+                    )
                 }),
             ),
             (
                 2,
                 Image::with( Mat::from_slice_2d(&MATRIX2).unwrap()),
                 Ok(EdgeDetectionCtx {
-                    upper_edge: into_dots(&[0,2, 1,1, 2,0, 3,1, 4,0, 5,1]),
-                    lower_edge: into_dots(&[0,3, 1,4, 2,4, 3,5, 4,4, 5,3]),
+                    result: InitialPoints::new(
+                        into_dots(&[0,2, 1,1, 2,0, 3,1, 4,0, 5,1]),
+                        into_dots(&[0,3, 1,4, 2,4, 3,5, 4,4, 5,3]),
+                    )
                 }),
             )
         ];
         for (step, img, target) in test_data {
             let result = EdgeDetection::new(
-                
                 FakePassImg::new(img)
-            ).eval(());
+            )
+            .eval(())
+            .map(|ctx| {
+                let result: &EdgeDetectionCtx = ctx.read();
+                result.to_owned()
+            });
             match (result, target) {
                 (Ok(result), Ok(target)) => {
                     assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
@@ -167,9 +177,13 @@ mod edge_detection_test {
     }
     //
     //
-    impl Eval<(), Result<Image, Error>> for FakePassImg {
-        fn eval(&self, _: ()) -> Result<Image, Error> {
-            Ok(self.img.clone())
+    impl Eval<(), Result<Context, Error>> for FakePassImg {
+        fn eval(&self, _: ()) -> Result<Context, Error> {
+            Ok(
+                Context::new(
+                    InitialCtx::new(self.img.clone()),
+                ),
+            )
         }
     }
 }

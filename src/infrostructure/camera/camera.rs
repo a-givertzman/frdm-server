@@ -1,8 +1,8 @@
-use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc}, thread::JoinHandle, time::Duration};
+use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::JoinHandle, time::Duration};
 use opencv::videoio::VideoCaptureTrait;
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::services::entity::Name;
-use crate::{domain::Receiver, infrostructure::arena::{AcDevice, AcSystem, Image}};
+use crate::{domain::{channel_unbounded, Receiver, Sender}, infrostructure::arena::{AcDevice, AcSystem, Image}};
 use super::camera_conf::CameraConf;
 ///
 /// # Description to the [Camera] class
@@ -26,7 +26,7 @@ impl Camera {
     pub fn new(conf: CameraConf) -> Self {
         let dbg = Dbg::new(conf.name.parent(), conf.name.me());
         log::trace!("{}.new | : ", dbg);
-        let (send, recv) = channel::unbounded();
+        let (send, recv) = channel_unbounded();
         Self {
             dbg,
             name: conf.name.clone(),

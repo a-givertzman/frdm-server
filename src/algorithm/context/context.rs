@@ -1,5 +1,5 @@
 use crate::algorithm::{
-    geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, InitialCtx, InitialPoints
+    geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx
 };
 use super::testing_ctx::TestingCtx;
 ///
