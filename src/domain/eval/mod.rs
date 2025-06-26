@@ -1,3 +1,3 @@
 mod eval;
 
-pub(crate) use eval::*;
+pub use eval::*;

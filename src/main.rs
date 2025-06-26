@@ -6,12 +6,14 @@ mod infrostructure;
 mod test;
 //
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
-use domain::Eval;
-use infrostructure::camera::{Camera, CameraConf};
 use sal_core::dbg::Dbg;
 use crate::{
-    algorithm::{GeometryDefect, Threshold, Mad, DetectingContoursCv, EdgeDetection, Initial, InitialCtx},
+    domain::Eval,
+    infrostructure::camera::{Camera, CameraConf},
     conf::{Conf, FastScanConf, FineScanConf},
+    algorithm::{
+        DetectingContoursCv, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold,
+    }
 };
 ///
 /// Application entry point

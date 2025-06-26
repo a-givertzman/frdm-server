@@ -17,8 +17,7 @@ mod geometry_defect {
             GeometryDefect, GeometryDefectCtx, GeometryDefectType, Threshold,
             WidthEmissions, Context, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, InitialCtx, InitialPoints, Mad,
         }, 
-        domain::{Dot, Eval},
-        infrostructure::arena::Image
+        domain::{Dot, Eval, Image},
     };
     ///
     ///

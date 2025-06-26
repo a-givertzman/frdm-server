@@ -12,4 +12,4 @@
 //! ```
 mod initial_ctx;
 
-pub(crate) use initial_ctx::*;
+pub use initial_ctx::*;

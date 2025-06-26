@@ -2,7 +2,7 @@ use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::JoinHandle, time:
 use opencv::videoio::VideoCaptureTrait;
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::services::entity::Name;
-use crate::{domain::{channel_unbounded, Receiver, Sender}, infrostructure::arena::{AcDevice, AcSystem, Image}};
+use crate::{domain::{channel_unbounded, Receiver, Sender, Image}, infrostructure::arena::{AcDevice, AcSystem}};
 use super::camera_conf::CameraConf;
 ///
 /// # Description to the [Camera] class

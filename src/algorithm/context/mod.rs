@@ -18,10 +18,10 @@ mod initial;
 /// TODO: To be moved to the better place
 mod testing_ctx;
 
-pub(crate) use context_access::*;
-pub(crate) use context::*;
-pub(crate) use initial::*;
-pub(crate) use testing_ctx::*;
+pub use context_access::*;
+pub use context::*;
+pub use initial::*;
+pub use testing_ctx::*;
 
 use crate::domain::Error;
 

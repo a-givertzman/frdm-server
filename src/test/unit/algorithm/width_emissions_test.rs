@@ -7,19 +7,14 @@ mod width_emissions {
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{
-        DebugSession, 
-        LogLevel, 
-        Backtrace
+        DebugSession, LogLevel, Backtrace,
     };
     use crate::{
         algorithm::{
-            Threshold,
-            WidthEmissions, 
-            WidthEmissionsCtx,
-            Bond, Context, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, InitialCtx, InitialPoints, Mad,
-        }, 
-        domain::{Dot, Eval}, 
-        infrostructure::arena::Image
+            Bond, Context, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult,
+            InitialCtx, InitialPoints, Mad, Threshold, WidthEmissions, WidthEmissionsCtx,
+        },
+        domain::{Dot, Eval, Image},
     };
     ///
     ///

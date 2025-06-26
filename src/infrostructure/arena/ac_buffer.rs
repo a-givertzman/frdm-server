@@ -1,7 +1,7 @@
 use sal_core::error::Error;
 use sal_sync::services::entity::Name;
-use crate::infrostructure::arena::ac_err::AcErr;
-use super::{bindings::{acBuffer, acDevice}, image::Image, pixel_format::PixelFormat};
+use crate::{infrostructure::arena::ac_err::AcErr, domain::Image};
+use super::{bindings::{acBuffer, acDevice}, PixelFormat};
 
 ///
 /// - Received image buffer from device,

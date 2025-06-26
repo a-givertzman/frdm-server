@@ -2,7 +2,7 @@
 
 mod arena {
     use std::{sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, Arc, Once}, thread, time::{Duration, Instant}};
-    use crate::{domain::channel_unbounded, infrostructure::{arena::{AcDevice, AcSystem, Image}, camera::CameraConf}};
+    use crate::{domain::{channel_unbounded, Image}, infrostructure::arena::{AcDevice, AcSystem}, CameraConf};
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};

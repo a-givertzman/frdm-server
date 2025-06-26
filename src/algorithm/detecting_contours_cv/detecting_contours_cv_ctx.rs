@@ -1,4 +1,4 @@
-use crate::infrostructure::arena::Image;
+use crate::domain::Image;
 ///
 /// Filtered and binarised image
 #[derive(Debug, Clone)]

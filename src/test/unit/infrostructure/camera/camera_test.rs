@@ -8,11 +8,14 @@ mod camera {
     use opencv::{
         highgui, prelude::*, videoio
     };
-    use crate::infrostructure::{
-        arena::{
-            ChannelPacketSize, Exposure, ExposureAuto, FrameRate, Image, PixelFormat,
+    use crate::{
+        domain::Image,
+        infrostructure::{
+            arena::{
+                ChannelPacketSize, Exposure, ExposureAuto, FrameRate, PixelFormat,
+            },
+            camera::{Camera, CameraConf, CameraResolution}
         },
-        camera::{Camera, CameraConf, CameraResolution}
     };
     ///
     ///

@@ -10,7 +10,6 @@ mod channel_packet_size;
 mod exposure;
 mod ffi_str;
 mod frame_rate;
-mod image;
 mod pixel_format;
 
 pub(super) use ac_access_mode::*;
@@ -25,5 +24,4 @@ pub(crate) use channel_packet_size::*;
 pub(crate) use exposure::*;
 pub(super) use ffi_str::*;
 pub(crate) use frame_rate::*;
-pub(crate) use image::*;
 pub(crate) use pixel_format::*;

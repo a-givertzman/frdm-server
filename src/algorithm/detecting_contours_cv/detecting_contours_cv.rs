@@ -1,13 +1,12 @@
 use opencv::imgproc;
 use opencv::core;
 use sal_core::error::Error;
-use crate::algorithm::Context;
-use crate::algorithm::ContextRead;
-use crate::algorithm::ContextWrite;
-use crate::algorithm::DetectingContoursCvCtx;
-use crate::algorithm::EvalResult;
-use crate::algorithm::InitialCtx;
-use crate::{domain::Eval, infrostructure::arena::Image};
+use crate::algorithm::{
+    Context, ContextRead, ContextWrite,
+    DetectingContoursCvCtx,
+    EvalResult, InitialCtx,
+};
+use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
 /// Return filtered and binarised [Image] with contours detected

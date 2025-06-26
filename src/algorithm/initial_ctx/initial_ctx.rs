@@ -1,5 +1,5 @@
 use sal_core::dbg::Dbg;
-use crate::infrostructure::arena::Image;
+use crate::domain::Image;
 ///
 /// Storage of [initial data](design\docs\algorithm\part01\initial_data.md)
 #[derive(Debug, Clone)]
