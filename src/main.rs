@@ -1,16 +1,18 @@
+mod algorithm;
+// mod conf;
 mod domain;
 mod infrostructure;
-mod conf;
 #[cfg(test)]
 mod test;
+extern crate photon_rs;
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
-use infrostructure::camera::{camera::Camera, camera_conf::CameraConf};
-use sal_sync::services::entity::dbg_id::DbgId;
+use infrostructure::camera::{Camera, CameraConf};
+use sal_core::dbg::Dbg;
 ///
-/// Appliacation entri point
+/// Application entry point
 fn main() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
-    let dbg = DbgId("main".into());
+    let dbg = Dbg::own("main");
     let path = "./config.yaml";
     let conf = CameraConf::read(&dbg, path);
     let mut camera = Camera::new(conf);
@@ -25,7 +27,6 @@ fn main() {
         log::trace!("{} | Frame width : {:?}", dbg, frame.width);
         log::trace!("{} | Frame height: {:?}", dbg, frame.height);
         log::trace!("{} | Frame timestamp: {:?}", dbg, frame.timestamp);
-
         if let Err(err) = opencv::highgui::imshow(window, &frame.mat) {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };

@@ -5,8 +5,8 @@ pub struct Dot<T> {
     pub x: T,
     pub y: T,
 }
-impl From<&[isize]> for Dot<isize> {
-    fn from(dot: &[isize]) -> Self {
+impl From<&[usize]> for Dot<usize> {
+    fn from(dot: &[usize]) -> Self {
         Dot { x: dot[0], y: dot[1] }
     }
 }

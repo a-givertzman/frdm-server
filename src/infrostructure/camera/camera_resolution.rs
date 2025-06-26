@@ -1,4 +1,4 @@
-use sal_sync::services::conf::conf_tree::ConfTree;
+use sal_sync::services::conf::ConfTree;
 use serde::Deserialize;
 ///
 /// The resolution of the camera
@@ -14,8 +14,8 @@ pub struct CameraResolution {
 impl CameraResolution{
     ///
     /// reads IP camera resolution from yaml
-    pub fn new(parent: impl Into<String>, conf_tree: &ConfTree) -> Self {
-        log::trace!("{}/CameraConf.new | conf_tree: {:?}", parent.into(), conf_tree);
-        serde_yaml::from_value(conf_tree.conf.clone()).unwrap()
+    pub fn new(parent: impl Into<String>, conf: &ConfTree) -> Self {
+        log::trace!("{}/CameraConf.new | conf_tree: {:?}", parent.into(), conf);
+        serde_yaml::from_value(conf.conf.clone()).unwrap()
     }
 }

@@ -1,9 +1,11 @@
 use sal_core::error::Error;
-use sal_sync::services::entity::name::Name;
-
-use super::{ac_err::AcErr, 
-    bindings::{acBooleanGetValue, acFloatGetMax, acFloatGetMin, acFloatGetValue, acFloatSetValue, acIntegerGetMax, acIntegerGetMin, acIntegerGetValue, acIntegerSetValue, acIsWritable, acNode, acStringGetValue}, ffi_str::FfiStr}
-;
+use sal_sync::services::entity::Name;
+use super::{
+    AcErr,  acNode, FfiStr,
+    acBooleanGetValue, acFloatGetMax, acFloatGetMin, acFloatGetValue,
+    acFloatSetValue, acIntegerGetMax, acIntegerGetMin, acIntegerGetValue,
+    acIntegerSetValue, acIsWritable,acStringGetValue
+};
 
 ///
 /// Represents `acNode`, supports:

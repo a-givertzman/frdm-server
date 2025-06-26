@@ -1,16 +1,15 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc}, thread::JoinHandle, time::Duration};
-
 use opencv::videoio::VideoCaptureTrait;
-use sal_core::error::Error;
-use sal_sync::services::entity::{dbg_id::DbgId, name::Name};
-use crate::infrostructure::arena::{ac_device::AcDevice, ac_system::AcSystem, image::Image};
-use super::{camera_conf::CameraConf, pimage::PImage};
+use sal_core::{dbg::Dbg, error::Error};
+use sal_sync::services::entity::Name;
+use crate::infrostructure::arena::{AcDevice, AcSystem, Image};
+use super::camera_conf::CameraConf;
 ///
 /// # Description to the [Camera] class
 /// - Connecting to the IP Camra
 /// - Receive frames from the `Camera`
 pub struct Camera {
-    dbg: DbgId,
+    dbg: Dbg,
     name: Name,
     conf: CameraConf,
     send: mpsc::Sender<Image>,
@@ -25,7 +24,7 @@ impl Camera {
     /// - [parent] - DbgId of parent entitie
     /// - `conf` - configuration parameters
     pub fn new(conf: CameraConf) -> Self {
-        let dbg = DbgId(conf.name.join());
+        let dbg = Dbg::new(conf.name.parent(), conf.name.me());
         log::trace!("{}.new | : ", dbg);
         let (send, recv) = mpsc::channel();
         Self {
@@ -134,7 +133,7 @@ impl Camera {
                 let mut frame = opencv::core::Mat::default();
                 while let Ok(result) = video.read(&mut frame) {
                     if result {
-                        frames.push(PImage::new(frame.clone()));
+                        frames.push(Image::with(frame.clone()));
                     } else {
                         break;
                     }
@@ -154,15 +153,15 @@ impl Camera {
 /// Camera Iterator
 pub struct CameraIntoIterator {
     // camera: Camera,
-    frames: Vec<PImage>,
+    frames: Vec<Image>,
 }
 //
 //
 impl CameraIntoIterator {
-    pub fn push_frame(&mut self, frame: PImage) {
+    pub fn push_frame(&mut self, frame: Image) {
         self.frames.push(frame);
     }
-    fn pop_first(&mut self) -> Option<PImage> {
+    fn pop_first(&mut self) -> Option<Image> {
         if self.frames.is_empty() {
             None
         } else {
@@ -173,7 +172,7 @@ impl CameraIntoIterator {
 //
 //
 impl IntoIterator for Camera {
-    type Item = PImage;
+    type Item = Image;
     type IntoIter = CameraIntoIterator;
     fn into_iter(self) -> Self::IntoIter {
         CameraIntoIterator {
@@ -185,7 +184,7 @@ impl IntoIterator for Camera {
 //
 //
 impl Iterator for CameraIntoIterator {
-    type Item = PImage;
+    type Item = Image;
     fn next(&mut self) -> Option<Self::Item> {
         self.pop_first()
     }

@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::domain::eval::eval::Eval;
+use crate::domain::Eval;
 
 use super::{dot::Dot, find_start::FindStartCtx};
 ///
@@ -23,7 +23,7 @@ impl Sort {
 //
 //
 impl Eval<(), SortByAngCtx> for Sort {
-    fn eval(&mut self, _: ()) -> SortByAngCtx {
+    fn eval(&self, _: ()) -> SortByAngCtx {
         let mut ctx = self.eval.eval(());
         let dot0 = ctx.points[ctx.start as usize];
         ctx.points.sort_by(|dot1, dot2| {

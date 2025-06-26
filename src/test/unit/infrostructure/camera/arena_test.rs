@@ -2,8 +2,8 @@
 
 mod arena {
     use std::{sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, mpsc, Arc, Once}, thread, time::{Duration, Instant}};
-    use crate::infrostructure::{arena::{ac_device::AcDevice, image::Image, ac_system::AcSystem}, camera::camera_conf::CameraConf};
-    use sal_sync::services::entity::dbg_id::DbgId;
+    use crate::infrostructure::{arena::{AcDevice, AcSystem, Image}, camera::CameraConf};
+    use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     ///
@@ -29,7 +29,7 @@ mod arena {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = DbgId("arena_test".into());
+        let dbg = Dbg::own("arena_test");
         let dbg_1 = dbg.clone();
         let dbg_2 = dbg.clone();
         log::debug!("\n{}", dbg);
