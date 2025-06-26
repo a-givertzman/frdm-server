@@ -2,12 +2,18 @@
 
 mod camera {
     use std::{sync::Once, time::Duration};
+    use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use opencv::{
         highgui, prelude::*, videoio
     };
-    use crate::{domain::dbg::dbgid::DbgId, infrostructure::{arena::{channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate, pixel_format::PixelFormat}, camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution, pimage::PImage}}};
+    use crate::infrostructure::{
+        arena::{
+            channel_packet_size::ChannelPacketSize, exposure::{Exposure, ExposureAuto}, frame_rate::FrameRate, image::Image, pixel_format::PixelFormat
+        },
+        camera::{camera::Camera, camera_conf::CameraConf, camera_resolution::CameraResolution}
+    };
     ///
     ///
     static INIT: Once = Once::new();
@@ -29,7 +35,7 @@ mod camera {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = DbgId::root("test");
+        let dbg = Dbg::own("test");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(&dbg, Duration::from_secs(5));
         test_duration.run().unwrap();
@@ -150,7 +156,7 @@ mod camera {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = DbgId::root("camera_test");
+        let dbg = Dbg::own("camera_test");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(&dbg, Duration::from_secs(10));
         test_duration.run().unwrap();
@@ -184,8 +190,8 @@ mod camera {
                         log::trace!("{} | step {} read: {:?}", dbg, step, read);
                         if read {
                             let result = camera.next().unwrap();
-                            highgui::imshow("Video", &result.frame);
-                            assert!(result == PImage::new(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
+                            highgui::imshow("Video", &result.mat).unwrap();
+                            assert!(result == Image::with(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
                             frames += 1;
                             if highgui::wait_key(30).unwrap() == 'q' as i32 {
                                 break;

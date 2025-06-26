@@ -24,38 +24,23 @@ Lens focal length | Image width  | Image hight | Field depth    | Image deformat
 
 - Based on the [Rust OpenCV lib](https://github.com/twistedfall/opencv-rust?tab=readme-ov-file)
 
-   Check [README](https://github.com/twistedfall/opencv-rust/blob/master/INSTALL.md) to get started
+   Install using [README instruction](https://github.com/twistedfall/opencv-rust/blob/master/INSTALL.md) (Recomended)
 
-- Used Arena SDK on Linux (integrated using OpenCV)
-    - [Original instructions](https://support.thinklucid.com/using-opencv-with-arena-sdk-on-linux/)
-    - Download [Arena SDK](https://thinklucid.com/downloads-hub/) (registration required)
-    - Extract the tarball to your desired location:  
+   Or execute in terminal
+   ```bash
+   sudo apt install libopencv-dev clang libclang-dev
+    ```
+
+- Used Arena SDK for Linux (integrated using OpenCV)
+    - **Importent:** Be shure the MTU for ethernet interfgace used by camera is set to 900 bytes
+    - **Importent:** Also folluw [this instruction](src/infrostructure/arena/readme.md) to properly setup network inteface
+    - Download Arena SDK v0.1.95 or later from [Downloads](https://thinklucid.com/downloads-hub/) (for Ubuntu)
+    - Execute install script with the path to the Arena SDK donloaded archive
         ```bash
-        $ tar -xvzf ArenaSDK_v0.1.95_Linux_x64.tar.gz --directory /tmp/arena/
+        src/infrostructure/arena/install.sh "path/ArenaSDK_v0.1.95_Linux_x64.tar.gz"
         ```
-        
-        - Use install.sh script - Recomended
-            - Copy `install.sh` into Arena SDK folder
-            ```bash
-            cp src/infrostructure/arena/ArenaSDK_Linux_x64/install.sh /path/to/ArenaSDK_Linux_x64/
-            ```
-            - Execute `install.sh`
-            ```bash
-            cd /path/to/ArenaSDK_Linux_x64/
-            ./install.sh
-            ```
 
-        - Use original installation script - Not recomended
-            - Run the Arena_SDK.conf file
-                > WARNING: Pass -cti argument to set the GENICAM_GENTL64_PATH environment variable.
-                    Reboot the PC before running applications that use .cti files.
-                ```bash
-                $ cd /path/to/ArenaSDK_Linux_x64/
-                $ chmod +x ./Arena_SDK_Linux_x64.conf 
-                $ sudo sh Arena_SDK_Linux_x64.conf
-                ```
-                This will make the Arena SDK shared library files accessible by the run-time linker (ld.so or ld-linux.so).
-            - Be shure the MTU for ethernet interfgace used by camera is set to 900 bytes
+    - [Original instructions](https://support.thinklucid.com/using-opencv-with-arena-sdk-on-linux/) - **Not recomended**
 
 
 - Descover the IP address of the camera
