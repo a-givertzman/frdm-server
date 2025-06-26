@@ -9,8 +9,10 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use domain::Eval;
 use infrostructure::camera::{Camera, CameraConf};
 use sal_core::dbg::Dbg;
-
-use crate::{algorithm::{geometry_defect::GeometryDefect, DetectingContoursCv, EdgeDetection, Initial, InitialCtx}, conf::{Conf, FastScanConf, FineScanConf}};
+use crate::{
+    algorithm::{geometry_defect::GeometryDefect, DetectingContoursCv, EdgeDetection, Initial, InitialCtx},
+    conf::{Conf, FastScanConf, FineScanConf},
+};
 ///
 /// Application entry point
 fn main() {

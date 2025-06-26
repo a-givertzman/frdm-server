@@ -50,3 +50,7 @@ photon-rs = { version = "0.3.2", default-features = false, git = "https://github
 # cc = "^1.1"
 #
 libc = "~0.2"
+#
+# Sync
+kanal = { git = "https://github.com/fereidani/kanal.git", version = "~0.1" }
+parking_lot = { git = "https://github.com/Amanieu/parking_lot.git", version = "~0.12" }

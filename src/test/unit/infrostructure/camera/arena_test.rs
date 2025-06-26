@@ -59,7 +59,7 @@ mod arena {
         "#).unwrap();
         let conf = CameraConf::from_yaml(&dbg, &conf);
         let time = Instant::now();
-        let (send, recv) = mpsc::channel::<Image>();
+        let (send, recv) = channel::unbounded::<Image>();
         let disp_handle = std::thread::spawn(move || {
             let dbg = dbg_1;
             let window = "Retrived";

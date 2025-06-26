@@ -2,7 +2,7 @@ use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc}, thread::JoinHandle,
 use opencv::videoio::VideoCaptureTrait;
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::services::entity::Name;
-use crate::infrostructure::arena::{AcDevice, AcSystem, Image};
+use crate::{domain::Receiver, infrostructure::arena::{AcDevice, AcSystem, Image}};
 use super::camera_conf::CameraConf;
 ///
 /// # Description to the [Camera] class
@@ -12,8 +12,8 @@ pub struct Camera {
     dbg: Dbg,
     name: Name,
     conf: CameraConf,
-    send: mpsc::Sender<Image>,
-    recv: Option<mpsc::Receiver<Image>>,
+    send: Sender<Image>,
+    recv: Option<Receiver<Image>>,
     exit: Arc<AtomicBool>,
 }
 //
@@ -26,7 +26,7 @@ impl Camera {
     pub fn new(conf: CameraConf) -> Self {
         let dbg = Dbg::new(conf.name.parent(), conf.name.me());
         log::trace!("{}.new | : ", dbg);
-        let (send, recv) = mpsc::channel();
+        let (send, recv) = channel::unbounded();
         Self {
             dbg,
             name: conf.name.clone(),
@@ -40,7 +40,7 @@ impl Camera {
     /// Returns channel recv to access farmes from camera
     /// - call `read` to start reading frames from camera
     /// - call `close` to stop reading and cleen up
-    pub fn stream(&mut self) -> mpsc::Receiver<Image> {
+    pub fn stream(&mut self) -> Receiver<Image> {
         match self.recv.take() {
             Some(recv) => recv,
             None => {
