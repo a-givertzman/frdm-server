@@ -36,22 +36,46 @@ impl Eval<(), Result<Context, Error>> for DetectingContoursCv {
                 match imgproc::cvt_color(&initial_ctx.src_frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
                         let mut blurred = core::Mat::default();
-                        match imgproc::gaussian_blur(&gray, &mut blurred, core::Size::new(3, 3), 0.0, 0.0, core::BORDER_DEFAULT) {
+                        //
+                        let kernel = core::Size::new(3, 3);
+                        //
+                        let sigma_x = 0.0;
+                        let sigma_y = 0.0;
+                        //
+                        match imgproc::gaussian_blur(&gray, &mut blurred, kernel, sigma_x, sigma_y, core::BORDER_DEFAULT) {
                             Ok(_) => {
                                 let mut sobelx = core::Mat::default();
                                 let mut sobely = core::Mat::default();
-                                match imgproc::sobel(&blurred, &mut sobelx, core::CV_8U, 1, 0, 3, 1.0, 0.0, core::BORDER_DEFAULT) {
+                                //
+                                let x_order = 1;
+                                let y_order = 0;
+                                //
+                                let kernel_size = 3;
+                                //
+                                let scale = 1.0;
+                                //
+                                let delta = 0.0;
+                                match imgproc::sobel(&blurred, &mut sobelx, core::CV_8U, x_order, y_order, kernel_size, scale, delta, core::BORDER_DEFAULT) {
                                     Ok(_) => {
-                                        match imgproc::sobel(&blurred, &mut sobely, core::CV_8U, 0, 1, 3, 1.0, 0.0, core::BORDER_DEFAULT) {
+                                            let x_order = 0;
+                                            let y_order = 1;
+                                        match imgproc::sobel(&blurred, &mut sobely, core::CV_8U, x_order, y_order, kernel_size, scale, delta, core::BORDER_DEFAULT) {
                                             Ok(_) => {
                                                 let mut absx = core::Mat::default();
                                                 let mut absy = core::Mat::default();
-                                                match core::convert_scale_abs(&sobelx, &mut absx, 1.0, 0.0) {
+                                                //
+                                                match core::convert_scale_abs_def(&sobelx, &mut absx) {
                                                     Ok(_) => {
-                                                        match core::convert_scale_abs(&sobely, &mut absy, 1.0, 0.0) {
+                                                        match core::convert_scale_abs_def(&sobely, &mut absy) {
                                                             Ok(_) => {
                                                                 let mut grad = core::Mat::default();
-                                                                match core::add_weighted(&absx, 0.5, &absy, 0.5, 0.0, &mut grad, -1) {
+                                                                //
+                                                                let alpha = 0.5;
+                                                                //
+                                                                let beta = 0.5;
+                                                                //
+                                                                let gamma = 0.0;
+                                                                match core::add_weighted_def(&absx, alpha, &absy, beta, gamma, &mut grad) {
                                                                     Ok(_) => {
                                                                         let result = DetectingContoursCvCtx {
                                                                             result: Image {
