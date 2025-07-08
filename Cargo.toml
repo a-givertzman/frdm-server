@@ -23,9 +23,9 @@ linked-hash-map = { version = "~0.5", git = "https://github.com/contain-rs/linke
 hashers = { version = "~1.0", git = "https://github.com/tmmcguire/hashers" }
 #
 # Serde
-serde = { version = "~1.0", features = ["derive"], git = "https://github.com/serde-rs/serde" }
-serde_yaml = { version = "~0.9", git = "https://github.com/dtolnay/serde-yaml" }
-serde_json = { version = "~1.0", git = "https://github.com/serde-rs/json" }
+serde = { version = "~1.0", features = ["derive"] }         # , git = "https://github.com/serde-rs/serde"
+serde_yaml = { version = "~0.9" }                           # , git = "https://github.com/dtolnay/serde-yaml"
+serde_json = { version = "~1.0" }                           # , git = "https://github.com/serde-rs/json"
 #
 #
 regex = { version = "~1.11", git = "https://github.com/rust-lang/regex" }
