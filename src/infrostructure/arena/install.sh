@@ -48,6 +48,12 @@ else
         sudo $installPath/Arena_SDK_Linux_x64.conf -r
         sudo $installPath/Arena_SDK_Linux_x64.conf
 
+        if [ -z "$2" ]; then
+            srcPath=$($2)src/infrostructure/arena/ArenaSDK_Linux_x64/lib64/
+            cp -f $installPath/lib64/libarenac* $srcPath
+            cp -f $installPath/lib64/libarenad* $srcPath
+        fi
+
         echo "Arena SDK installed into $installPath"
     fi
 fi
