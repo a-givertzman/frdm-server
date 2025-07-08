@@ -1,3 +1,4 @@
+extern crate frdm_tools;
 mod algorithm;
 mod conf;
 mod domain;
