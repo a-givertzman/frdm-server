@@ -137,7 +137,7 @@ impl CameraConf {
     }
     ///
     /// Returns config from serde_yaml::Value of following format:
-    pub(crate) fn from_yaml(parent: impl Into<String>, value: &serde_yaml::Value) -> CameraConf {
+    pub fn from_yaml(parent: impl Into<String>, value: &serde_yaml::Value) -> CameraConf {
         match value.as_mapping().unwrap().into_iter().next() {
             Some((key, value)) => {
                 Self::new(parent, &ConfTree::new(key.as_str().unwrap(), value.clone()))
