@@ -317,7 +317,6 @@ impl AcDevice {
                                                     let mut fps = Fps::new();
                                                     loop {
                                                         log::trace!("{}.read | Read image...", dbg);
-                                                        println!("");
                                                         match self.get_buffer() {
                                                             Ok(mut buffer) => {
                                                                 match buffer.image() {
