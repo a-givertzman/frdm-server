@@ -36,7 +36,7 @@ strum_macros = { version = "~0.27", git = "https://github.com/Peternator7/strum"
 #
 #
 # OpenCV
-opencv = { version = "~0.95", git = "https://github.com/twistedfall/opencv-rust" }
+opencv = { version = "~0.95", features = ["clang-runtime"], git = "https://github.com/twistedfall/opencv-rust" }
 #
 #
 # Photon image processing
