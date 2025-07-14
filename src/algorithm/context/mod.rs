@@ -4,7 +4,7 @@
 //! and their processing in the system.
 //!
 //! ## Example of using
-//! ```rust
+//! ```ignore
 //! use crate::{algorithm::context::{context::Context, ctx_result::Result}
 //! use crate::kernel::initial_ctx::initial_ctx::InitialCtx
 //! let path = #"....";

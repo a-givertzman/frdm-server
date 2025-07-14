@@ -6,7 +6,7 @@ mod edge_detection_test {
     use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{algorithm::{Context, ContextRead, EdgeDetection, EdgeDetectionCtx, InitialCtx, InitialPoints, Side}, domain::{Dot, Eval, Image}};
+    use crate::{algorithm::{Context, ContextRead, ContextWrite, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, InitialCtx, InitialPoints, Side}, domain::{Dot, Eval, Image}};
     ///
     ///
     static INIT: Once = Once::new();
@@ -30,7 +30,7 @@ mod edge_detection_test {
             path,
             imgcodecs::IMREAD_GRAYSCALE,
         ).unwrap();
-        let ctx = EdgeDetection::new(FakePassImg::new(Image::with(img.clone()))).eval(()).unwrap();
+        let ctx = EdgeDetection::new(FakePassImg::new()).eval(Image::with(img.clone())).unwrap();
         let edges: &EdgeDetectionCtx = ctx.read();
         let mut img_of_edges = imgcodecs::imread(
             path,
@@ -64,7 +64,7 @@ mod edge_detection_test {
         let img = Mat::from_slice_2d(&matrix).unwrap();
         let mut img_of_edges = Mat::default();
         imgproc::cvt_color(&img, &mut img_of_edges, imgproc::COLOR_GRAY2BGR, 0).unwrap();
-        let ctx = EdgeDetection::new(FakePassImg::new(Image::with(img))).eval(()).unwrap();
+        let ctx = EdgeDetection::new(FakePassImg::new()).eval(Image::with(img)).unwrap();
         let edges: &EdgeDetectionCtx = ctx.read();
         for dot in edges.result.get(Side::Upper) {
             if dot.x >= 0 && dot.y >= 0 {
@@ -126,9 +126,9 @@ mod edge_detection_test {
         ];
         for (step, img, target) in test_data {
             let result = EdgeDetection::new(
-                FakePassImg::new(img)
+                FakePassImg::new()
             )
-            .eval(())
+            .eval(img)
             .map(|ctx| {
                 let result: &EdgeDetectionCtx = ctx.read();
                 result.to_owned()
@@ -165,25 +165,20 @@ mod edge_detection_test {
     }
     ///
     /// Fake implements `Eval` for testing [EdgeDetection]
-    struct FakePassImg {
-        img: Image,
-    }
+    struct FakePassImg {}
     impl FakePassImg{
-        pub fn new(img: Image) -> Self {
-            Self { 
-                img,
-            }
+        pub fn new() -> Self {
+            Self {}
         }
     }
     //
     //
-    impl Eval<(), Result<Context, Error>> for FakePassImg {
-        fn eval(&self, _: ()) -> Result<Context, Error> {
-            Ok(
-                Context::new(
-                    InitialCtx::new(self.img.clone()),
-                ),
-            )
+    impl Eval<Image, Result<Context, Error>> for FakePassImg {
+        fn eval(&self, frame: Image) -> Result<Context, Error> {
+            let ctx = Context::new(
+                InitialCtx::new(),
+            );
+            ctx.write(DetectingContoursCvCtx { result: frame })
         }
     }
 }

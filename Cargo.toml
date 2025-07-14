@@ -55,3 +55,6 @@ libc = "~0.2"          # , git = "https://github.com/rust-lang/libc.git"
 # Sync
 kanal = { version = "~0.1", git = "https://github.com/fereidani/kanal.git" }
 parking_lot = { version = "~0.12", git = "https://github.com/Amanieu/parking_lot.git" }
+
+[lib]
+doctest = false

@@ -2,9 +2,9 @@ use opencv::imgproc;
 use opencv::core;
 use sal_core::error::Error;
 use crate::algorithm::{
-    Context, ContextRead, ContextWrite,
+    Context, ContextWrite,
     DetectingContoursCvCtx,
-    EvalResult, InitialCtx,
+    EvalResult,
 };
 use crate::{Eval, domain::Image};
 ///
@@ -26,14 +26,14 @@ impl DetectingContoursCv{
 }
 //
 //
-impl Eval<(), Result<Context, Error>> for DetectingContoursCv {
-    fn eval(&self, _: ()) -> EvalResult {
+impl Eval<Image, Result<Context, Error>> for DetectingContoursCv {
+    fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("DetectingContoursCv", "eval");
         match self.ctx.eval(()) {
             Ok(ctx) => {
-                let initial_ctx = ContextRead::<InitialCtx>::read(&ctx);
+                // let initial_ctx = ContextRead::<InitialCtx>::read(&ctx);
                 let mut gray = core::Mat::default();
-                match imgproc::cvt_color(&initial_ctx.src_frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
+                match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
                         let mut blurred = core::Mat::default();
                         //
@@ -79,11 +79,11 @@ impl Eval<(), Result<Context, Error>> for DetectingContoursCv {
                                                                     Ok(_) => {
                                                                         let result = DetectingContoursCvCtx {
                                                                             result: Image {
-                                                                                width: initial_ctx.src_frame.width,
-                                                                                height: initial_ctx.src_frame.height,
-                                                                                timestamp: initial_ctx.src_frame.timestamp,
+                                                                                width: frame.width,
+                                                                                height: frame.height,
+                                                                                timestamp: frame.timestamp,
                                                                                 mat: grad,
-                                                                                bytes: initial_ctx.src_frame.bytes,
+                                                                                bytes: frame.bytes,
                                                                             }
                                                                         };
                                                                         ctx.write(result)

@@ -63,10 +63,8 @@ mod geometry_defect_complex {
         let test_data = [
             (
                 1,
-                "src/test/complex/testing_files/contraction",
-                vec![
-
-                ]
+                "src/test/complex/testing_files/rope_0.jpeg",
+                vec![]
             )
         ];
         let conf = Conf {
@@ -75,26 +73,24 @@ mod geometry_defect_complex {
             },
             fine_scan: FineScanConf {},
         };
+        let geometry_defect = GeometryDefect::new(
+            conf.fast_scan.geometry_defect_threshold,
+            *Box::new(Mad::new()),
+            EdgeDetection::new(
+                DetectingContoursCv::new(
+                    Initial::new(
+                        InitialCtx::new(),
+                    ),
+                ),
+            ),
+        );
         for (step, testing_frame, target) in test_data {
             let frame_mat = imgcodecs::imread(
                 testing_frame,
                 imgcodecs::IMREAD_COLOR,
             ).unwrap();
             let src_frame = Image::with(frame_mat);
-            let result = GeometryDefect::new(
-                conf.fast_scan.geometry_defect_threshold,
-                *Box::new(Mad::new()),
-                EdgeDetection::new(
-                    DetectingContoursCv::new(
-                        Initial::new(
-                            InitialCtx::new(
-                                src_frame
-                            ),
-                        ),
-                    ),
-                ),
-            )
-            .eval(());
+            let result = geometry_defect.eval(src_frame);
             match result {
                 Ok(result) => {
                     let result = ContextRead::<GeometryDefectCtx>::read(&result)
