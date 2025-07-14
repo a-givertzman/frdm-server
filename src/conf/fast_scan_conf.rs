@@ -20,9 +20,9 @@ impl FastScanConf {
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::debug!("{}.new | name: {:?}", dbg, name);
-        let geometry_defect_threshold = conf.get("geometry_defect_threshold").unwrap();
+        let geometry_defect_threshold = conf.get("geometry-defect-threshold").unwrap();
         let geometry_defect_threshold = Threshold(geometry_defect_threshold);
-        log::debug!("{dbg}.new | geometry_defect_threshold: {:?}", geometry_defect_threshold);
+        log::debug!("{dbg}.new | geometry-defect-threshold: {:?}", geometry_defect_threshold);
         Self {
             geometry_defect_threshold,
         }
