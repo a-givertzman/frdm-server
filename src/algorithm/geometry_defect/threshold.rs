@@ -1,6 +1,6 @@
 ///
 /// Store threshodls values for algorithm's
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Threshold(pub f64);
 //
 //
