@@ -3,17 +3,13 @@ mod algorithm;
 mod conf;
 mod domain;
 mod infrostructure;
-#[cfg(test)]
-mod test;
 use std::fs;
-
-//
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold
-    }, conf::{Conf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
+        ContextRead, DetectingContoursCv, DetectingContoursCvCtx, Initial, InitialCtx
+    }, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -46,8 +42,8 @@ fn main() {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };
         let contours_result = DetectingContoursCv::new(
-            Initial::new(InitialCtx::new(frame.clone()))
-        ).eval(()).unwrap();
+            Initial::new(InitialCtx::new())
+        ).eval(frame.clone()).unwrap();
 
         let contours_ctx = ContextRead::<DetectingContoursCvCtx>::read(&contours_result);
         if let Err(e) = opencv::highgui::imshow(window2, &contours_ctx.result.mat) {

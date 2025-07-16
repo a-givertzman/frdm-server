@@ -61,4 +61,4 @@ doctest = false
 
 [[bin]]
 name = "complex-test"
-path = "src/main.rs"
+path = "src/complex_test.rs"
