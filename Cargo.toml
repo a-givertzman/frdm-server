@@ -58,3 +58,7 @@ parking_lot = { version = "~0.12", git = "https://github.com/Amanieu/parking_lot
 
 [lib]
 doctest = false
+
+[[bin]]
+name = "complex-test"
+path = "src/main.rs"
