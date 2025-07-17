@@ -64,13 +64,7 @@
 - Use command:
 
 ```bash
-cargo run --release -- ./doc/algorithm/ --assets ./doc/assets --output ./doc/html/
-```
-
-or
-
-```bash
-cargo run --release -- ./doc/algorithm/ --assets ./doc/assets/ --output ./doc/html/doc.html
+./build/build.sh
 ```
 
 ## References
