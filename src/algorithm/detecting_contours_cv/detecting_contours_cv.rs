@@ -20,6 +20,7 @@ pub struct DetectingContoursCv {
 impl DetectingContoursCv{
     ///
     /// Returns [DetectingContoursCv] new instance
+    /// - `ctx` - Prevouse step returns [Image] in [Context]
     /// - `conf` - Configuration for `Contour dectection` algorithm:
     ///     - gausian:
     ///         - `kernel` - Gausian blur kernel size
