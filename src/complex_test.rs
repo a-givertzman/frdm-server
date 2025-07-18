@@ -9,7 +9,7 @@ use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
         ContextRead, DetectingContoursCv, DetectingContoursCvCtx, Initial, InitialCtx
-    }, domain::Eval, infrostructure::camera::{Camera, CameraConf}
+    }, conf::DetectingContoursConf, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -42,6 +42,7 @@ fn main() {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };
         let contours_result = DetectingContoursCv::new(
+            DetectingContoursConf::default(),
             Initial::new(InitialCtx::new())
         ).eval(frame.clone()).unwrap();
 

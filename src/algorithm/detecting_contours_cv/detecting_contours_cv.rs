@@ -6,57 +6,37 @@ use crate::algorithm::{
     DetectingContoursCvCtx,
     EvalResult,
 };
+use crate::conf::DetectingContoursConf;
 use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
 /// Return filtered and binarised [Image] with contours detected
 pub struct DetectingContoursCv {
+    conf: DetectingContoursConf,
     ctx: Box<dyn Eval<(), Result<Context, Error>>>,
-    //
-    // Gausian blur kernel size
-    kernel: core::Size,
-    //
-    // Standard deviation in X direction
-    sigma_x: f64,
-    //
-    // Standard deviation in Y direction
-    sigma_y: f64,
-    //
-    // Sobel kernel size
-    kernel_size: i32,
-    //
-    // Scale factor for computed derivative values
-    scale: f64,
-    //
-    // Delta values added to results
-    delta: f64,
-    //
-    // Weight for X gradient
-    alpha: f64,
-    //
-    // Weight for Y gradient
-    beta: f64,
-    //
-    // Scalar added to weighted sum
-    gamma: f64,
 }
 //
 //
 impl DetectingContoursCv{
     ///
     /// Returns [DetectingContoursCv] new instance
-    pub fn new(ctx: impl Eval<(), Result<Context, Error>> + 'static) -> Self {
+    /// - `conf` - Configuration for `Contour dectection` algorithm:
+    ///     - gausian:
+    ///         - `kernel` - Gausian blur kernel size
+    ///         - `sigma_x` - Standard deviation in X direction
+    ///         - `sigma_y` - Standard deviation in Y direction
+    ///     - sobel:
+    ///         - `kernel_size` - Sobel kernel size
+    ///         - `scale` - Scale factor for computed derivative values
+    ///         - `delta` - Delta values added to results
+    ///     - overlay:
+    ///         - `src1-weight` - Weight for X gradient
+    ///         - `src1-weight` - Weight for Y gradient
+    ///         - `gamma` - Scalar added to weighted sum
+    pub fn new(conf: DetectingContoursConf, ctx: impl Eval<(), Result<Context, Error>> + 'static) -> Self {
         Self { 
+            conf,
             ctx: Box::new(ctx),
-            kernel: core::Size::new(3,3),
-            sigma_x: 0.0,
-            sigma_y: 0.0,
-            kernel_size: 3,
-            scale: 1.0,
-            delta: 0.0,
-            alpha: 0.5,
-            beta: 0.5,
-            gamma: 0.0,
         }
     }
 }
@@ -72,7 +52,8 @@ impl Eval<Image, Result<Context, Error>> for DetectingContoursCv {
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
                         let mut blurred = core::Mat::default();
-                        match imgproc::gaussian_blur(&gray, &mut blurred, self.kernel, self.sigma_x, self.sigma_y, core::BORDER_DEFAULT) {
+                        let kernel_size = core::Size::new(self.conf.gausian.kernel_w, self.conf.gausian.kernel_h);
+                        match imgproc::gaussian_blur(&gray, &mut blurred, kernel_size, self.conf.gausian.sigma_x, self.conf.gausian.sigma_y, core::BORDER_DEFAULT) {
                             Ok(_) => {
                                 let mut sobelx = core::Mat::default();
                                 let mut sobely = core::Mat::default();
@@ -82,7 +63,7 @@ impl Eval<Image, Result<Context, Error>> for DetectingContoursCv {
                                 //
                                 // Derivative order in Y direction for X gradient
                                 let y_order = 0;
-                                match imgproc::sobel(&blurred, &mut sobelx, core::CV_8U, x_order, y_order, self.kernel_size, self.scale, self.delta, core::BORDER_DEFAULT) {
+                                match imgproc::sobel(&blurred, &mut sobelx, core::CV_8U, x_order, y_order, self.conf.sobel.kernel_size, self.conf.sobel.scale, self.conf.sobel.delta, core::BORDER_DEFAULT) {
                                     Ok(_) => {
                                             //
                                             // Derivative order in X direction for Y gradient
@@ -90,7 +71,7 @@ impl Eval<Image, Result<Context, Error>> for DetectingContoursCv {
                                             //
                                             // Derivative order in Y direction for Y gradient
                                             let y_order = 1;
-                                        match imgproc::sobel(&blurred, &mut sobely, core::CV_8U, x_order, y_order, self.kernel_size, self.scale, self.delta, core::BORDER_DEFAULT) {
+                                        match imgproc::sobel(&blurred, &mut sobely, core::CV_8U, x_order, y_order, self.conf.sobel.kernel_size, self.conf.sobel.scale, self.conf.sobel.delta, core::BORDER_DEFAULT) {
                                             Ok(_) => {
                                                 let mut absx = core::Mat::default();
                                                 let mut absy = core::Mat::default();
@@ -103,7 +84,7 @@ impl Eval<Image, Result<Context, Error>> for DetectingContoursCv {
                                                         match core::convert_scale_abs_def(&sobely, &mut absy) {
                                                             Ok(_) => {
                                                                 let mut grad = core::Mat::default();
-                                                                match core::add_weighted_def(&absx, self.alpha, &absy, self.beta, self.gamma, &mut grad) {
+                                                                match core::add_weighted_def(&absx, self.conf.overlay.src1_weight, &absy, self.conf.overlay.src2_weight, self.conf.overlay.gamma, &mut grad) {
                                                                     Ok(_) => {
                                                                         let result = DetectingContoursCvCtx {
                                                                             result: Image {
