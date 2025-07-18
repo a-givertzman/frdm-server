@@ -14,14 +14,17 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 #[derive(Debug, Clone, PartialEq)]
 pub struct OverlayConf {
     /// Weight for X gradient
+    /// The coefficient by which all pixels in the first image will be multiplied
     /// 
     /// Default: 0.5
     pub src1_weight: f64,
-    // Weight for Y gradient
+    /// Weight for Y gradient
+    /// The coefficient by which all pixels in the second image will be multiplied
     /// 
     /// Default: 0.5
     pub src2_weight: f64,
     /// Scalar added to weighted sum
+    /// Constant value added to all pixels
     /// 
     /// Default: 0.0
     pub gamma: f64,
