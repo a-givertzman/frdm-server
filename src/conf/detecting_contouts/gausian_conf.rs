@@ -9,7 +9,7 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 /// gausian:
 ///     kernel-size:
 ///         width: 3
-///         heidht: 3
+///         height: 3
 ///     sigma-x: 0.0
 ///     sigma-y: 0.0
 /// ```
@@ -19,7 +19,7 @@ pub struct GausianConf {
     /// This must be odd values (the matrix must have an exact center)
     /// The larger the kernel size, the greater the blur.
     /// 
-    /// Default: Size( width: 3, heidht: 3)
+    /// Default: Size( width: 3, height: 3)
     pub kernel_w: i32,
     pub kernel_h: i32,
     /// Standard deviation in X direction

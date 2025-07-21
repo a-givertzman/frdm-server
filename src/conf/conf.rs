@@ -11,7 +11,7 @@ use crate::conf::{DetectingContoursConf, FastScanConf, FineScanConf};
 ///     gausian:
 ///         kernel-size:
 ///             width: 3
-///             heidht: 3
+///             height: 3
 ///         sigma-x: 0.0
 ///         sigma-y: 0.0
 ///     sobel:
