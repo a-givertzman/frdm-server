@@ -53,19 +53,19 @@ impl DetectingContoursConf {
         log::debug!("{}.new | name: {:?}", dbg, name);
         let gamma = conf.get("gamma").expect(&format!("{dbg}.new | 'gamma' - not found or wrong configuration"));
         let gamma = GammaConf::new(&name, gamma);
-        log::debug!("{dbg}.new | gamma: {:#?}", gamma);
+        log::trace!("{dbg}.new | gamma: {:#?}", gamma);
         let brightness_contrast = conf.get("brightness-contrast").expect(&format!("{dbg}.new | 'brightness-contrast' - not found or wrong configuration"));
         let brightness_contrast = BrightnessContrastConf::new(&name, brightness_contrast);
-        log::debug!("{dbg}.new | brightness-contrast: {:#?}", brightness_contrast);
+        log::trace!("{dbg}.new | brightness-contrast: {:#?}", brightness_contrast);
         let gausian = conf.get("gausian").expect(&format!("{dbg}.new | 'gausian' - not found or wrong configuration"));
         let gausian = GausianConf::new(&name, gausian);
-        log::debug!("{dbg}.new | gausian: {:#?}", gausian);
+        log::trace!("{dbg}.new | gausian: {:#?}", gausian);
         let sobel = conf.get("sobel").expect(&format!("{dbg}.new | 'sobel' - not found or wrong configuration"));
         let sobel = SobelConf::new(&name, sobel);
-        log::debug!("{dbg}.new | sobel: {:#?}", sobel);
+        log::trace!("{dbg}.new | sobel: {:#?}", sobel);
         let overlay = conf.get("overlay").expect(&format!("{dbg}.new | 'overlay' - not found or wrong configuration"));
         let overlay = OverlayConf::new(&name, overlay);
-        log::debug!("{dbg}.new | overlay: {:#?}", overlay);
+        log::trace!("{dbg}.new | overlay: {:#?}", overlay);
         Self {
             gamma,
             brightness_contrast,
