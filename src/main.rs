@@ -9,12 +9,9 @@ mod test;
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
-    domain::Eval,
-    infrostructure::camera::{Camera, CameraConf},
-    conf::{Conf, FastScanConf, FineScanConf},
     algorithm::{
         DetectingContoursCv, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold,
-    }
+    }, conf::{Conf, DetectingContoursConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -32,6 +29,7 @@ fn main() {
     }
     opencv::highgui::wait_key(1).unwrap();
     let conf = Conf {
+        detecting_contours: DetectingContoursConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),
         },
@@ -42,6 +40,7 @@ fn main() {
         *Box::new(Mad::new()),
         EdgeDetection::new(
             DetectingContoursCv::new(
+                conf.detecting_contours,
                 Initial::new(
                     InitialCtx::new(),
                 ),

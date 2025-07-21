@@ -26,9 +26,7 @@ mod geometry_defect_complex {
             Threshold
         }, 
         conf::{
-            Conf, 
-            FastScanConf, 
-            FineScanConf
+            Conf, DetectingContoursConf, FastScanConf, FineScanConf
         }, 
         domain::{
             Eval, 
@@ -68,6 +66,7 @@ mod geometry_defect_complex {
             )
         ];
         let conf = Conf {
+            detecting_contours: DetectingContoursConf::default(),
             fast_scan: FastScanConf {
                 geometry_defect_threshold: Threshold::min(),
             },
@@ -78,6 +77,7 @@ mod geometry_defect_complex {
             *Box::new(Mad::new()),
             EdgeDetection::new(
                 DetectingContoursCv::new(
+                    conf.detecting_contours,
                     Initial::new(
                         InitialCtx::new(),
                     ),

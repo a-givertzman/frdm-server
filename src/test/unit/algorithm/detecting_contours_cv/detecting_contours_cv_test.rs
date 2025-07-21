@@ -6,8 +6,7 @@ use sal_core::{dbg::Dbg, error::Error};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 use crate::{
-    algorithm::{Context, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, InitialCtx},
-    domain::{Eval, Image},
+    algorithm::{Context, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, InitialCtx}, conf::DetectingContoursConf, domain::{Eval, Image}
 };
 ///
 ///
@@ -49,7 +48,11 @@ fn eval() {
             imgcodecs::IMREAD_COLOR,
         ).unwrap();
         log::debug!("\n{dbg} | step {step}  Detecting contours...");
-        let ctx = DetectingContoursCv::new(FakePassImg::new()).eval(Image::with(img)).unwrap();
+        let ctx = DetectingContoursCv::new(
+            DetectingContoursConf::default(),
+            FakePassImg::new()
+        )
+        .eval(Image::with(img)).unwrap();
         log::debug!("\n{dbg} | step {step}  Showing result...");
         let result: &DetectingContoursCvCtx = ctx.read();
         highgui::named_window("detected_contours_cv", highgui::WINDOW_NORMAL).unwrap();
