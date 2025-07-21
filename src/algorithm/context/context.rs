@@ -1,5 +1,5 @@
 use crate::algorithm::{
-    geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx
+    geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx, auto_correction::{AutoGammaCtx, AutoBrightnessAndContrastCtx},
 };
 use super::testing_ctx::TestingCtx;
 ///
@@ -12,6 +12,10 @@ pub struct Context {
     pub(super) initial: InitialCtx,
     /// Filtered and binarised image
     pub(super) detecting_contours_cv: DetectingContoursCvCtx,
+    /// Gamma-corrected image
+    pub(super) auto_gamma: AutoGammaCtx,
+    /// Image with corrected brightness and contrast
+    pub(super) auto_brightness_and_contrast: AutoBrightnessAndContrastCtx,
     /// points of rope perimeter
     pub(super) edge_detection: EdgeDetectionCtx,
     /// points that deviate in width from the threshold
@@ -33,6 +37,8 @@ impl Context {
         Self {
             initial,
             detecting_contours_cv: DetectingContoursCvCtx::default(),
+            auto_gamma: AutoGammaCtx::default(),
+            auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),
             edge_detection: EdgeDetectionCtx::default(),
             width_emissions: WidthEmissionsCtx::default(),
             geometry_defect: GeometryDefectCtx::default(),
