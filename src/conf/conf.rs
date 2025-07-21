@@ -49,13 +49,13 @@ impl Conf {
         log::debug!("{}.new | name: {:?}", dbg, name);
         let detecting_contours = conf.get("detecting-contours").expect(&format!("{dbg}.new | 'detecting-contours' - not found or wrong configuration"));
         let detecting_contours = DetectingContoursConf::new(&name, detecting_contours);
-        log::debug!("{dbg}.new | detecting-contours: {:#?}", detecting_contours);
+        log::trace!("{dbg}.new | detecting-contours: {:#?}", detecting_contours);
         let fast_scan = conf.get("fast-scan").expect(&format!("{dbg}.new | 'fast-scan' - not found or wrong configuration"));
         let fast_scan = FastScanConf::new(&name, fast_scan);
-        log::debug!("{dbg}.new | fast-scan: {:#?}", fast_scan);
+        log::trace!("{dbg}.new | fast-scan: {:#?}", fast_scan);
         let fine_scan = conf.get("fine-scan").expect(&format!("{dbg}.new | 'fine-scan' - not found or wrong configuration"));
         let fine_scan = FineScanConf::new(&name, fine_scan);
-        log::debug!("{dbg}.new | fine-scan: {:#?}", fine_scan);
+        log::trace!("{dbg}.new | fine-scan: {:#?}", fine_scan);
         Self {
             detecting_contours,
             fast_scan,

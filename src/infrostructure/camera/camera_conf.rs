@@ -94,7 +94,7 @@ impl CameraConf {
     /// ```
     pub fn new(parent: impl Into<String>, conf: &ConfTree) -> Self {
         let parent = parent.into();
-        let me = conf.sufix_or(conf.name().unwrap_or("CameraConf".to_owned()));
+        let me = conf.sufix_or(conf.name().unwrap_or("Camera".to_owned()));
         let dbg = Dbg::new(&parent, format!("CameraConf({})", me));
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
