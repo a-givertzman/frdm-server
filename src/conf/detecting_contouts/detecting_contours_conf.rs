@@ -1,12 +1,16 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::conf::{GausianConf, OverlayConf, SobelConf};
+use crate::conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, SobelConf};
 
 ///
 /// ## Configuration for `Contour dectection` algorithm
 /// 
 /// ### Example:
 /// ```yaml
+/// gamma:
+///     no-param: not parameters implemented 
+/// brightness-contrast:
+///     histogram-clipping: 1     # optional histogram clipping, default = 0 %
 /// gausian:
 ///     kernel-size:
 ///         width: 3
@@ -24,6 +28,10 @@ use crate::conf::{GausianConf, OverlayConf, SobelConf};
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct DetectingContoursConf {
+    /// Configuration for `Gamma auto correction` algorithm
+    pub gamma: GammaConf,
+    /// Configuration for `Brightness and contrast auto correction`
+    pub brightness_contrast: BrightnessContrastConf,
     /// Configuration for `Gaussian filter`
     pub gausian: GausianConf,
     /// Configuration for `Sobel operator`
@@ -43,6 +51,12 @@ impl DetectingContoursConf {
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::debug!("{}.new | name: {:?}", dbg, name);
+        let gamma = conf.get("gamma").expect(&format!("{dbg}.new | 'gamma' - not found or wrong configuration"));
+        let gamma = GammaConf::new(&name, gamma);
+        log::debug!("{dbg}.new | gamma: {:#?}", gamma);
+        let brightness_contrast = conf.get("brightness-contrast").expect(&format!("{dbg}.new | 'brightness-contrast' - not found or wrong configuration"));
+        let brightness_contrast = BrightnessContrastConf::new(&name, brightness_contrast);
+        log::debug!("{dbg}.new | brightness-contrast: {:#?}", brightness_contrast);
         let gausian = conf.get("gausian").expect(&format!("{dbg}.new | 'gausian' - not found or wrong configuration"));
         let gausian = GausianConf::new(&name, gausian);
         log::debug!("{dbg}.new | gausian: {:#?}", gausian);
@@ -53,6 +67,8 @@ impl DetectingContoursConf {
         let overlay = OverlayConf::new(&name, overlay);
         log::debug!("{dbg}.new | overlay: {:#?}", overlay);
         Self {
+            gamma,
+            brightness_contrast,
             gausian,
             sobel,
             overlay,
@@ -64,9 +80,11 @@ impl DetectingContoursConf {
 impl Default for DetectingContoursConf {
     fn default() -> Self {
         Self {
-            gausian: Default::default(),
-            sobel: Default::default(),
-            overlay: Default::default(),
+            gamma: GammaConf::default(),
+            brightness_contrast: BrightnessContrastConf::default(),
+            gausian: GausianConf::default(),
+            sobel: SobelConf::default(),
+            overlay: OverlayConf::default(),
         }
     }
 }

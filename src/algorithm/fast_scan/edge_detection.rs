@@ -1,7 +1,7 @@
 use opencv::core::MatTraitConst;
 use sal_core::error::Error;
 use crate::{
-    algorithm::{Context, ContextRead, ContextWrite, DetectingContoursCvCtx, EvalResult, InitialPoints},
+    algorithm::{ContextRead, ContextWrite, DetectingContoursCvCtx, EvalResult, InitialPoints},
     domain::{Dot, Eval, Image},
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
@@ -9,14 +9,14 @@ use super::edge_detection_ctx::EdgeDetectionCtx;
 /// Take [Image]
 /// Return vectors of [Dot] for upper and lower edges of rope
 pub struct EdgeDetection {
-    ctx: Box<dyn Eval<Image, Result<Context, Error>>>,
+    ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 //
 //
 impl EdgeDetection {
     ///
     /// Returns [EdgeDetection] new instance
-    pub fn new(ctx: impl Eval<Image, Result<Context, Error>> + 'static) -> Self {
+    pub fn new(ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self { 
             ctx: Box::new(ctx),
         }
@@ -24,7 +24,7 @@ impl EdgeDetection {
 }
 //
 //
-impl Eval<Image, Result<Context, Error>> for EdgeDetection {
+impl Eval<Image, EvalResult> for EdgeDetection {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("EdgeDetection", "eval");
         match self.ctx.eval(frame) {

@@ -6,7 +6,7 @@ use sal_core::{dbg::Dbg, error::Error};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 use crate::{
-    algorithm::{Context, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, InitialCtx}, conf::DetectingContoursConf, domain::{Eval, Image}
+    algorithm::{AutoBrightnessAndContrastCtx, Context, ContextRead, ContextWrite, DetectingContoursCv, DetectingContoursCvCtx, EvalResult, InitialCtx}, conf::DetectingContoursConf, domain::{Eval, Image}
 };
 ///
 ///
@@ -72,12 +72,11 @@ impl FakePassImg{
 }
 //
 //
-impl Eval<(), Result<Context, Error>> for FakePassImg {
-    fn eval(&self, _: ()) -> Result<Context, Error> {
-        Ok(
-            Context::new(
-                InitialCtx::new()
-            )
-        )
+impl Eval<Image, Result<Context, Error>> for FakePassImg {
+    fn eval(&self, frame: Image) -> EvalResult {
+        let ctx = Context::new(
+            InitialCtx::new()
+        );
+        ctx.write(AutoBrightnessAndContrastCtx { result: frame })
     }
 }

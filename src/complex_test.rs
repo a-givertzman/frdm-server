@@ -8,8 +8,8 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, DetectingContoursCv, DetectingContoursCvCtx, Initial, InitialCtx
-    }, conf::DetectingContoursConf, domain::Eval, infrostructure::camera::{Camera, CameraConf}
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, Initial, InitialCtx, Threshold
+    }, conf::{Conf, DetectingContoursConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -34,6 +34,13 @@ fn main() {
         log::warn!("{}.stream | Create Window Error: {}", dbg, err);
     }
     opencv::highgui::wait_key(1).unwrap();
+    let conf = Conf {
+        detecting_contours: DetectingContoursConf::default(),
+        fast_scan: FastScanConf {
+            geometry_defect_threshold: Threshold::min(),
+        },
+        fine_scan: FineScanConf {},
+    };
     for frame in recv {
         log::trace!("{} | Frame width : {:?}", dbg, frame.width);
         log::trace!("{} | Frame height: {:?}", dbg, frame.height);
@@ -43,9 +50,15 @@ fn main() {
         };
         let contours_result = DetectingContoursCv::new(
             DetectingContoursConf::default(),
-            Initial::new(InitialCtx::new())
+                AutoBrightnessAndContrast::new(
+                    conf.detecting_contours.brightness_contrast.histogram_clipping,
+                    AutoGamma::new(
+                        Initial::new(
+                            InitialCtx::new(),
+                        ),
+                    ),
+                ),
         ).eval(frame.clone()).unwrap();
-
         let contours_ctx = ContextRead::<DetectingContoursCvCtx>::read(&contours_result);
         if let Err(e) = opencv::highgui::imshow(window2, &contours_ctx.result.mat) {
             log::error!("Display error: {}", e);

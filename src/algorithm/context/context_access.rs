@@ -1,9 +1,8 @@
 use super::{context::Context};
 use crate::{
     algorithm::{
-        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx,
-    }, 
-    domain::Error 
+        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx, auto_correction::{AutoGammaCtx, AutoBrightnessAndContrastCtx},
+    }, domain::Error,
 };
 ///
 /// Provides restricted write access to the [Context] members
@@ -39,6 +38,32 @@ impl ContextWrite<DetectingContoursCvCtx> for Context {
 impl ContextRead<DetectingContoursCvCtx> for Context {
     fn read(&self) -> &DetectingContoursCvCtx {
         &self.detecting_contours_cv
+    }
+}
+//
+//
+impl ContextWrite<AutoGammaCtx> for Context {
+    fn write(mut self, value: AutoGammaCtx) -> Result<Self, Error> {
+        self.auto_gamma = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<AutoGammaCtx> for Context {
+    fn read(&self) -> &AutoGammaCtx {
+        &self.auto_gamma
+    }
+}
+//
+//
+impl ContextWrite<AutoBrightnessAndContrastCtx> for Context {
+    fn write(mut self, value: AutoBrightnessAndContrastCtx) -> Result<Self, Error> {
+        self.auto_brightness_and_contrast = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<AutoBrightnessAndContrastCtx> for Context {
+    fn read(&self) -> &AutoBrightnessAndContrastCtx {
+        &self.auto_brightness_and_contrast
     }
 }
 //
