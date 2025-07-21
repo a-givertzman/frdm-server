@@ -14,14 +14,19 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 #[derive(Debug, Clone, PartialEq)]
 pub struct SobelConf {
     /// Sobel kernel size
+    /// It must be 1, 3, 5 or 7
+    /// The higher the value, the more sensitive the algorithm.
     /// 
     /// Default: 3
     pub kernel_size: i32,
     /// Scale factor for computed derivative values
+    /// The coefficient by which all values in matrix will be multiplied
+    /// The higher the value, the brighter the contours
     /// 
     /// Default: 1.0
     pub scale: f64,
     /// Delta values added to results
+    /// Scalar added to all pixels
     /// 
     /// Default: 0.0
     pub delta: f64,

@@ -16,15 +16,21 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 #[derive(Debug, Clone, PartialEq)]
 pub struct GausianConf {
     /// Gausian blur kernel size
+    /// This must be odd values (the matrix must have an exact center)
+    /// The larger the kernel size, the greater the blur.
     /// 
     /// Default: Size( width: 3, heidht: 3)
     pub kernel_w: i32,
     pub kernel_h: i32,
     /// Standard deviation in X direction
+    /// The higher the value, the more pixels are used to count each pixel and the smoother blur will be
+    /// If the value is 0.0, it is calculated based on kernel_size
+    /// sigma = 0.3 * (( kernel_size - 1 ) * 0.5 - 1 ) + 0.8
     /// 
-    /// Default: 0.0
+    /// Default: 0.0 
     pub sigma_x: f64,
     /// Standard deviation in Y direction
+    /// Same as in X direction
     /// 
     /// Default: 0.0
     pub sigma_y: f64,

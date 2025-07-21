@@ -26,13 +26,9 @@ use crate::conf::{GausianConf, OverlayConf, SobelConf};
 pub struct DetectingContoursConf {
     /// Configuration for `Gaussian filter`
     pub gausian: GausianConf,
-    /// Standard deviation in X direction
-    /// 
-    /// Default: 0.0
+    /// Configuration for `Sobel operator`
     pub sobel: SobelConf,
-    /// Standard deviation in Y direction
-    /// 
-    /// Default: 0.0
+    /// Configuration for `Weighted sum`
     pub overlay: OverlayConf,
 }
 //
