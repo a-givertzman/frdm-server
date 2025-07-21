@@ -2,8 +2,8 @@ use opencv::imgproc;
 use opencv::core;
 use sal_core::error::Error;
 use crate::algorithm::{
-    Context, ContextWrite,
-    DetectingContoursCvCtx,
+    ContextWrite, ContextRead,
+    DetectingContoursCvCtx, AutoBrightnessAndContrastCtx,
     EvalResult,
 };
 use crate::conf::DetectingContoursConf;
@@ -13,7 +13,7 @@ use crate::{Eval, domain::Image};
 /// Return filtered and binarised [Image] with contours detected
 pub struct DetectingContoursCv {
     conf: DetectingContoursConf,
-    ctx: Box<dyn Eval<(), Result<Context, Error>>>,
+    ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 //
 //
@@ -34,7 +34,7 @@ impl DetectingContoursCv{
     ///         - `src1-weight` - Weight for X gradient
     ///         - `src1-weight` - Weight for Y gradient
     ///         - `gamma` - Scalar added to weighted sum
-    pub fn new(conf: DetectingContoursConf, ctx: impl Eval<(), Result<Context, Error>> + 'static) -> Self {
+    pub fn new(conf: DetectingContoursConf, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self { 
             conf,
             ctx: Box::new(ctx),
@@ -43,12 +43,12 @@ impl DetectingContoursCv{
 }
 //
 //
-impl Eval<Image, Result<Context, Error>> for DetectingContoursCv {
+impl Eval<Image, EvalResult> for DetectingContoursCv {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("DetectingContoursCv", "eval");
-        match self.ctx.eval(()) {
+        match self.ctx.eval(frame) {
             Ok(ctx) => {
-                // let initial_ctx = ContextRead::<InitialCtx>::read(&ctx);
+                let frame = ContextRead::<AutoBrightnessAndContrastCtx>::read(&ctx).result.clone();
                 let mut gray = core::Mat::default();
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {

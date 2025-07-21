@@ -1,5 +1,4 @@
-use sal_core::error::Error;
-use crate::{algorithm::{Context, InitialCtx}, domain::Eval};
+use crate::{algorithm::{Context, InitialCtx, EvalResult}, domain::Eval};
 ///
 /// Takes [InitialCtx]
 /// Returns [Context] with only [InitialCtx]
@@ -19,8 +18,8 @@ impl Initial{
 }
 //
 //
-impl Eval<(), Result<Context, Error>> for Initial {
-    fn eval(&self, _: ()) -> Result<Context, Error> {
+impl Eval<(), EvalResult> for Initial {
+    fn eval(&self, _: ()) -> EvalResult {
         // let error = Error::new("Initial", "eval");
         Ok(Context::new(self.ctx.clone()))
     }

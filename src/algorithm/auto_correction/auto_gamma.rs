@@ -1,7 +1,7 @@
 use opencv::core::Mat;
 use sal_core::error::Error;
 use crate::algorithm::{
-    Context, ContextWrite,
+    ContextWrite,
     EvalResult,
 };
 use crate::algorithm::auto_correction::AutoGammaCtx;
@@ -9,13 +9,15 @@ use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
 /// Return [Image] with corrected gamma
+/// 
+/// Reference: [Automatic contrast and brightness adjustment of a color photo of a sheet of paper with OpenCV](https://stackoverflow.com/questions/56905592/automatic-contrast-and-brightness-adjustment-of-a-color-photo-of-a-sheet-of-pape)
 pub struct AutoGamma {
-    ctx: Box<dyn Eval<(), Result<Context, Error>>>,
+    ctx: Box<dyn Eval<(), EvalResult>>,
 }
-///
-/// Returns [AutoGamma] new instance
-impl AutoGamma{
-    pub fn new(ctx: impl Eval<(), Result<Context, Error>> + 'static) -> Self {
+impl AutoGamma {
+    ///
+    /// Returns [AutoGamma] new instance
+    pub fn new(ctx: impl Eval<(), EvalResult> + 'static) -> Self {
         Self { 
             ctx: Box::new(ctx),
         }
@@ -23,7 +25,7 @@ impl AutoGamma{
 }
 //
 //
-impl Eval<Image, Result<Context, Error>> for AutoGamma {
+impl Eval<Image, EvalResult> for AutoGamma {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("AutoGamma", "eval");
         match self.ctx.eval(()) {

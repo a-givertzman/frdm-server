@@ -2,7 +2,8 @@ use opencv::core::{Mat, MatTraitConst, Vector};
 use opencv::imgproc;
 use sal_core::error::Error;
 use crate::algorithm::{
-    Context, ContextWrite,
+    ContextWrite, ContextRead,
+    AutoGammaCtx,
     EvalResult,
 };
 use crate::algorithm::auto_correction::AutoBrightnessAndContrastCtx;
@@ -10,31 +11,33 @@ use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
 /// Return [Image] with corrected brightness and contrast
+/// 
+/// 
+/// Reference: [Automatic contrast and brightness adjustment of a color photo of a sheet of paper with OpenCV](https://stackoverflow.com/questions/56905592/automatic-contrast-and-brightness-adjustment-of-a-color-photo-of-a-sheet-of-pape)
 pub struct AutoBrightnessAndContrast {
-    conf: Option<f32>,
-    ctx: Box<dyn Eval<(), Result<Context, Error>>>,
+    histogram_clipping: i32,
+    ctx: Box<dyn Eval<Image, EvalResult>>,
 }
-///
-/// Returns [AutoBrightnessAndContrast] new instance
-impl AutoBrightnessAndContrast{
-    pub fn new(conf: Option<f32>, ctx: impl Eval<(), Result<Context, Error>> + 'static) -> Self {
+impl AutoBrightnessAndContrast {
+    ///
+    /// Returns [AutoBrightnessAndContrast] new instance
+    /// - `histogram_clipping` - optional histogram clipping, default = 0 %
+    pub fn new(histogram_clipping: i32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self { 
-            conf,
+            histogram_clipping,
             ctx: Box::new(ctx),
         }
     }
 }
 //
 //
-impl Eval<Image, Result<Context, Error>> for AutoBrightnessAndContrast {
+impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("AutoGamma", "eval");
-        match self.ctx.eval(()) {
+        match self.ctx.eval(frame) {
             Ok(ctx) => {
-                let mut clip_hist_percent = match self.conf {
-                    Some(val) => val,
-                    None => 1.0,
-                };
+                let frame = ContextRead::<AutoGammaCtx>::read(&ctx).result.clone();
+                let mut clip_hist_percent = self.histogram_clipping as f32;
                 let mut gray = Mat::default();
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
@@ -67,9 +70,9 @@ impl Eval<Image, Result<Context, Error>> for AutoBrightnessAndContrast {
                                 // Locate points to clip
                                 let maximum = match accumulator.last() {
                                     Some(max) => max,
-                                    None => return Err(error.pass("Empty accumulator"))
+                                    None => return Err(error.pass("Empty `accumulator`"))
                                 };
-                                clip_hist_percent = clip_hist_percent * (maximum / 100.0);
+                                clip_hist_percent = clip_hist_percent * maximum / 100.0;
                                 clip_hist_percent = clip_hist_percent / 2.0;
                                 // Locate left cut
                                 let mut minimum_gray = 0;

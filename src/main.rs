@@ -11,6 +11,7 @@ use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
         DetectingContoursCv, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold,
+        AutoBrightnessAndContrast, AutoGamma,
     }, conf::{Conf, DetectingContoursConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -40,9 +41,14 @@ fn main() {
         *Box::new(Mad::new()),
         EdgeDetection::new(
             DetectingContoursCv::new(
-                conf.detecting_contours,
-                Initial::new(
-                    InitialCtx::new(),
+                conf.detecting_contours.clone(),
+                AutoBrightnessAndContrast::new(
+                    conf.detecting_contours.brightness_contrast.histogram_clipping,
+                    AutoGamma::new(
+                        Initial::new(
+                            InitialCtx::new(),
+                        ),
+                    ),
                 ),
             ),
         ),
