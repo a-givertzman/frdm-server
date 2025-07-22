@@ -1,9 +1,11 @@
 #[cfg(test)]
 
 use std::{sync::Once, time::Duration};
+use env_logger::Builder;
+use log::LevelFilter;
 use sal_core::dbg::Dbg;
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+// use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 use opencv::{
     highgui, prelude::*, videoio
 };
@@ -34,7 +36,8 @@ fn init_each() -> () {}
 /// Testing read from USB
 #[test]
 fn camera_conf() {
-    DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    // DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    Builder::new().filter(None, LevelFilter::Debug).init();
     init_once();
     init_each();
     let dbg = Dbg::own("test");
@@ -45,7 +48,7 @@ fn camera_conf() {
         (
             1,
             serde_yaml::from_str(r#"
-            service Camera Camera1:
+            camera Camera1:
                 fps: Min
                 resolution: 
                     width: 1200
@@ -79,23 +82,23 @@ fn camera_conf() {
         (
             2,
             serde_yaml::from_str(r#"
-            service Camera Camera1:
-                fps: Max
-                resolution: 
-                    width: 1200
-                    height: 800
-                index: 0
-                address: 192.168.10.12:2020
-                pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
-                exposure:
-                    auto: Off               # Off / Continuous
-                    time: 5000              # microseconds
-                auto-packet-size: true
-                channel-packet-size: Max
-                resend-packet: false
+                camera Camera2:
+                    fps: Max
+                    resolution: 
+                        width: 1200
+                        height: 800
+                    index: 0
+                    address: 192.168.10.12:2020
+                    pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
+                    exposure:
+                        auto: Off               # Off / Continuous
+                        time: 5000              # microseconds
+                    auto-packet-size: true
+                    channel-packet-size: Max
+                    resend-packet: false
             "#).unwrap(),
             CameraConf {
-                name: "/test/Camera1".into(),
+                name: "/test/Camera2".into(),
                 fps: FrameRate::Max,
                 resolution: CameraResolution {
                     width: 1200,
@@ -113,23 +116,23 @@ fn camera_conf() {
         (
             3,
             serde_yaml::from_str(r#"
-            service Camera Camera1:
-                fps: 30
-                resolution: 
-                    width: 1200
-                    height: 800
-                index: 0
-                address: 192.168.10.12:2020
-                pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
-                exposure:
-                    auto: Off               # Off / Continuous
-                    time: 5000              # microseconds
-                auto-packet-size: true
-                channel-packet-size: 1024
-                resend-packet: false
+                camera Camera3:
+                    fps: 30
+                    resolution: 
+                        width: 1200
+                        height: 800
+                    index: 0
+                    address: 192.168.10.12:2020
+                    pixel-format: BayerBG8        # Mono8/10/12/16, BayerBG8/10/12/16, RGB8, BGR8, YCbCr8, YCbCr411, YUV422, YUV411
+                    exposure:
+                        auto: Off               # Off / Continuous
+                        time: 5000              # microseconds
+                    auto-packet-size: true
+                    channel-packet-size: 1024
+                    resend-packet: false
             "#).unwrap(),
             CameraConf {
-                name: "/test/Camera1".into(),
+                name: "/test/Camera3".into(),
                 fps: FrameRate::Val(30.0),
                 resolution: CameraResolution {
                     width: 1200,
@@ -145,8 +148,9 @@ fn camera_conf() {
             }        
         ),
     ];
-    for (step,yaml, target) in test_data {
-        let result = CameraConf::from_yaml(&dbg, &yaml);
+    for (step, conf, target) in test_data {
+        let result = CameraConf::from_yaml(&dbg, &conf);
+        log::debug!("{dbg} | conf: {:#?}", result);
         assert_eq!(result,target,"step {} \nresult: {:?}\ntarget: {:?}",step, result, target);
     }
     test_duration.exit();
@@ -156,7 +160,8 @@ fn camera_conf() {
 #[test]
 #[ignore = "Required connection with camera"]
 fn video(){
-    DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    // DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    Builder::new().filter(None, LevelFilter::Debug).init();
     init_once();
     init_each();
     let dbg = Dbg::own("camera_test");

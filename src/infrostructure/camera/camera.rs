@@ -1,7 +1,7 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::JoinHandle, time::Duration};
 use opencv::videoio::VideoCaptureTrait;
 use sal_core::{dbg::Dbg, error::Error};
-use sal_sync::services::entity::Name;
+use sal_sync::services::entity::{Name, Object};
 use crate::{domain::{channel_unbounded, Receiver, Sender, Image}, infrostructure::arena::{AcDevice, AcSystem}};
 use super::camera_conf::CameraConf;
 ///
@@ -147,6 +147,13 @@ impl Camera {
     /// Sends `Exit` signal to stop reading.
     pub fn exit(&self) {
         self.exit.store(true, Ordering::SeqCst);
+    }
+}
+//
+//
+impl Object for Camera {
+    fn name(&self) -> Name {
+        self.name.clone()
     }
 }
 ///
