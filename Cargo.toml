@@ -45,6 +45,8 @@ photon-rs = { version = "0.3.2", default-features = false, git = "https://github
 #
 # Image
 #
+# For folder processing
+walkdir = "2.3"
 #
 # [build-dependencies]
 # cc = "^1.1"
