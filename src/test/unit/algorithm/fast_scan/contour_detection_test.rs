@@ -7,6 +7,7 @@ use std::{
     time::Duration
 };
 use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs};
+use sal_sync::services::conf::ConfDistance;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
     DebugSession, 
@@ -61,6 +62,7 @@ fn eval() {
         )
     ];
     let conf = Conf {
+        segment: ConfDistance::new(100.0, sal_sync::services::conf::ConfDistanceUnit::Millimeter),
         detecting_contours: DetectingContoursConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),

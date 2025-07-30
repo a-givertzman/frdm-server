@@ -1,5 +1,5 @@
 use sal_core::dbg::Dbg;
-use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
+use sal_sync::services::{conf::{ConfDistance, ConfTree, ConfTreeGet}, entity::Name};
 use crate::conf::{DetectingContoursConf, FastScanConf, FineScanConf};
 
 ///
@@ -7,6 +7,7 @@ use crate::conf::{DetectingContoursConf, FastScanConf, FineScanConf};
 /// 
 /// ### Example
 /// ```yaml
+/// segment: 100 mm     # Whole rope will divided by the segments for the Camera defect detection, recomended: `segment length = camera.width * 0.10..0.20`
 /// detecting-contours:
 ///     gamma:
 ///         no-param: not parameters implemented 
@@ -33,6 +34,9 @@ use crate::conf::{DetectingContoursConf, FastScanConf, FineScanConf};
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct Conf {
+    /// Rope segmetn length.
+    /// Whole rope will divided by the segments for the Camera defect detection, recomended: `segment length = camera.width * 0.10..0.20`
+    pub segment: ConfDistance,
     pub detecting_contours: DetectingContoursConf,
     pub fast_scan: FastScanConf,
     pub fine_scan: FineScanConf,
@@ -47,6 +51,8 @@ impl Conf {
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::debug!("{}.new | name: {:?}", dbg, name);
+        let segment = conf.get_distance("segment").expect(&format!("{dbg}.new | 'segment' - not found or wrong configuration"));
+        log::debug!("{dbg}.new | segment: {:?}", segment);
         let detecting_contours = conf.get("detecting-contours").expect(&format!("{dbg}.new | 'detecting-contours' - not found or wrong configuration"));
         let detecting_contours = DetectingContoursConf::new(&name, detecting_contours);
         log::trace!("{dbg}.new | detecting-contours: {:#?}", detecting_contours);
@@ -57,6 +63,7 @@ impl Conf {
         let fine_scan = FineScanConf::new(&name, fine_scan);
         log::trace!("{dbg}.new | fine-scan: {:#?}", fine_scan);
         Self {
+            segment,
             detecting_contours,
             fast_scan,
             fine_scan,
