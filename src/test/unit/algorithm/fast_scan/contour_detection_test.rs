@@ -63,6 +63,7 @@ fn eval() {
     ];
     let conf = Conf {
         segment: ConfDistance::new(100.0, sal_sync::services::conf::ConfDistanceUnit::Millimeter),
+        segment_threshold: ConfDistance::new(5.0, sal_sync::services::conf::ConfDistanceUnit::Millimeter),
         detecting_contours: DetectingContoursConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),
