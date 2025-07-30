@@ -7,7 +7,8 @@ use crate::conf::{DetectingContoursConf, FastScanConf, FineScanConf};
 /// 
 /// ### Example
 /// ```yaml
-/// segment: 100 mm     # Whole rope will divided by the segments for the Camera defect detection, recomended: `segment length = camera.width * 0.10..0.20`
+/// segment: 100 mm             # Whole rope will divided by the segments for the Camera defect detection, recomended: `segment length = camera.width * 0.10..0.20`
+/// segment-threshold: 5 mm     # Acceptable camera position error in relation to exact segment position 
 /// detecting-contours:
 ///     gamma:
 ///         no-param: not parameters implemented 
@@ -37,6 +38,7 @@ pub struct Conf {
     /// Rope segmetn length.
     /// Whole rope will divided by the segments for the Camera defect detection, recomended: `segment length = camera.width * 0.10..0.20`
     pub segment: ConfDistance,
+    pub segment_threshold: ConfDistance,
     pub detecting_contours: DetectingContoursConf,
     pub fast_scan: FastScanConf,
     pub fine_scan: FineScanConf,
@@ -53,6 +55,8 @@ impl Conf {
         log::debug!("{}.new | name: {:?}", dbg, name);
         let segment = conf.get_distance("segment").expect(&format!("{dbg}.new | 'segment' - not found or wrong configuration"));
         log::debug!("{dbg}.new | segment: {:?}", segment);
+        let segment_threshold = conf.get_distance("segment_threshold").expect(&format!("{dbg}.new | 'segment_threshold' - not found or wrong configuration"));
+        log::debug!("{dbg}.new | segment_threshold: {:?}", segment_threshold);
         let detecting_contours = conf.get("detecting-contours").expect(&format!("{dbg}.new | 'detecting-contours' - not found or wrong configuration"));
         let detecting_contours = DetectingContoursConf::new(&name, detecting_contours);
         log::trace!("{dbg}.new | detecting-contours: {:#?}", detecting_contours);
@@ -64,6 +68,7 @@ impl Conf {
         log::trace!("{dbg}.new | fine-scan: {:#?}", fine_scan);
         Self {
             segment,
+            segment_threshold,
             detecting_contours,
             fast_scan,
             fine_scan,
