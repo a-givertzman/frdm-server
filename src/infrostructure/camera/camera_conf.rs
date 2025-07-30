@@ -1,6 +1,6 @@
-use std::{fs, net::SocketAddr};
+use std::{fs, net::SocketAddr, str::FromStr};
 use sal_core::dbg::Dbg;
-use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
+use sal_sync::services::{conf::{ConfCustomKeywd, ConfTree, ConfTreeGet}, entity::Name};
 use crate::infrostructure::arena::{ChannelPacketSize, Exposure, FrameRate, PixelFormat};
 use super::camera_resolution::CameraResolution;
 ///
@@ -94,8 +94,12 @@ impl CameraConf {
     /// ```
     pub fn new(parent: impl Into<String>, conf: &ConfTree) -> Self {
         let parent = parent.into();
-        log::debug!("{}.new | conf.name: {:?}", "CameraConf", conf.name());
-        let me = conf.sufix_or(conf.name().unwrap_or("Camera".to_owned()));
+        let conf_keywd = ConfCustomKeywd::from_str(&conf.key).unwrap();
+        log::trace!("{}.new | conf.name: {:?}", "CameraConf", conf_keywd.name());
+        let me = match conf_keywd.title().is_empty() {
+            true => conf_keywd.name(),
+            false => conf_keywd.title(),
+        };
         let dbg = Dbg::new(&parent, format!("CameraConf({})", me));
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
