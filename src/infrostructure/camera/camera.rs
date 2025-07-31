@@ -78,7 +78,7 @@ impl Camera {
                                         log::trace!("{}.read | Device {} IP: {}", dbg, dev, device_ip);
                                         let device_firmware = ac_system.device_firmware(dev).unwrap();
                                         log::trace!("{}.read | Device {} Firmware: {}", dbg, dev, device_firmware);
-                                        log::info!(
+                                        log::debug!(
                                             "{}.read | Device {}: {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
                                             dbg, dev, device_vendor, device_model, device_serial, device_mac, device_ip, device_firmware);
                                     }
