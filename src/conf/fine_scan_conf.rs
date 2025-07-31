@@ -23,3 +23,10 @@ impl FineScanConf {
         }
     }
 }
+//
+//
+impl Default for FineScanConf {
+    fn default() -> Self {
+        Self { }
+    }
+}

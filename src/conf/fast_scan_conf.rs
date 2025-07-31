@@ -28,3 +28,10 @@ impl FastScanConf {
         }
     }
 }
+//
+//
+impl Default for FastScanConf {
+    fn default() -> Self {
+        Self { geometry_defect_threshold: Threshold::default() }
+    }
+}

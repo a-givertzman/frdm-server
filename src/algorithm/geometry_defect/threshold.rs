@@ -26,3 +26,10 @@ impl Threshold {
         Self(Self::VALUES[2])
     }
 }
+//
+//
+impl Default for Threshold {
+    fn default() -> Self {
+        Self(1.2)
+    }
+}
