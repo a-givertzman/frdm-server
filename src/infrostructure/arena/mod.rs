@@ -23,5 +23,5 @@ pub(super) use bindings::*;
 pub(crate) use channel_packet_size::*;
 pub(crate) use exposure::*;
 pub(super) use ffi_str::*;
-pub(crate) use frame_rate::*;
-pub(crate) use pixel_format::*;
+pub use frame_rate::*;
+pub use pixel_format::*;
