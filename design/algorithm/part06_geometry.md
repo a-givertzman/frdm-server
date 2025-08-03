@@ -18,32 +18,29 @@
 
 ### 1. Координаты точки A (конец первой секции стрелы):
 
-$$X_A = l_{mainboom} \cdot cos(a_1)\\ Y_A = l_{mainboom} \cdot sin(a_1)$$
+$$X_A = l_{mainboom} \cdot cos(a_1)$$
+$$Y_A = l_{mainboom} \cdot sin(a_1)$$
 
 ### 2. Координаты точки B (конец хобота):
 
 - Сначала суммарный угол: 
 $$\theta = 180 - (a_1 + a_2)$$
+
 - Тогда:
-$$
-X_B = X_A + l_{knuckleboom} \cdot cos (\theta) = l_{mainboom} \cdot cos(a_1) + l_{knuckleboom} \cdot cos (\theta) \\
-Y_B = Y_A + l_{knuckleboom} \cdot sin (\theta) = l_{mainboom} \cdot sin(a_1) + l_{knuckleboom} \cdot sin (\theta)
-$$
+
+$$X_B = X_A + l_{knuckleboom} \cdot cos (\theta) = l_{mainboom} \cdot cos(a_1) + l_{knuckleboom} \cdot cos (\theta)$$
+$$Y_B = Y_A + l_{knuckleboom} \cdot sin (\theta) = l_{mainboom} \cdot sin(a_1) + l_{knuckleboom} \cdot sin (\theta)$$
 
 ### 3. Расчет координаты блока 1 (X1, Y1)
 
-$$
-X1 = l_{mainboom} \cdot cos(a_1) - l1_{vertical} \cdot sin(a_1) + l1_{horisontal} \cdot cos(a_1) \\
-Y1 = l_{mainboom} \cdot sin(a_1) + l1_{vertical} \cdot cos(a_1) + l1_{horisontal} \cdot sin(a_1)
-$$
+$$X1 = l_{mainboom} \cdot cos(a_1) - l1_{vertical} \cdot sin(a_1) + l1_{horisontal} \cdot cos(a_1)$$
+$$Y1 = l_{mainboom} \cdot sin(a_1) + l1_{vertical} \cdot cos(a_1) + l1_{horisontal} \cdot sin(a_1)$$
 
 ### 4. Расчет координаты блока 2 (X2, Y2)
 $$a_3 = 180 - a_1 - a_2$$
 
-$$
-X2 = l_{mainboom} \cdot cos(a_1) + l2_{vertical} \cdot cos(a_4) + l2_{horisontal} \cdot sin(a_3) \\
-Y2 = l_{mainboom} \cdot sin(a_1) - l2_{vertical} \cdot sin(a_3) + l2_{horisontal} \cdot cos(a_3)
-$$
+$$X2 = l_{mainboom} \cdot cos(a_1) + l2_{vertical} \cdot cos(a_4) + l2_{horisontal} \cdot sin(a_3)$$
+$$Y2 = l_{mainboom} \cdot sin(a_1) - l2_{vertical} \cdot sin(a_3) + l2_{horisontal} \cdot cos(a_3)$$
 
 ### 4. Расчет координаты блока 3 (X3, Y3)
 
