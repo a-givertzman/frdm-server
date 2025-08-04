@@ -185,7 +185,7 @@ fn video(){
                 auto_packet_size: true,
                 channel_packet_size: ChannelPacketSize::Max,
                 resend_packet: false,
-            }).from_file("src/test/unit/infrostructure/camera/video_test.mp4"),
+            }).from_video("src/test/unit/infrostructure/camera/video_test.mp4"),
             videoio::VideoCapture::from_file("src/test/unit/infrostructure/camera/video_test.mp4", videoio::CAP_ANY).unwrap(),
         ),
     ];

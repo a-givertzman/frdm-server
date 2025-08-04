@@ -125,8 +125,8 @@ impl Camera {
         Ok(handle)
     }
     ///
-    /// Receive frames from IP camera
-    pub fn from_file(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
+    /// Receive frames from video file
+    pub fn from_video(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
         match opencv::videoio::VideoCapture::from_file(&path.into(), opencv::videoio::CAP_ANY) {
             Ok(mut video) => {
                 let mut frames = vec![];
@@ -140,8 +140,36 @@ impl Camera {
                 }
                 Ok(CameraIntoIterator { frames })
             }
-            Err(err) => Err(Error::new(&self.dbg, "from_file").err(err.to_string())),
+            Err(err) => Err(Error::new(&self.dbg, "from_video").err(err.to_string())),
         }
+    }
+    ///
+    /// Receive frames from path containing image files
+    pub fn from_images(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
+        let mut frames = vec![];
+        match std::fs::read_dir(path.into()) {
+            Ok(paths) => {
+                for path in paths {
+                    match path {
+                        Ok(path) => {
+                            if path.path().is_file() {
+                                let path = path.path();
+                                let path = path.to_str().ok_or(Error::new(&self.dbg, "from_images").err(format!("Error in path {}", path.display())))?;
+                                match Image::load(path) {
+                                    Ok(img) => {
+                                        frames.push(img);
+                                    }
+                                    Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
+                                }
+                            }
+                        }
+                        Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
+                    }
+                }
+            }
+            Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
+        }
+        Ok(CameraIntoIterator { frames })
     }
     ///
     /// Sends `Exit` signal to stop reading.
