@@ -8,7 +8,6 @@ mod test;
 //
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
-use sal_sync::services::conf::ConfDistance;
 use crate::{
     algorithm::{
         DetectingContoursCv, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold,
@@ -31,8 +30,6 @@ fn main() {
     }
     opencv::highgui::wait_key(1).unwrap();
     let conf = Conf {
-        segment: ConfDistance::new(100.0, sal_sync::services::conf::ConfDistanceUnit::Millimeter),
-        segment_threshold: ConfDistance::new(5.0, sal_sync::services::conf::ConfDistanceUnit::Millimeter),
         detecting_contours: DetectingContoursConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),

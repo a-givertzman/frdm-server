@@ -21,6 +21,7 @@ impl Image {
     /// - `mat` - The matrix of image
     /// - `timestamp` - Timstemp of image
     /// - `bytes` - Length of image payload in bytes
+    #[allow(unused)]
     pub fn new(
         width: usize,
         height: usize,
@@ -82,6 +83,7 @@ impl Image {
     /// filename: Name of the file.
     /// img: (Mat or vector of Mat) Image or Images to be saved.
     /// params: Format-specific parameters encoded as pairs (paramId_1, paramValue_1, paramId_2, paramValue_2, ... .) see cv::ImwriteFlags
+    #[allow(unused)]
     pub fn save(&self, path: impl Into<String>) -> Result<(), Error> {
         let error = Error::new("Image", "save");
         let path = path.into();
@@ -134,7 +136,7 @@ impl Image {
     /// 
     /// - flags: IMREAD_COLOR_BGR
     /// 
-    /// 
+    #[allow(unused)]
     pub fn load(path: impl Into<String>) -> Result<Self, Error> {
         let error = Error::new("Image", "load");
         let path = path.into();

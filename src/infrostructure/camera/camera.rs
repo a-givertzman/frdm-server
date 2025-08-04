@@ -126,6 +126,7 @@ impl Camera {
     }
     ///
     /// Receive frames from video file
+    #[allow(unused)]
     pub fn from_video(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
         match opencv::videoio::VideoCapture::from_file(&path.into(), opencv::videoio::CAP_ANY) {
             Ok(mut video) => {
@@ -145,6 +146,7 @@ impl Camera {
     }
     ///
     /// Receive frames from path containing image files
+    #[allow(unused)]
     pub fn from_images(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
         let mut frames = vec![];
         match std::fs::read_dir(path.into()) {
@@ -173,6 +175,7 @@ impl Camera {
     }
     ///
     /// Sends `Exit` signal to stop reading.
+    #[allow(unused)]
     pub fn exit(&self) {
         self.exit.store(true, Ordering::SeqCst);
     }
@@ -193,6 +196,7 @@ pub struct CameraIntoIterator {
 //
 //
 impl CameraIntoIterator {
+    #[allow(unused)]
     pub fn push_frame(&mut self, frame: Image) {
         self.frames.push(frame);
     }
