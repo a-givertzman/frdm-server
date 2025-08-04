@@ -64,3 +64,10 @@ impl std::fmt::Debug for ExposureAuto {
         write!(f, "{}", self.as_str())
     }
 }
+//
+//
+impl Default for Exposure {
+    fn default() -> Self {
+        Self { auto: ExposureAuto::Continuous, time: 0.0 }
+    }
+}

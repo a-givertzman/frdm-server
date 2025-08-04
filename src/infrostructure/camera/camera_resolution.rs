@@ -19,3 +19,10 @@ impl CameraResolution{
         serde_yaml::from_value(conf.conf.clone()).unwrap()
     }
 }
+//
+//
+impl Default for CameraResolution {
+    fn default() -> Self {
+        Self { width: Default::default(), height: Default::default() }
+    }
+}
