@@ -65,6 +65,7 @@ fn camera_conf() {
             "#).unwrap(),
             CameraConf {
                 name: "/test/Camera1".into(),
+                from_path: None,
                 fps: FrameRate::Min,
                 resolution: CameraResolution {
                     width: 1200,
@@ -99,6 +100,7 @@ fn camera_conf() {
             "#).unwrap(),
             CameraConf {
                 name: "/test/Camera2".into(),
+                from_path: None,
                 fps: FrameRate::Max,
                 resolution: CameraResolution {
                     width: 1200,
@@ -133,6 +135,7 @@ fn camera_conf() {
             "#).unwrap(),
             CameraConf {
                 name: "/test/Camera3".into(),
+                from_path: None,
                 fps: FrameRate::Val(30.0),
                 resolution: CameraResolution {
                     width: 1200,
@@ -173,6 +176,7 @@ fn video(){
             1,
             Camera::new(CameraConf{
                 name: "/test/Camera1".into(),
+                from_path: None,
                 fps: FrameRate::Val(30.0),
                 resolution: CameraResolution {
                     width: 1200,
