@@ -27,9 +27,9 @@ impl BrightnessContrastConf {
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
-        log::debug!("{}.new | name: {:?}", dbg, name);
+        log::trace!("{}.new | name: {:?}", dbg, name);
         let histogram_clipping = conf.get("histogram-clipping").unwrap_or(0.0);
-        log::debug!("{dbg}.new | histogram-clipping: {:?}", histogram_clipping);
+        log::trace!("{dbg}.new | histogram-clipping: {:?}", histogram_clipping);
         Self {
             histogram_clipping: histogram_clipping as i32,
         }

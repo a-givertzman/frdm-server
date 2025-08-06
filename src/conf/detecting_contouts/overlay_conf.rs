@@ -40,13 +40,13 @@ impl OverlayConf {
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
-        log::debug!("{}.new | name: {:?}", dbg, name);
+        log::trace!("{}.new | name: {:?}", dbg, name);
         let src1_weight = conf.get("alpha").unwrap_or(0.5);
-        log::debug!("{dbg}.new | alpha: {:?}", src1_weight);
+        log::trace!("{dbg}.new | alpha: {:?}", src1_weight);
         let src2_weight = conf.get("beta").unwrap_or(0.5);
-        log::debug!("{dbg}.new | beta: {:?}", src2_weight);
+        log::trace!("{dbg}.new | beta: {:?}", src2_weight);
         let gamma = conf.get("gamma").unwrap_or(0.0);
-        log::debug!("{dbg}.new | gamma: {:?}", gamma);
+        log::trace!("{dbg}.new | gamma: {:?}", gamma);
         Self {
             src1_weight,
             src2_weight,

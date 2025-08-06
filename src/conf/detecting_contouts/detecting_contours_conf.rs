@@ -50,7 +50,7 @@ impl DetectingContoursConf {
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
-        log::debug!("{}.new | name: {:?}", dbg, name);
+        log::trace!("{}.new | name: {:?}", dbg, name);
         let gamma = conf.get("gamma").expect(&format!("{dbg}.new | 'gamma' - not found or wrong configuration"));
         let gamma = GammaConf::new(&name, gamma);
         log::trace!("{dbg}.new | gamma: {:#?}", gamma);

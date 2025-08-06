@@ -46,7 +46,7 @@ impl GausianConf {
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
-        log::debug!("{}.new | name: {:?}", dbg, name);
+        log::trace!("{}.new | name: {:?}", dbg, name);
         let (kernel_w, kernel_h): (i64, i64) = match conf.get("kernel-size") {
             Some(kernel) => {
                 let kernel: ConfTree = kernel;
@@ -54,11 +54,11 @@ impl GausianConf {
             }
             None => (3, 3),
         };
-        log::debug!("{dbg}.new | kernel-size: Size({}, {})", kernel_w, kernel_h);
+        log::trace!("{dbg}.new | kernel-size: Size({}, {})", kernel_w, kernel_h);
         let sigma_x = conf.get("sigma-x").unwrap_or(0.0);
-        log::debug!("{dbg}.new | sigma_x: {:?}", sigma_x);
+        log::trace!("{dbg}.new | sigma_x: {:?}", sigma_x);
         let sigma_y = conf.get("sigma-y").unwrap_or(0.0);
-        log::debug!("{dbg}.new | sigma_y: {:?}", sigma_y);
+        log::trace!("{dbg}.new | sigma_y: {:?}", sigma_y);
         Self {
             kernel_w: kernel_w as i32,
             kernel_h: kernel_h as i32,

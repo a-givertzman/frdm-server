@@ -42,13 +42,13 @@ impl SobelConf {
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
-        log::debug!("{}.new | name: {:?}", dbg, name);
+        log::trace!("{}.new | name: {:?}", dbg, name);
         let kernel_size: i64 = conf.get("kernel-size").unwrap_or(3);
-        log::debug!("{dbg}.new | kernel-size: {:?}", kernel_size);
+        log::trace!("{dbg}.new | kernel-size: {:?}", kernel_size);
         let scale = conf.get("scale").unwrap_or(1.0);
-        log::debug!("{dbg}.new | scale: {:?}", scale);
+        log::trace!("{dbg}.new | scale: {:?}", scale);
         let delta = conf.get("delta").unwrap_or(0.0);
-        log::debug!("{dbg}.new | delta: {:?}", delta);
+        log::trace!("{dbg}.new | delta: {:?}", delta);
         Self {
             kernel_size: kernel_size as i32,
             scale,

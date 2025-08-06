@@ -49,7 +49,7 @@ impl Conf {
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
-        log::debug!("{}.new | name: {:?}", dbg, name);
+        log::trace!("{}.new | name: {:?}", dbg, name);
         let detecting_contours = conf.get("detecting-contours").expect(&format!("{dbg}.new | 'detecting-contours' - not found or wrong configuration"));
         let detecting_contours = DetectingContoursConf::new(&name, detecting_contours);
         log::trace!("{dbg}.new | detecting-contours: {:#?}", detecting_contours);
