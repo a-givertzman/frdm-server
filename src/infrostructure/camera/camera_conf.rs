@@ -106,9 +106,9 @@ impl CameraConf {
         let dbg = Dbg::new(&parent, format!("CameraConf({})", me));
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
-        log::debug!("{}.new | name: {:?}", dbg, name);
+        log::trace!("{}.new | name: {:?}", dbg, name);
         let from_path: Option<String> = conf.get("from-path");
-        log::debug!("{}.new | from-path: {:?}", dbg, from_path);
+        log::trace!("{}.new | from-path: {:?}", dbg, from_path);
         match from_path {
             Some(_) => {
                 Self {
@@ -128,27 +128,27 @@ impl CameraConf {
             None => {
                 let fps = conf.get("fps").unwrap();
                 let fps: FrameRate = serde_yaml::from_value(fps).unwrap();
-                log::debug!("{}.new | fps: {:?}", dbg, fps);
+                log::trace!("{}.new | fps: {:?}", dbg, fps);
                 let resolution = conf.get("resolution").unwrap();
                 let resolution = CameraResolution::new(name.join(), &resolution);
-                log::debug!("{}.new | resolution: {:?}", dbg, resolution);
+                log::trace!("{}.new | resolution: {:?}", dbg, resolution);
                 let index = conf.get("index").map(|ix: u64| ix as usize);
-                log::debug!("{}.new | index: {:?}", dbg, index);
+                log::trace!("{}.new | index: {:?}", dbg, index);
                 let address: Option<SocketAddr> = conf.get("address").map(|addr: String| addr.parse().unwrap());
-                log::debug!("{}.new | address: {:?}", dbg, address);
+                log::trace!("{}.new | address: {:?}", dbg, address);
                 let pixel_format = conf.get("pixel-format").unwrap();
                 let pixel_format: PixelFormat = serde_yaml::from_value(pixel_format).unwrap();
-                log::debug!("{}.new | pixel-format: {:?}", dbg, pixel_format);
+                log::trace!("{}.new | pixel-format: {:?}", dbg, pixel_format);
                 let exposure = conf.get("exposure").unwrap();
                 let exposure: Exposure = serde_yaml::from_value(exposure).unwrap();
-                log::debug!("{}.new | exposure: {:?}", dbg, exposure);
+                log::trace!("{}.new | exposure: {:?}", dbg, exposure);
                 let auto_packet_size = conf.get("auto-packet-size").unwrap();
-                log::debug!("{}.new | auto-packet-size: {:?}", dbg, auto_packet_size);
+                log::trace!("{}.new | auto-packet-size: {:?}", dbg, auto_packet_size);
                 let channel_packet_size = conf.get("channel-packet-size").unwrap();
                 let channel_packet_size: ChannelPacketSize = serde_yaml::from_value(channel_packet_size).unwrap();
-                log::debug!("{}.new | channel-packet-size: {:?}", dbg, channel_packet_size);
+                log::trace!("{}.new | channel-packet-size: {:?}", dbg, channel_packet_size);
                 let resend_packet = conf.get("resend-packet").unwrap();
-                log::debug!("{}.new | resend-packet: {:?}", dbg, resend_packet);
+                log::trace!("{}.new | resend-packet: {:?}", dbg, resend_packet);
                 Self {
                     name,
                     fps, 
