@@ -28,20 +28,38 @@ fn image_encode() {
     init_each();
     let dbg = Dbg::own("Image.to_bytes");
     log::debug!("\n{}", dbg);
-    let test_duration = TestDuration::new(&dbg, Duration::from_secs(10));
+    let test_duration = TestDuration::new(&dbg, Duration::from_secs(30));
     test_duration.run().unwrap();
-    let img = opencv::imgcodecs::imread("src/test/unit/domain/image/test_pattern.png", opencv::imgcodecs::IMREAD_UNCHANGED).unwrap();
-    opencv::highgui::named_window("Loaded", opencv::highgui::WINDOW_NORMAL).unwrap();
-    opencv::highgui::imshow("Loaded", &img).unwrap();
-    let img = Image::with(img);
-    let time = Instant::now();
-    let bytes = img.to_bytes().unwrap();
-    log::debug!("{dbg} | Bytes: {:?}", bytes.len());
-    log::debug!("{dbg} | Elapsed: {:?}", time.elapsed());
-    let img = Image::from_bytes(&bytes).unwrap();
-    opencv::highgui::named_window("Result", opencv::highgui::WINDOW_NORMAL).unwrap();
-    opencv::highgui::imshow("Result", &img.mat).unwrap();
-    opencv::highgui::wait_key(1).unwrap();
-    // assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
+    let test_data = [
+        (01, "src/test/unit/algorithm/detecting_contours/testing_files/rope_0.jpeg"),
+        (02, "src/test/unit/algorithm/detecting_contours/testing_files/rope_1.jpeg"),
+        (03, "src/test/unit/algorithm/detecting_contours/testing_files/rope_2.jpeg"),
+        (04, "src/test/unit/algorithm/detecting_contours/testing_files/rope_3.jpeg"),
+        (05, "src/test/unit/algorithm/detecting_contours/testing_files/rope_4.jpeg"),
+        (06, "src/test/unit/algorithm/detecting_contours/testing_files/rope_5.jpeg"),
+        (07, "src/test/unit/algorithm/detecting_contours/testing_files/rope_6.jpeg"),
+        (08, "src/test/unit/algorithm/detecting_contours/testing_files/rope_7.jpeg"),
+        (09, "src/test/unit/algorithm/detecting_contours/testing_files/rope_8.jpeg"),
+        (10, "src/test/unit/algorithm/detecting_contours/testing_files/rope_9.jpeg"),
+        (11, "src/test/unit/domain/image/test_pattern.png"),
+    ];
+    for (step, path) in test_data {
+        let img = opencv::imgcodecs::imread(path, opencv::imgcodecs::IMREAD_UNCHANGED).unwrap();
+        opencv::highgui::named_window("Loaded", opencv::highgui::WINDOW_NORMAL).unwrap();
+        opencv::highgui::imshow("Loaded", &img).unwrap();
+        let target = Image::with(img);
+        let time = Instant::now();
+        let bytes = target.to_bytes().unwrap();
+        let elapsed = time.elapsed();
+        log::debug!("{dbg} | Bytes: {:?}", bytes.len());
+        log::debug!("{dbg} | Encode elapsed: {:?}", elapsed);
+        let time = Instant::now();
+        let result = Image::from_bytes(&bytes).unwrap();
+        log::debug!("{dbg} | Decode elapsed: {:?}", time.elapsed());
+        opencv::highgui::named_window("Result", opencv::highgui::WINDOW_NORMAL).unwrap();
+        opencv::highgui::imshow("Result", &result.mat).unwrap();
+        opencv::highgui::wait_key(10).unwrap();
+        assert!(result == target, "{dbg} | step {step} \nresult: {:?}\ntarget: {:?}", result, target);
+    }
     test_duration.exit();
 }

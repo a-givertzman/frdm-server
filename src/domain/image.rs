@@ -1,4 +1,4 @@
-use opencv::core::{Mat, MatTraitConst, MatTraitConstManual};
+use opencv::{boxed_ref::BoxedRef, core::{Mat, MatTraitConst, MatTraitConstManual}};
 use sal_core::error::Error;
 
 ///
@@ -162,9 +162,9 @@ impl Image {
     #[allow(unused)]
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let error = Error::new("Image", "from_bytes");
-        let (img, _) = bincode::decode_from_slice(bytes, bincode::config::standard()).unwrap();
-            // .map_err(|err| error.pass_with(format!("Error decoding image"), err.to_string()))?;
-        img
+        let (img, _) = bincode::decode_from_slice(bytes, bincode::config::standard())
+            .map_err(|err| error.pass_with(format!("Error decoding image"), err.to_string()))?;
+        Ok(img)
     }
 }
 //
@@ -195,8 +195,11 @@ impl PartialEq for Image {
 //
 impl bincode::Encode for Image {
     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
+        // let error = Error::new("Image", "encode");
         bincode::Encode::encode(&self.width, encoder)?;
         bincode::Encode::encode(&self.height, encoder)?;
+        bincode::Encode::encode(&self.mat.channels(), encoder)?;
+        bincode::Encode::encode(&self.mat.typ(), encoder)?;
         bincode::Encode::encode(&self.timestamp, encoder)?;
         let mat = self.mat.data_bytes()
             .map_err(|err| bincode::error::EncodeError::OtherString(format!("Image.encode | Get bytes of Mat error: {:?}", err)))?;
@@ -209,14 +212,19 @@ impl<Context> bincode::Decode<Context> for Image {
     fn decode<D: bincode::de::Decoder<Context = Context>>(
         decoder: &mut D,
     ) -> core::result::Result<Self, bincode::error::DecodeError> {
-        let width: usize = bincode::Decode::decode(decoder).unwrap();
-        log::debug!("Image.borrow_decode | width: {}", width);
-        let height: usize = bincode::Decode::decode(decoder).unwrap();
-        log::debug!("Image.borrow_decode | height: {}", height);
+        // let error = Error::new("Image", "decode");
+        let width = bincode::Decode::decode(decoder).unwrap();
+        log::trace!("Image.decode | width: {}", width);
+        let height = bincode::Decode::decode(decoder).unwrap();
+        log::trace!("Image.decode | height: {}", height);
+        let channels: i32 = bincode::Decode::decode(decoder).unwrap();
+        log::trace!("Image.decode | channels: {}", channels);
+        let typ: i32 = bincode::Decode::decode(decoder).unwrap();
+        log::trace!("Image.decode | typ: {}", typ);
         let timestamp = bincode::Decode::decode(decoder).unwrap();
         let data: Vec<u8> = bincode::Decode::decode(decoder).unwrap();
-        let mat = Mat::new_rows_cols_with_data(height as i32, width as i32, &data)
-            .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.decode | Mat from bytes error: {:?}", err))).unwrap();
+        let mat = mat_from_bytes(typ, channels, height as i32, width as i32, &data)
+            .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.decode | Mat from bytes error: {:?}", err)))?;
         let bytes = bincode::Decode::decode(decoder).unwrap();
         Ok(Self {
             width,
@@ -231,14 +239,19 @@ impl<'de, Context> bincode::BorrowDecode<'de, Context> for Image {
     fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
         decoder: &mut D,
     ) -> core::result::Result<Self, bincode::error::DecodeError> {
-        let width: usize = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
-        log::debug!("Image.borrow_decode | width: {}", width);
-        let height: usize = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
-        log::debug!("Image.borrow_decode | height: {}", height);
+        // let error = Error::new("Image", "borrow_decode");
+        let width = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        log::trace!("Image.borrow_decode | width: {}", width);
+        let height = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        log::trace!("Image.borrow_decode | height: {}", height);
+        let channels: i32 = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        log::trace!("Image.borrow_decode | channels: {}", channels);
+        let typ: i32 = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        log::trace!("Image.borrow_decode | typ: {}", typ);
         let timestamp = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         let data: Vec<u8> = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
-        let mat = Mat::new_rows_cols_with_data(height as i32, width as i32, &data)
-            .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.borrow_decode | Mat from bytes error: {:?}", err))).unwrap();
+        let mat = mat_from_bytes(typ, channels, height as i32, width as i32, &data)
+            .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.borrow_decode | Mat from bytes error: {:?}", err)))?;
         let bytes = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         Ok(Self {
             width,
@@ -247,5 +260,43 @@ impl<'de, Context> bincode::BorrowDecode<'de, Context> for Image {
             mat: mat.clone_pointee(),
             bytes,
         })
+    }
+}
+///
+/// Converts bytes into opencv::Mat depend on image typ, like CV_16SC3 or 16-bit signed 3-channel array, and so on.
+fn mat_from_bytes(typ: i32, channels: i32, height: i32, width: i32, data: &[u8]) -> Result<BoxedRef<Mat>, opencv::Error> {
+    match typ {
+        opencv::core::CV_8UC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_8UC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_8UC3 => {
+            log::trace!("Image.mat_from_bytes | typ: {} CV_8UC3", typ);
+            Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 3>>(height as i32, width as i32, data)
+        }
+        opencv::core::CV_8UC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_8SC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i8, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_8SC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i8, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_8SC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i8, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_8SC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i8, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_16UC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u16, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_16UC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u16, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_16UC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u16, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_16UC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u16, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_16SC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i16, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_16SC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i16, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_16SC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i16, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_16SC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i16, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_32SC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i32, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_32SC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i32, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_32SC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i32, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_32SC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i32, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_32FC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f32, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_32FC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f32, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_32FC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f32, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_32FC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f32, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_64FC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f64, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_64FC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f64, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_64FC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f64, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_64FC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f64, 4>>(height as i32, width as i32, data),
+        _ => Err(opencv::Error::new(opencv::core::BadOrigin, format!("Image.decode | Unsupported image format: pixel depth {typ}, channels {channels}"))),
     }
 }
