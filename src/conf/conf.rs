@@ -51,9 +51,9 @@ impl Conf {
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::trace!("{}.new | name: {:?}", dbg, name);
-        let detecting_contours = conf.get("detecting-contours").expect(&format!("{dbg}.new | 'detecting-contours' - not found or wrong configuration"));
+        let detecting_contours = conf.get("contours").expect(&format!("{dbg}.new | 'contours' - not found or wrong configuration"));
         let detecting_contours = DetectingContoursConf::new(&name, detecting_contours);
-        log::trace!("{dbg}.new | detecting-contours: {:#?}", detecting_contours);
+        log::trace!("{dbg}.new | contours: {:#?}", detecting_contours);
         let edge_detection = conf.get("edge-detection").expect(&format!("{dbg}.new | 'edge-detection' - not found or wrong configuration"));
         let edge_detection = EdgeDetectionConf::new(&name, edge_detection);
         log::trace!("{dbg}.new | edge-detection: {:#?}", edge_detection);
