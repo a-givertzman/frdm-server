@@ -9,6 +9,7 @@ use super::edge_detection_ctx::EdgeDetectionCtx;
 /// Take [Image]
 /// Return vectors of [Dot] for upper and lower edges of rope
 pub struct EdgeDetection {
+    threshold: u8,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 //
@@ -16,8 +17,9 @@ pub struct EdgeDetection {
 impl EdgeDetection {
     ///
     /// Returns [EdgeDetection] new instance
-    pub fn new(ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
-        Self { 
+    pub fn new(threshold: u8, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+        Self {
+            threshold,
             ctx: Box::new(ctx),
         }
     }
@@ -32,14 +34,13 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let image = ContextRead::<DetectingContoursCvCtx>::read(&ctx).result.clone();
                 let rows = image.mat.rows();
                 let cols = image.mat.cols();
-                let threshold = 1;
                 let mut upper_edge = Vec::new();
                 let mut lower_edge = Vec::new();
                 for col in 0..cols {
                     for row in 0..rows {
                         match image.mat.at_2d::<u8>(row, col) {
                             Ok(&pixel_value) => {
-                                if pixel_value >= threshold {
+                                if pixel_value >= self.threshold {
                                     upper_edge.push(Dot {x: col as usize, y: row as usize});
                                     break;
                                 }
@@ -52,7 +53,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                     for row in (0..rows).rev() {
                         match image.mat.at_2d::<u8>(row, col) {
                             Ok(&pixel_value) => {
-                                if pixel_value >= threshold {
+                                if pixel_value >= self.threshold {
                                     lower_edge.push(Dot {x: col as usize, y: row as usize});
                                     break;
                                 }

@@ -9,7 +9,7 @@ use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
         AutoBrightnessAndContrast, AutoGamma, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, Initial, InitialCtx, Threshold
-    }, conf::{Conf, DetectingContoursConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
+    }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -36,6 +36,7 @@ fn main() {
     opencv::highgui::wait_key(1).unwrap();
     let conf = Conf {
         detecting_contours: DetectingContoursConf::default(),
+        edge_detection: EdgeDetectionConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),
         },

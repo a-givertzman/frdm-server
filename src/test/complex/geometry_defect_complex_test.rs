@@ -20,7 +20,7 @@ use crate::{
         Threshold
     }, 
     conf::{
-        Conf, DetectingContoursConf, FastScanConf, FineScanConf
+        Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf
     },
 };
 ///
@@ -57,6 +57,7 @@ fn eval() {
     ];
     let conf = Conf {
         detecting_contours: DetectingContoursConf::default(),
+        edge_detection: EdgeDetectionConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),
         },
@@ -66,6 +67,7 @@ fn eval() {
         conf.fast_scan.geometry_defect_threshold,
         *Box::new(Mad::new()),
         EdgeDetection::new(
+            conf.edge_detection.threshold,
             DetectingContoursCv::new(
                 conf.detecting_contours,
                 FakePassImg::new(),
