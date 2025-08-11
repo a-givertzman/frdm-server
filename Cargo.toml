@@ -21,6 +21,7 @@ sal-sync = { tag = "0.3.0", git = "https://github.com/a-givertzman/rust-sal-sync
 indexmap = { version = "~2.10", git = "https://github.com/indexmap-rs/indexmap" }
 linked-hash-map = { version = "~0.5", git = "https://github.com/contain-rs/linked-hash-map" }
 hashers = { version = "~1.0", git = "https://github.com/tmmcguire/hashers" }
+circular-buffer = "~1.1"
 #
 # Serde
 serde = { version = "~1.0", features = ["derive"] }         # , git = "https://github.com/serde-rs/serde"
