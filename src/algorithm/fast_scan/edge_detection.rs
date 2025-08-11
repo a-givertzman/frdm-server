@@ -57,8 +57,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                                 return Err(error.pass_with("Input image format error", err.to_string()));
                             }
                         }
-                    }
-                    for y in (0..rows).rev() {
+                        let y = rows - y -1;
                         match image.mat.at_2d::<u8>(y, x) {
                             Ok(&pixel_value) => {
                                 if pixel_value >= self.threshold {
