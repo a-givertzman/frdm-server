@@ -38,13 +38,14 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let cols = image.mat.cols();
                 let mut upper_edge = Vec::new();
                 let mut lower_edge = Vec::new();
+                let mut filter_smooth_upper = FilterLowPass::<2, _>::new(None, 1.0);
+                let mut filter_smooth_lower = FilterLowPass::<2, _>::new(None, 1.0);
                 for x in 0..cols {
-                    let mut filter_smooth = FilterLowPass::<2, _>::new(None, 1.0);
                     for y in 0..rows {
                         match image.mat.at_2d::<u8>(y, x) {
                             Ok(&pixel_value) => {
                                 if pixel_value >= threshold {
-                                    if let Some(y) = filter_smooth.add(y) {
+                                    if let Some(y) = filter_smooth_upper.add(y) {
                                         upper_edge.push(Dot {x: x as usize, y: y as usize});
                                         break;
                                     }
@@ -55,12 +56,11 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                             }
                         }
                     }
-                    let mut filter_smooth = FilterLowPass::<2, _>::new(None, 1.0);
                     for y in (0..rows).rev() {
                         match image.mat.at_2d::<u8>(y, x) {
                             Ok(&pixel_value) => {
                                 if pixel_value >= threshold {
-                                    if let Some(y) = filter_smooth.add(y) {
+                                    if let Some(y) = filter_smooth_lower.add(y) {
                                         lower_edge.push(Dot {x: x as usize, y: y as usize});
                                         break;
                                     }
