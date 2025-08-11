@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, AutoGammaCtx, Context, ContextWrite, DetectingContoursCvCtx, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
 use std::{sync::Once, time::Duration};
-use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs};
+use opencv::{core::{self, Mat, MatTrait, Vec3b, Vector, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
 use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
@@ -48,13 +48,13 @@ fn eval() {
         serde_yaml::from_str(&format!(r#"
             contours:
                 gamma:
-                    factor: 95.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                    factor: 99.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 brightness-contrast:
                     histogram-clipping: 1     # optional histogram clipping, default = 0 %
                 gausian:
                     blur-size:
-                        width: 5
-                        height: 5
+                        width: 7
+                        height: 7
                     sigma-x: 0.0
                     sigma-y: 0.0
                 sobel:
@@ -66,7 +66,7 @@ fn eval() {
                     src2-weight: 0.5
                     gamma: 0.0
             edge-detection:
-                threshold: 20                        # 0...255
+                threshold: 15                        # 0...255
             fast-scan:
                 geometry-defect-threshold: 1.2      # 1.1..1.3, absolute threshold to detect the geometry deffects
             fine-scan:
@@ -90,14 +90,14 @@ fn eval() {
                 ),
             )
         );
-    // let winp = "Inp";
+    let winp = "Otsu";
     let wgamma = "Gamma";
     let wbright = "Bright";
     let wcontours = "Contours";
     let wedges = "Edges";
-    // if let Err(err) = opencv::highgui::named_window(winp, opencv::highgui::WINDOW_NORMAL) {
-    //     log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
-    // }
+    if let Err(err) = opencv::highgui::named_window(winp, opencv::highgui::WINDOW_NORMAL) {
+        log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
+    }
     if let Err(err) = opencv::highgui::named_window(wgamma, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
@@ -111,7 +111,7 @@ fn eval() {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
 
-    let image_dir = "/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp35_rope/retrived/"; 
+    let image_dir = "/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp65_rope/retrived/"; 
 
     for path in std::fs::read_dir(image_dir).unwrap().into_iter()
         .filter_map(|e| {
@@ -152,16 +152,31 @@ fn eval() {
                         *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
                     }
                 }
+                
+                let mut ada = Mat::default();
+                imgproc::adaptive_threshold(&contours.result.mat, &mut ada, 255.0, imgproc::ADAPTIVE_THRESH_MEAN_C, imgproc::THRESH_BINARY, 201, -20.0).unwrap();
+
+                let mut hist = Mat::default();
+                let hist_size = 256 as i32;
+                // opencv::imgproc::calc_hist(
+                //             &contours.result.mat,
+                //             &Vector::from_slice(&[0]),
+                //             &Mat::default(),
+                //             &mut hist,
+                //             &Vector::from_slice(&[hist_size]),
+                //             &Vector::from_slice(&[0.0 ,255.0]),
+                //             false,
+                //         ).unwrap();
                 // let mut transposed = Mat::default();
                 // core::transpose(&inp, &mut transposed).unwrap();
 
 
                 // highgui::imshow(winp, &rotated).unwrap();
-                highgui::imshow(wgamma, &gamma.result.mat).unwrap();
+                highgui::imshow(wgamma, &ada).unwrap();
                 highgui::imshow(wbright, &bright.result.mat).unwrap();
                 highgui::imshow(wcontours, &contours.result.mat).unwrap();
                 highgui::imshow(wedges, &res).unwrap();
-                // highgui::imshow(winp, &inp).unwrap();
+                // highgui::imshow(winp, &otsu).unwrap();
                 highgui::wait_key(0).unwrap();
                 highgui::destroy_all_windows().unwrap();
             },

@@ -1,4 +1,4 @@
-use opencv::core::MatTraitConst;
+use opencv::{core::{Mat, MatTraitConst}, imgproc};
 use sal_core::error::Error;
 use crate::{
     algorithm::{ContextRead, ContextWrite, DetectingContoursCvCtx, EvalResult, InitialPoints},
@@ -32,6 +32,8 @@ impl Eval<Image, EvalResult> for EdgeDetection {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let image = ContextRead::<DetectingContoursCvCtx>::read(&ctx).result.clone();
+                let mut otsu = Mat::default();
+                let threshold = (imgproc::threshold(&image.mat, &mut otsu, 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * 0.8).round()as u8;
                 let rows = image.mat.rows();
                 let cols = image.mat.cols();
                 let mut upper_edge = Vec::new();
@@ -40,7 +42,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                     for row in 0..rows {
                         match image.mat.at_2d::<u8>(row, col) {
                             Ok(&pixel_value) => {
-                                if pixel_value >= self.threshold {
+                                if pixel_value >= threshold {
                                     upper_edge.push(Dot {x: col as usize, y: row as usize});
                                     break;
                                 }
@@ -53,7 +55,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                     for row in (0..rows).rev() {
                         match image.mat.at_2d::<u8>(row, col) {
                             Ok(&pixel_value) => {
-                                if pixel_value >= self.threshold {
+                                if pixel_value >= threshold {
                                     lower_edge.push(Dot {x: col as usize, y: row as usize});
                                     break;
                                 }
