@@ -46,6 +46,7 @@ fn main() {
                 AutoBrightnessAndContrast::new(
                     conf.detecting_contours.brightness_contrast.histogram_clipping,
                     AutoGamma::new(
+                        0.6,
                         Initial::new(
                             InitialCtx::new(),
                         ),

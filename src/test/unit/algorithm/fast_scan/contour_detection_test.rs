@@ -47,14 +47,8 @@ fn eval() {
     init_each();
     let dbg = Dbg::own("eval");
     log::debug!("\n{}", dbg);
-    let test_duration = TestDuration::new(dbg, Duration::from_secs(100));
+    let test_duration = TestDuration::new(dbg, Duration::from_secs(1000));
     test_duration.run().unwrap();
-    let test_data = [
-        (
-            1,
-            "/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp95_rope/retrived/exp95_rope_frame_5.jpeg",
-        )
-    ];
     let conf = Conf {
         detecting_contours: DetectingContoursConf::default(),
         edge_detection: EdgeDetectionConf::default(),
@@ -71,6 +65,7 @@ fn eval() {
                 AutoBrightnessAndContrast::new(
                     conf.detecting_contours.brightness_contrast.histogram_clipping,
                     AutoGamma::new(
+                        0.6,
                         Initial::new(
                             InitialCtx::new(),
                         ),
@@ -99,7 +94,7 @@ fn eval() {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
 
-    let image_dir = "/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp95_rope/retrived/"; 
+    let image_dir = "/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp35_rope/retrived/"; 
 
     for entry in WalkDir::new(image_dir)
         .into_iter()
@@ -115,28 +110,28 @@ fn eval() {
                 let inp = frame_mat.clone();
                 let mut rotated = Mat::default();
                 core::rotate(&inp, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
-                let mut edges = rotated.clone();
+                let mut res = rotated.clone();
                 let src_frame = Image::with(rotated);
                 let ctx = scan_rope.eval(src_frame).unwrap();
                 let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &DetectingContoursCvCtx = ctx.read();
-                let Edges: &EdgeDetectionCtx = ctx.read();
+                let edges: &EdgeDetectionCtx = ctx.read();
                 let mut edges_cont = contours.result.mat.clone();
-                let upper = Edges.result.get(Side::Upper);
-                let lower = Edges.result.get(Side::Lower);
+                let upper = edges.result.get(Side::Upper);
+                let lower = edges.result.get(Side::Lower);
                 for dot in upper {
                     if dot.x >= 0 && dot.y >= 0 {
                         let x = dot.x as i32;
                         let y = dot.y as i32;
-                        *edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
+                        *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
                     }
                 }
                 for dot in lower {
                     if dot.x >= 0 && dot.y >= 0 {
                         let x = dot.x as i32;
                         let y = dot.y as i32;
-                        *edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
+                        *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
                     }
                 }
                 // let mut transposed = Mat::default();
@@ -147,7 +142,7 @@ fn eval() {
                 highgui::imshow(wgamma, &gamma.result.mat).unwrap();
                 highgui::imshow(wbright, &bright.result.mat).unwrap();
                 highgui::imshow(wcontours, &contours.result.mat).unwrap();
-                highgui::imshow(wedges, &edges).unwrap();
+                highgui::imshow(wedges, &res).unwrap();
                 // highgui::imshow(winp, &inp).unwrap();
                 highgui::wait_key(0).unwrap();
                 highgui::destroy_all_windows().unwrap();

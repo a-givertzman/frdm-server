@@ -38,7 +38,7 @@ impl EdgeDetectionConf {
 impl Default for EdgeDetectionConf {
     fn default() -> Self {
         Self {
-            threshold: 1,
+            threshold: 20,
         }
     }
 }

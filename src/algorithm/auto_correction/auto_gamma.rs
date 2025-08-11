@@ -13,13 +13,19 @@ use crate::{Eval, domain::Image};
 /// Reference: [Automatic contrast and brightness adjustment of a color photo of a sheet of paper with OpenCV](https://stackoverflow.com/questions/56905592/automatic-contrast-and-brightness-adjustment-of-a-color-photo-of-a-sheet-of-pape)
 pub struct AutoGamma {
     ctx: Box<dyn Eval<(), EvalResult>>,
+    factor: f64,
 }
 impl AutoGamma {
     ///
     /// Returns [AutoGamma] new instance
-    pub fn new(ctx: impl Eval<(), EvalResult> + 'static) -> Self {
+    /// - `factor` - percent of influence of [AutoGamma] algorythm
+    ///     bigger the value more the effect of [AutoGamma] algorythm
+    ///     - exposure 35: beatter percent - 60 %
+    ///     - exposure 95: beatter percent - 95 %
+    pub fn new(factor: f64, ctx: impl Eval<(), EvalResult>+ 'static) -> Self {
         Self { 
             ctx: Box::new(ctx),
+            factor: factor,
         }
     }
 }
@@ -32,13 +38,15 @@ impl Eval<Image, EvalResult> for AutoGamma {
             Ok(ctx) => {
                 // build a lookup table mapping the pixel values [0, 255] to
                 // their adjusted gamma values
+                let factor = 0.60;
                 let mid = 0.5f64;
                 match opencv::core::mean(&frame.mat, &Mat::default()){
                     Ok(mean_result) => {
                         let mean = mean_result.into_iter().take(3).map(|v| v as f64).sum::<f64>() / 3.0;
                         let gamma: f64 = (mid * 255.0).ln()/mean.ln();
-                        let inv_gamma = 1.0 / gamma;
+                        let inv_gamma = 1.0 / (factor * gamma);
                         let table: Vec<_> = (0..256).map(|i| (255.0 * ((i as f64 / 255.0).powf(inv_gamma))) as u8 ).collect();
+                        log::debug!("AutoGamma.eval | Lut table: {:?}", table);
                         match Mat::from_slice(&table){
                             Ok(table_mat) => {
                                 let mut dst = Mat::default();
