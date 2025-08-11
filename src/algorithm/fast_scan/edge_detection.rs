@@ -39,7 +39,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let mut upper_edge = Vec::new();
                 let mut lower_edge = Vec::new();
                 for x in 0..cols {
-                    let mut filter_smooth = FilterLowPass::<3, _>::new(None, 1.0);
+                    let mut filter_smooth = FilterLowPass::<2, _>::new(None, 1.0);
                     for y in 0..rows {
                         match image.mat.at_2d::<u8>(y, x) {
                             Ok(&pixel_value) => {
@@ -55,7 +55,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                             }
                         }
                     }
-                    let mut filter_smooth = FilterLowPass::<3, _>::new(None, 1.0);
+                    let mut filter_smooth = FilterLowPass::<2, _>::new(None, 1.0);
                     for y in (0..rows).rev() {
                         match image.mat.at_2d::<u8>(y, x) {
                             Ok(&pixel_value) => {
