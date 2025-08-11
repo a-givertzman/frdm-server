@@ -49,7 +49,7 @@ impl Eval<Image, EvalResult> for AutoGamma {
                         let gamma: f64 = (mid * 255.0).ln()/mean.ln();
                         let inv_gamma = 1.0 / (factor * gamma);
                         let table: Vec<_> = (0..256).map(|i| (255.0 * ((i as f64 / 255.0).powf(inv_gamma))) as u8 ).collect();
-                        log::debug!("AutoGamma.eval | Lut table: {:?}", table);
+                        //log::debug!("AutoGamma.eval | Lut table: {:?}", table);
                         match Mat::from_slice(&table){
                             Ok(table_mat) => {
                                 let mut dst = Mat::default();

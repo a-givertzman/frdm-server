@@ -51,23 +51,23 @@ impl Eval<Image, EvalResult> for DetectingContoursCv {
             Ok(ctx) => {
                 let t = Instant::now();
                 let frame = ContextRead::<AutoBrightnessAndContrastCtx>::read(&ctx).result.clone();
-                //let mut gray = core::Mat::default();
-                //match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
-                    //Ok(_) => {
+                let mut gray = core::Mat::default();
+                match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
+                    Ok(_) => {
                         let mut blurred = core::Mat::default();
                         let kernel_size = core::Size::new(self.conf.gausian.blur_w, self.conf.gausian.blur_h);
-                        match imgproc::gaussian_blur(&frame.mat, &mut blurred, kernel_size, self.conf.gausian.sigma_x, self.conf.gausian.sigma_y, core::BORDER_DEFAULT) {
+                        match imgproc::gaussian_blur(&gray, &mut blurred, kernel_size, self.conf.gausian.sigma_x, self.conf.gausian.sigma_y, core::BORDER_DEFAULT) {
                             Ok(_) => {
-                                //let mut sobelx = core::Mat::default();
+                                let mut sobelx = core::Mat::default();
                                 let mut sobely = core::Mat::default();
                                 //
                                 // Derivative order in X direction for X gradient
-                                //let x_order = 1;
+                                let x_order = 1;
                                 //
                                 // Derivative order in Y direction for X gradient
-                                //let y_order = 0;
-                                //match imgproc::sobel(&blurred, &mut sobelx, core::CV_8U, x_order, y_order, self.conf.sobel.kernel_size, self.conf.sobel.scale, self.conf.sobel.delta, core::BORDER_DEFAULT) {
-                                    //Ok(_) => {
+                                let y_order = 0;
+                                match imgproc::sobel(&blurred, &mut sobelx, core::CV_8U, x_order, y_order, self.conf.sobel.kernel_size, self.conf.sobel.scale, self.conf.sobel.delta, core::BORDER_DEFAULT) {
+                                    Ok(_) => {
                                             //
                                             // Derivative order in X direction for Y gradient
                                             let x_order = 0;
@@ -80,47 +80,47 @@ impl Eval<Image, EvalResult> for DetectingContoursCv {
                                                 let mut absy = core::Mat::default();
                                                 //
                                                 // Converts X gradient to 8-bit absolute value
-                                                //match core::convert_scale_abs_def(&sobelx, &mut absx) {
-                                                    //Ok(_) => {
+                                                match core::convert_scale_abs_def(&sobelx, &mut absx) {
+                                                    Ok(_) => {
                                                         //
                                                         // Converts Y gradient to 8-bit absolute value
                                                         match core::convert_scale_abs_def(&sobely, &mut absy) {
                                                             Ok(_) => {
-                                                                //let mut grad = core::Mat::default();
-                                                                //match core::add_weighted_def(&absx, self.conf.overlay.src1_weight, &absy, self.conf.overlay.src2_weight, self.conf.overlay.gamma, &mut grad) {
-                                                                    //Ok(_) => {
+                                                                let mut grad = core::Mat::default();
+                                                                match core::add_weighted_def(&absx, self.conf.overlay.src1_weight, &absy, self.conf.overlay.src2_weight, self.conf.overlay.gamma, &mut grad) {
+                                                                    Ok(_) => {
                                                                         let result = DetectingContoursCvCtx {
                                                                             result: Image {
                                                                                 width: frame.width,
                                                                                 height: frame.height,
                                                                                 timestamp: frame.timestamp,
-                                                                                mat: absy,
+                                                                                mat: grad,
                                                                                 bytes: frame.bytes,
                                                                             }
                                                                         };
                                                                         log::debug!("DetectingContoursCv.eval | Elapsed: {:?}", t.elapsed());
                                                                         ctx.write(result)
-                                                                    //}
-                                                                    //Err(err) => Err(error.pass(err.to_string())),
-                                                                //}
+                                                                    }
+                                                                    Err(err) => Err(error.pass(err.to_string())),
+                                                                }
                                                             }
                                                             Err(err) => Err(error.pass(err.to_string())),
                                                         }
-                                                    //}
-                                                    //Err(err) => Err(error.pass(err.to_string())),
-                                                //}
+                                                    }
+                                                    Err(err) => Err(error.pass(err.to_string())),
+                                                }
                                             }
                                             Err(err) => Err(error.pass(err.to_string())),
                                         }
-                                    //}
-                                    //Err(err) => Err(error.pass(err.to_string())),
-                                //}
+                                    }
+                                    Err(err) => Err(error.pass(err.to_string())),
+                                }
                             }
                             Err(err) => Err(error.pass(err.to_string())),
                         }
-                    //}
-                    //Err(err) => Err(error.pass(err.to_string())),
-                //}
+                    }
+                    Err(err) => Err(error.pass(err.to_string())),
+                }
             }
             Err(err) => Err(error.pass(err)),
         }

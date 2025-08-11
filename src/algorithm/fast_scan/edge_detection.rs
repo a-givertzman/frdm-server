@@ -1,5 +1,5 @@
 use std::time::Instant;
-use opencv::core::MatTraitConst;
+use opencv::{core::{Mat, MatTraitConst, MatTraitConstManual}, imgproc};
 use sal_core::error::Error;
 use crate::{
     algorithm::{ContextRead, ContextWrite, DetectingContoursCvCtx, EvalResult, InitialPoints},
@@ -34,42 +34,50 @@ impl Eval<Image, EvalResult> for EdgeDetection {
             Ok(ctx) => {
                 let t = Instant::now();
                 let image = ContextRead::<DetectingContoursCvCtx>::read(&ctx).result.clone();
-                // let mut otsu = Mat::default();
-                // let threshold = (imgproc::threshold(&image.mat, &mut otsu, 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * 0.8).round()as u8;
+                let mut otsu = Mat::default();
+                let threshold = (imgproc::threshold(&image.mat, &mut otsu, 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * 0.99).round()as u8;
                 let rows = image.mat.rows();
                 let cols = image.mat.cols();
-                let mut upper_edge = Vec::new();
-                let mut lower_edge = Vec::new();
-                let mut filter_smooth_upper = FilterLowPass::<8, _>::new(None, 1.0);
-                let mut filter_smooth_lower = FilterLowPass::<8, _>::new(None, 1.0);
+                let mut upper_edge = Vec::with_capacity(cols as usize);
+                let mut lower_edge = Vec::with_capacity(cols as usize);
+                let mut filter_smooth_upper = FilterLowPass::<6, _>::new(None, 1.0);
+                let mut filter_smooth_lower = FilterLowPass::<6, _>::new(None, 1.0);
+                let mut upper;
+                let mut lower;
+                let mat = image.mat.data_bytes().unwrap();
                 for x in 0..cols {
+                    upper = false;
+                    lower = false;
                     for y in 0..rows {
-                        match image.mat.at_2d::<u8>(y, x) {
-                            Ok(&pixel_value) => {
-                                if pixel_value >= self.threshold {
+                        match mat.get((y * cols + x) as usize) {
+                            Some(pixel_value) => {
+                                if !upper && pixel_value >= &threshold {
                                     if let Some(y) = filter_smooth_upper.add(y) {
                                         upper_edge.push(Dot {x: x as usize, y: y as usize});
-                                        break;
+                                        upper = true;
                                     }
                                 }
                             }   
-                            Err(err) => {
-                                return Err(error.pass_with("Input image format error", err.to_string()));
+                            None => {
+                                return Err(error.err("Input image format error, index out of image range"));
                             }
                         }
                         let y = rows - y -1;
-                        match image.mat.at_2d::<u8>(y, x) {
-                            Ok(&pixel_value) => {
-                                if pixel_value >= self.threshold {
+                        match mat.get((y * cols + x) as usize) {
+                            Some(pixel_value) => {
+                                if !lower && pixel_value >= &threshold {
                                     if let Some(y) = filter_smooth_lower.add(y) {
                                         lower_edge.push(Dot {x: x as usize, y: y as usize});
-                                        break;
+                                        lower = true;
                                     }
                                 }
                             }
-                            Err(err) => {
-                                return Err(error.pass_with("Input image format error", err.to_string()));
+                            None => {
+                                return Err(error.err("Input image format error, index out of image range"));
                             }
+                        }
+                        if upper && lower {
+                            break;
                         }
                     }
                 }
