@@ -88,7 +88,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                 let alpha = 255.0 / ((maximum_gray - minimum_gray) as f64);
                                 let beta = - (minimum_gray as f64) * alpha;
                                 let mut dst = Mat::default();
-                                match opencv::core::convert_scale_abs(&frame.mat, &mut dst, alpha, beta) {
+                                match opencv::core::convert_scale_abs(&gray, &mut dst, alpha, beta) {
                                     Ok(_) => {
                                         let result = AutoBrightnessAndContrastCtx {
                                             result: Image {

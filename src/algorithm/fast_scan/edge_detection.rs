@@ -32,19 +32,19 @@ impl Eval<Image, EvalResult> for EdgeDetection {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let image = ContextRead::<DetectingContoursCvCtx>::read(&ctx).result.clone();
-                let mut otsu = Mat::default();
-                let threshold = (imgproc::threshold(&image.mat, &mut otsu, 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * 0.8).round()as u8;
+                // let mut otsu = Mat::default();
+                // let threshold = (imgproc::threshold(&image.mat, &mut otsu, 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * 0.8).round()as u8;
                 let rows = image.mat.rows();
                 let cols = image.mat.cols();
                 let mut upper_edge = Vec::new();
                 let mut lower_edge = Vec::new();
-                let mut filter_smooth_upper = FilterLowPass::<2, _>::new(None, 1.0);
-                let mut filter_smooth_lower = FilterLowPass::<2, _>::new(None, 1.0);
+                let mut filter_smooth_upper = FilterLowPass::<8, _>::new(None, 1.0);
+                let mut filter_smooth_lower = FilterLowPass::<8, _>::new(None, 1.0);
                 for x in 0..cols {
                     for y in 0..rows {
                         match image.mat.at_2d::<u8>(y, x) {
                             Ok(&pixel_value) => {
-                                if pixel_value >= threshold {
+                                if pixel_value >= self.threshold {
                                     if let Some(y) = filter_smooth_upper.add(y) {
                                         upper_edge.push(Dot {x: x as usize, y: y as usize});
                                         break;
@@ -59,7 +59,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                     for y in (0..rows).rev() {
                         match image.mat.at_2d::<u8>(y, x) {
                             Ok(&pixel_value) => {
-                                if pixel_value >= threshold {
+                                if pixel_value >= self.threshold {
                                     if let Some(y) = filter_smooth_lower.add(y) {
                                         lower_edge.push(Dot {x: x as usize, y: y as usize});
                                         break;

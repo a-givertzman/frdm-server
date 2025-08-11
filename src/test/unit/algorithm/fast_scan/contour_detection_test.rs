@@ -1,6 +1,6 @@
 #[cfg(test)]
 use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, AutoGammaCtx, Context, ContextWrite, DetectingContoursCvCtx, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
-use std::{sync::Once, time::Duration};
+use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{self, Mat, MatTrait, Vec3b, Vector, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
 use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
@@ -130,7 +130,9 @@ fn eval() {
                 core::rotate(&inp, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 let mut res = rotated.clone();
                 let src_frame = Image::with(rotated);
+                let time = Instant::now();
                 let ctx = scan_rope.eval(src_frame).unwrap();
+                log::warn!("{dbg}.eval | Elapsed: {:?}", time.elapsed());
                 let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &DetectingContoursCvCtx = ctx.read();
