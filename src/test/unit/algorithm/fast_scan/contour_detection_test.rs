@@ -66,7 +66,7 @@ fn eval() {
                     src2-weight: 0.5
                     gamma: 0.0
             edge-detection:
-                threshold: 15                        # 0...255
+                threshold: 50                        # 0...255
             fast-scan:
                 geometry-defect-threshold: 1.2      # 1.1..1.3, absolute threshold to detect the geometry deffects
             fine-scan:
