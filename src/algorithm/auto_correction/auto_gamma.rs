@@ -12,8 +12,8 @@ use crate::{Eval, domain::Image};
 /// 
 /// Reference: [Automatic contrast and brightness adjustment of a color photo of a sheet of paper with OpenCV](https://stackoverflow.com/questions/56905592/automatic-contrast-and-brightness-adjustment-of-a-color-photo-of-a-sheet-of-pape)
 pub struct AutoGamma {
-    ctx: Box<dyn Eval<(), EvalResult>>,
     factor: f64,
+    ctx: Box<dyn Eval<(), EvalResult>>,
 }
 impl AutoGamma {
     ///
@@ -24,8 +24,8 @@ impl AutoGamma {
     ///     - exposure 95: beatter percent - 95 %
     pub fn new(factor: f64, ctx: impl Eval<(), EvalResult>+ 'static) -> Self {
         Self { 
-            ctx: Box::new(ctx),
             factor: factor,
+            ctx: Box::new(ctx),
         }
     }
 }
@@ -38,7 +38,7 @@ impl Eval<Image, EvalResult> for AutoGamma {
             Ok(ctx) => {
                 // build a lookup table mapping the pixel values [0, 255] to
                 // their adjusted gamma values
-                let factor = 0.60;
+                let factor = self.factor / 100.0;
                 let mid = 0.5f64;
                 match opencv::core::mean(&frame.mat, &Mat::default()){
                     Ok(mean_result) => {

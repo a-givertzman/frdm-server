@@ -7,7 +7,7 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 /// ### Example:
 /// ```yaml
 /// gausian:
-///     kernel-size:
+///     blur-size:              # blur radius
 ///         width: 3
 ///         height: 3
 ///     sigma-x: 0.0
@@ -20,8 +20,8 @@ pub struct GausianConf {
     /// The larger the kernel size, the greater the blur.
     /// 
     /// Default: Size( width: 3, height: 3)
-    pub kernel_w: i32,
-    pub kernel_h: i32,
+    pub blur_w: i32,
+    pub blur_h: i32,
     /// Standard deviation in X direction
     /// The higher the value, the more pixels are used to count each pixel and the smoother blur will be
     /// If the value is 0.0, it is calculated based on kernel_size
@@ -47,21 +47,21 @@ impl GausianConf {
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::trace!("{}.new | name: {:?}", dbg, name);
-        let (kernel_w, kernel_h): (i64, i64) = match conf.get("kernel-size") {
+        let (blur_w, blur_h): (i64, i64) = match conf.get("blur-size") {
             Some(kernel) => {
                 let kernel: ConfTree = kernel;
                 (kernel.get("width").unwrap(), kernel.get("height").unwrap())
             }
             None => (3, 3),
         };
-        log::trace!("{dbg}.new | kernel-size: Size({}, {})", kernel_w, kernel_h);
+        log::trace!("{dbg}.new | kernel-size: Size({}, {})", blur_w, blur_h);
         let sigma_x = conf.get("sigma-x").unwrap_or(0.0);
         log::trace!("{dbg}.new | sigma_x: {:?}", sigma_x);
         let sigma_y = conf.get("sigma-y").unwrap_or(0.0);
         log::trace!("{dbg}.new | sigma_y: {:?}", sigma_y);
         Self {
-            kernel_w: kernel_w as i32,
-            kernel_h: kernel_h as i32,
+            blur_w: blur_w as i32,
+            blur_h: blur_h as i32,
             sigma_x,
             sigma_y,
         }
@@ -71,6 +71,6 @@ impl GausianConf {
 //
 impl Default for GausianConf {
     fn default() -> Self {
-        Self { kernel_w: 3, kernel_h: 3, sigma_x: 0.0, sigma_y: 0.0 }
+        Self { blur_w: 3, blur_h: 3, sigma_x: 0.0, sigma_y: 0.0 }
     }
 }

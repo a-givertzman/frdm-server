@@ -9,11 +9,11 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 /// ```yaml
 /// contours:
 ///     gamma:
-///         no-param: not parameters implemented 
+///         factor: 95.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
 ///     brightness-contrast:
 ///         histogram-clipping: 1     # optional histogram clipping, default = 0 %
 ///     gausian:
-///         kernel-size:
+///         blur-size:              # blur radius
 ///             width: 3
 ///             height: 3
 ///         sigma-x: 0.0
@@ -35,7 +35,7 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct Conf {
-    pub detecting_contours: DetectingContoursConf,
+    pub contours: DetectingContoursConf,
     pub edge_detection: EdgeDetectionConf,
     pub fast_scan: FastScanConf,
     pub fine_scan: FineScanConf,
@@ -64,7 +64,7 @@ impl Conf {
         let fine_scan = FineScanConf::new(&name, fine_scan);
         log::trace!("{dbg}.new | fine-scan: {:#?}", fine_scan);
         Self {
-            detecting_contours,
+            contours: detecting_contours,
             edge_detection,
             fast_scan,
             fine_scan,

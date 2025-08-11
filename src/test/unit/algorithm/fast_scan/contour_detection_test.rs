@@ -15,10 +15,7 @@ use crate::{
         ContextRead, 
         DetectingContoursCv, 
         EdgeDetection, 
-        GeometryDefect, 
-        GeometryDefectCtx, 
-        Mad, 
-        Threshold
+        Threshold,
     }, 
     conf::{
         Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf
@@ -50,7 +47,7 @@ fn eval() {
     let test_duration = TestDuration::new(dbg, Duration::from_secs(1000));
     test_duration.run().unwrap();
     let conf = Conf {
-        detecting_contours: DetectingContoursConf::default(),
+        contours: DetectingContoursConf::default(),
         edge_detection: EdgeDetectionConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),
@@ -61,11 +58,11 @@ fn eval() {
         EdgeDetection::new(
             conf.edge_detection.threshold,
             DetectingContoursCv::new(
-                conf.detecting_contours.clone(),
+                conf.contours.clone(),
                 AutoBrightnessAndContrast::new(
-                    conf.detecting_contours.brightness_contrast.histogram_clipping,
+                    conf.contours.brightness_contrast.histogram_clipping,
                     AutoGamma::new(
-                        0.6,
+                        conf.contours.gamma.factor,
                         Initial::new(
                             InitialCtx::new(),
                         ),
@@ -103,7 +100,7 @@ fn eval() {
         let path = entry.path();
         match path.extension() {
             Some(ext) if ext == "jpg" || ext == "png" || ext == "jpeg" => {
-                let mut frame_mat = imgcodecs::imread(
+                let frame_mat = imgcodecs::imread(
                     path.to_str().unwrap(),
                 imgcodecs::IMREAD_COLOR,
                 ).unwrap();
@@ -117,7 +114,7 @@ fn eval() {
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &DetectingContoursCvCtx = ctx.read();
                 let edges: &EdgeDetectionCtx = ctx.read();
-                let mut edges_cont = contours.result.mat.clone();
+                let edges_cont = contours.result.mat.clone();
                 let upper = edges.result.get(Side::Upper);
                 let lower = edges.result.get(Side::Lower);
                 for dot in upper {

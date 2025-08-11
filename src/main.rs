@@ -29,7 +29,7 @@ fn main() {
     }
     opencv::highgui::wait_key(1).unwrap();
     let conf = Conf {
-        detecting_contours: DetectingContoursConf::default(),
+        contours: DetectingContoursConf::default(),
         edge_detection: EdgeDetectionConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),
@@ -42,11 +42,11 @@ fn main() {
         EdgeDetection::new(
             conf.edge_detection.threshold,
             DetectingContoursCv::new(
-                conf.detecting_contours.clone(),
+                conf.contours.clone(),
                 AutoBrightnessAndContrast::new(
-                    conf.detecting_contours.brightness_contrast.histogram_clipping,
+                    conf.contours.brightness_contrast.histogram_clipping,
                     AutoGamma::new(
-                        0.6,
+                        conf.contours.gamma.factor,
                         Initial::new(
                             InitialCtx::new(),
                         ),

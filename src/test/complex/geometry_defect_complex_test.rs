@@ -56,7 +56,7 @@ fn eval() {
         )
     ];
     let conf = Conf {
-        detecting_contours: DetectingContoursConf::default(),
+        contours: DetectingContoursConf::default(),
         edge_detection: EdgeDetectionConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),
@@ -69,7 +69,7 @@ fn eval() {
         EdgeDetection::new(
             conf.edge_detection.threshold,
             DetectingContoursCv::new(
-                conf.detecting_contours,
+                conf.contours,
                 FakePassImg::new(),
             ),
         ),

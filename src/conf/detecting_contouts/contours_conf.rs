@@ -8,11 +8,11 @@ use crate::conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, S
 /// ### Example:
 /// ```yaml
 /// gamma:
-///     no-param: not parameters implemented 
+///     factor: 95.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
 /// brightness-contrast:
 ///     histogram-clipping: 1     # optional histogram clipping, default = 0 %
 /// gausian:
-///     kernel-size:
+///         blur-size:            # blur radius
 ///         width: 3
 ///         height: 3
 ///     sigma-x: 0.0
