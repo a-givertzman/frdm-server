@@ -2,6 +2,7 @@
 use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, AutoGammaCtx, Context, ContextWrite, DetectingContoursCvCtx, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
 use std::{sync::Once, time::Duration};
 use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs};
+use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
     DebugSession, 
@@ -14,12 +15,9 @@ use crate::{
     algorithm::{
         ContextRead, 
         DetectingContoursCv, 
-        EdgeDetection, 
-        Threshold,
+        EdgeDetection,
     }, 
-    conf::{
-        Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf
-    },
+    conf::Conf,
 };
 ///
 ///
@@ -44,16 +42,38 @@ fn eval() {
     init_each();
     let dbg = Dbg::own("eval");
     log::debug!("\n{}", dbg);
-    let test_duration = TestDuration::new(dbg, Duration::from_secs(1000));
+    let test_duration = TestDuration::new(&dbg, Duration::from_secs(1000));
     test_duration.run().unwrap();
-    let conf = Conf {
-        contours: DetectingContoursConf::default(),
-        edge_detection: EdgeDetectionConf::default(),
-        fast_scan: FastScanConf {
-            geometry_defect_threshold: Threshold::min(),
-        },
-        fine_scan: FineScanConf {},
-    };
+    let conf = ConfTree::new_root(
+        serde_yaml::from_str(&format!(r#"
+            contours:
+                gamma:
+                    factor: 95.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                brightness-contrast:
+                    histogram-clipping: 1     # optional histogram clipping, default = 0 %
+                gausian:
+                    blur-size:
+                        width: 5
+                        height: 5
+                    sigma-x: 0.0
+                    sigma-y: 0.0
+                sobel:
+                    kernel-size: 3
+                    scale: 1.0
+                    delta: 0.0
+                overlay:
+                    src1-weight: 0.5
+                    src2-weight: 0.5
+                    gamma: 0.0
+            edge-detection:
+                threshold: 20                        # 0...255
+            fast-scan:
+                geometry-defect-threshold: 1.2      # 1.1..1.3, absolute threshold to detect the geometry deffects
+            fine-scan:
+                no-params: not implemented yet
+        "#)).unwrap(),
+    );
+    let conf = Conf::new(&dbg, conf);
     let scan_rope = 
         EdgeDetection::new(
             conf.edge_detection.threshold,
@@ -93,11 +113,12 @@ fn eval() {
 
     let image_dir = "/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp35_rope/retrived/"; 
 
-    for entry in WalkDir::new(image_dir)
-        .into_iter()
-        .filter_map(|e| e.ok())
+    for path in std::fs::read_dir(image_dir).unwrap().into_iter()
+        .filter_map(|e| {
+            let path = e.unwrap().path();
+            path.is_file().then(|| path)
+        })
     {
-        let path = entry.path();
         match path.extension() {
             Some(ext) if ext == "jpg" || ext == "png" || ext == "jpeg" => {
                 let frame_mat = imgcodecs::imread(
