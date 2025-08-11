@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use opencv::core::Mat;
 use sal_core::error::Error;
 use crate::algorithm::{
@@ -38,6 +40,7 @@ impl Eval<Image, EvalResult> for AutoGamma {
             Ok(ctx) => {
                 // build a lookup table mapping the pixel values [0, 255] to
                 // their adjusted gamma values
+                let t = Instant::now();
                 let factor = self.factor / 100.0;
                 let mid = 0.5f64;
                 match opencv::core::mean(&frame.mat, &Mat::default()){
@@ -61,6 +64,7 @@ impl Eval<Image, EvalResult> for AutoGamma {
                                                 bytes: frame.bytes,
                                             }
                                         };
+                                        log::debug!("AutoGamma.eval | Elapsed: {:?}", t.elapsed());
                                         ctx.write(result)
                                     }
                                     Err(err) => Err(error.pass(err.to_string())),

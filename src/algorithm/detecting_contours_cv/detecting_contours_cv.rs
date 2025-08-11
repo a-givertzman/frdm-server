@@ -1,3 +1,4 @@
+use std::time::Instant;
 use opencv::imgproc;
 use opencv::core;
 use sal_core::error::Error;
@@ -48,6 +49,7 @@ impl Eval<Image, EvalResult> for DetectingContoursCv {
         let error = Error::new("DetectingContoursCv", "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
+                let t = Instant::now();
                 let frame = ContextRead::<AutoBrightnessAndContrastCtx>::read(&ctx).result.clone();
                 //let mut gray = core::Mat::default();
                 //match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
@@ -96,6 +98,7 @@ impl Eval<Image, EvalResult> for DetectingContoursCv {
                                                                                 bytes: frame.bytes,
                                                                             }
                                                                         };
+                                                                        log::debug!("DetectingContoursCv.eval | Elapsed: {:?}", t.elapsed());
                                                                         ctx.write(result)
                                                                     }
                                                                     Err(err) => Err(error.pass(err.to_string())),

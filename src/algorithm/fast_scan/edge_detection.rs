@@ -1,8 +1,9 @@
-use opencv::{core::{Mat, MatTraitConst}, imgproc};
+use std::time::Instant;
+use opencv::core::MatTraitConst;
 use sal_core::error::Error;
 use crate::{
     algorithm::{ContextRead, ContextWrite, DetectingContoursCvCtx, EvalResult, InitialPoints},
-    domain::{Dot, Eval, Filter, FilterSmooth, Image, FilterLowPass},
+    domain::{Dot, Eval, Filter, Image, FilterLowPass},
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
@@ -31,6 +32,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
         let error = Error::new("EdgeDetection", "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
+                let t = Instant::now();
                 let image = ContextRead::<DetectingContoursCvCtx>::read(&ctx).result.clone();
                 // let mut otsu = Mat::default();
                 // let threshold = (imgproc::threshold(&image.mat, &mut otsu, 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * 0.8).round()as u8;
@@ -75,6 +77,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let result = EdgeDetectionCtx {
                     result: InitialPoints::new(upper_edge, lower_edge),
                 };
+                log::debug!("EdgeDetection.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }
             Err(err) => Err(error.pass(err)),

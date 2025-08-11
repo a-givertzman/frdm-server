@@ -1,3 +1,4 @@
+use std::time::Instant;
 use opencv::core::{Mat, MatTraitConst, Vector};
 use opencv::imgproc;
 use sal_core::error::Error;
@@ -33,9 +34,10 @@ impl AutoBrightnessAndContrast {
 //
 impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
     fn eval(&self, frame: Image) -> EvalResult {
-        let error = Error::new("AutoGamma", "eval");
+        let error = Error::new("AutoBrightnessAndContrast", "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
+                let t = Instant::now();
                 let frame = ContextRead::<AutoGammaCtx>::read(&ctx).result.clone();
                 let mut clip_hist_percent = self.histogram_clipping as f32;
                 let mut gray = Mat::default();
@@ -99,6 +101,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                                 bytes: frame.bytes,
                                             }
                                         };
+                                        log::debug!("AutoBrightnessAndContrast.eval | Elapsed: {:?}", t.elapsed());
                                         ctx.write(result)
                                     }
                                     Err(err) => Err(error.pass(err.to_string())),
