@@ -2,7 +2,7 @@ use opencv::{core::{Mat, MatTraitConst}, imgproc};
 use sal_core::error::Error;
 use crate::{
     algorithm::{ContextRead, ContextWrite, DetectingContoursCvCtx, EvalResult, InitialPoints},
-    domain::{Dot, Eval, Image},
+    domain::{Dot, Eval, Image, Filter, FilterSmooth},
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
@@ -38,13 +38,16 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let cols = image.mat.cols();
                 let mut upper_edge = Vec::new();
                 let mut lower_edge = Vec::new();
-                for col in 0..cols {
-                    for row in 0..rows {
-                        match image.mat.at_2d::<u8>(row, col) {
+                let mut filter_smooth = FilterSmooth::new(None, 1.0);
+                for x in 0..cols {
+                    for y in 0..rows {
+                        match image.mat.at_2d::<u8>(y, x) {
                             Ok(&pixel_value) => {
                                 if pixel_value >= threshold {
-                                    upper_edge.push(Dot {x: col as usize, y: row as usize});
-                                    break;
+                                    if let Some(y) = filter_smooth.add(y) {
+                                        upper_edge.push(Dot {x: x as usize, y: y as usize});
+                                        break;
+                                    }
                                 }
                             }   
                             Err(err) => {
@@ -52,12 +55,14 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                             }
                         }
                     }
-                    for row in (0..rows).rev() {
-                        match image.mat.at_2d::<u8>(row, col) {
+                    for y in (0..rows).rev() {
+                        match image.mat.at_2d::<u8>(y, x) {
                             Ok(&pixel_value) => {
                                 if pixel_value >= threshold {
-                                    lower_edge.push(Dot {x: col as usize, y: row as usize});
-                                    break;
+                                    if let Some(y) = filter_smooth.add(y) {
+                                        lower_edge.push(Dot {x: x as usize, y: y as usize});
+                                        break;
+                                    }
                                 }
                             }
                             Err(err) => {
