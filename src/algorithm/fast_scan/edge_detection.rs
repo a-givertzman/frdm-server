@@ -59,8 +59,8 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                         }
                         let y = rows - y -1;
                         match image.mat.at_2d::<u8>(y, x) {
-                            Ok(&pixel_value) => {
-                                if pixel_value >= self.threshold {
+                            Ok(pixel_value) => {
+                                if pixel_value >= &self.threshold {
                                     if let Some(y) = filter_smooth_lower.add(y) {
                                         lower_edge.push(Dot {x: x as usize, y: y as usize});
                                         break;
