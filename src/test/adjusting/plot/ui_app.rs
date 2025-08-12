@@ -8,6 +8,8 @@ use egui::{
     vec2,
     Color32, Align2, FontFamily, TextStyle, FontId, 
 };
+
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, Initial, InitialCtx}, conf::DetectingContoursConf, domain::{Eval, Image}};
 ///
 /// Variant of parameter value
 enum ParamVal {
@@ -50,8 +52,10 @@ impl UiApp {
             dbg: Dbg::new(parent, "UiApp"),
             path: path.into(),
             conf: vec![
-                Param::new("EdgeDetection.threshold", ParamVal::FRange(0.0..100.0), Value::Double(0.0)),
-                Param::new("Contours.gamma.factor", ParamVal::IRange(0..100), Value::Int(0)),
+                Param::new("EdgeDetection.threshold", ParamVal::IRange(0..255), Value::Int(20)),
+                Param::new("Contours.gamma.factor", ParamVal::FRange(0.0..100.0), Value::Double(95.0)),
+                Param::new("Contours....", ParamVal::IRange(0..100), Value::Int(0)),
+                Param::new("AutoBrightnessContrast.histogram_clipping", ParamVal::IRange(0..100), Value::Int(0)),
                 
             ],
             params: FxIndexMap::default(),
@@ -163,6 +167,37 @@ impl eframe::App for UiApp {
                     }
                 });
             });
+
+        let window_origin = "Orgin";
+        let window_result = "Result";
+        match Image::load(&self.path) {
+            Ok(frame) => {
+                if let Err(err) = opencv::highgui::imshow(window_origin, &frame.mat) {
+                    log::warn!("{}.stream | Display img error: {:?}", self.dbg, err);
+                };
+                let contours_result = EdgeDetection::new(
+                    self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8,
+                    DetectingContoursCv::new(
+                        DetectingContoursConf::default(),
+                        AutoBrightnessAndContrast::new(
+                            self.params.get("AutoBrightnessContrast.histogram_clipping").unwrap().1.as_int() as i32,
+                            AutoGamma::new(
+                                self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
+                                Initial::new(
+                                    InitialCtx::new(),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+                    .eval(frame.clone()).unwrap();
+                let contours_ctx = ContextRead::<DetectingContoursCvCtx>::read(&contours_result);
+                if let Err(e) = opencv::highgui::imshow(window_result, &contours_ctx.result.mat) {
+                    log::error!("Display error: {}", e);
+                }
+            }
+            Err(err) => log::error!("Read path '{}' error: {:?}", self.path, err),
+        }
 
         // egui::Window::new("AnalyzeFft input").show(ctx, |ui| {
         //     let analyzeFft = self.analyzeFft.lock().unwrap();
