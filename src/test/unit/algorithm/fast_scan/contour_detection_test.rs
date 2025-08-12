@@ -48,7 +48,7 @@ fn eval() {
         serde_yaml::from_str(&format!(r#"
             contours:
                 gamma:
-                    factor: 99.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                    factor: 70.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 brightness-contrast:
                     histogram-clipping: 1     # optional histogram clipping, default = 0 %
                 gausian:
@@ -111,7 +111,7 @@ fn eval() {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
 
-    let image_dir = "/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp65_rope/retrived/"; 
+    let image_dir = "/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp110_rope/retrived"; 
 
     for path in std::fs::read_dir(image_dir).unwrap().into_iter()
         .filter_map(|e| {
