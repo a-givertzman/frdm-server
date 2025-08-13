@@ -1,13 +1,13 @@
 use eframe::CreationContext;
-use opencv::core::{MatTraitConst, MatTraitConstManual};
+use opencv::core::{MatTrait, MatTraitConst};
 use sal_core::dbg::Dbg;
 use sal_sync::collections::FxIndexMap;
 use testing::entities::test_value::Value;
 use std::{str::FromStr, sync::{Arc, Once}, time::Duration};
 use egui::{
-    vec2, Align2, Color32, ColorImage, FontFamily, FontId, TextStyle, TextureHandle, TextureOptions, Widget 
+    Align2, Color32, ColorImage, FontFamily, FontId, TextStyle, TextureHandle, TextureOptions 
 };
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, Initial, InitialCtx}, conf::DetectingContoursConf, domain::{Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side}, conf::DetectingContoursConf, domain::{Dot, Eval, Image}};
 
 ///
 /// 
@@ -39,8 +39,10 @@ pub struct UiApp {
     path: String,
     conf: Vec<Param>,
     params: FxIndexMap<String, (String, Value)>,
+    pub zoom: f32,
 }
-
+//
+//
 impl UiApp {
     pub fn new(
         parent: impl Into<String>,
@@ -61,6 +63,7 @@ impl UiApp {
                 
             ],
             params: FxIndexMap::default(),
+            zoom: 1.0,
         }
     }
     ///
@@ -132,6 +135,39 @@ impl UiApp {
             opencv::highgui::wait_key(0).unwrap();
         });
     }
+    ///
+    /// Adds an Image to Ui
+    fn display_image_window(&mut self, ctx: &egui::Context, title: impl Into<String>, size: impl Into<egui::Vec2>, pos: impl Into<egui::Pos2>, frame: &Image) {
+        let title = title.into();
+        egui::Window::new(format!("Image {title}"))
+            .default_pos(pos)
+            .default_size(size)
+            .scroll(true)
+            .show(ctx, |ui| {
+                let zoom_delta = ui.input(|i| i.zoom_delta());
+                if zoom_delta != 1.0 {
+                    self.zoom = self.zoom * (zoom_delta);
+                }
+                log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
+                let texture_handle: TextureHandle = ui.ctx().load_texture(title, image(&frame), TextureOptions::LINEAR);
+                ui.add(
+                    egui::Image::new(&texture_handle)
+                    .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into())
+                        // .shrink_to_fit()
+                        .sense(egui::Sense::all())
+                        // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
+                );
+            });
+    }
+    ///
+    /// Returns Image with array of dots
+    fn image_plot(frame: &Image, dots: Vec<Dot<usize>>, color: [u8; 3]) -> Image {
+        let mut res = frame.clone();
+        for dot in dots {
+            *res.mat.at_2d_mut::<opencv::core::Vec3b>(dot.y as i32, dot.x as i32).unwrap() = opencv::core::Vec3b::from_array(color);
+        }
+        res
+    }
 }
 //
 //
@@ -189,26 +225,16 @@ impl eframe::App for UiApp {
                                 }
                             };                          
                         });
-
                     }
                 });
             });
         match Image::load(&self.path) {
             Ok(frame) => {
-                egui::Window::new(format!("Image {window_origin}"))
-                    .default_pos([10.0, 10.0])
-                    .default_size([0.7 * vp_size.width(), 0.7 * vp_size.height() - head_hight])
-                    .show(ctx, |ui| {
-                        let texture_handle: TextureHandle = ui.ctx().load_texture(window_origin, color_image(&frame), TextureOptions::LINEAR);
-                        ui.add(
-                            egui::Image::new(&texture_handle)
-                                .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
-                        );
-                    });
-                // if let Err(err) = opencv::highgui::imshow(window_origin, &frame.mat) {
-                //     log::warn!("{}.stream | Display img error: {:?}", self.dbg, err);
-                // };
-                let contours_result = EdgeDetection::new(
+                let mut rotated = opencv::core::Mat::default();
+                opencv::core::rotate(&frame.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
+                let frame = Image::with(rotated);
+                self.display_image_window(ctx, window_origin, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
+                let result_ctx = EdgeDetection::new(
                     self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8,
                     DetectingContoursCv::new(
                         DetectingContoursConf::default(),
@@ -222,49 +248,20 @@ impl eframe::App for UiApp {
                             ),
                         ),
                     ),
-                )
-                    .eval(frame.clone()).unwrap();
-                let contours_ctx = ContextRead::<DetectingContoursCvCtx>::read(&contours_result);
-                // if let Err(e) = opencv::highgui::imshow(window_result, &contours_ctx.result.mat) {
-                //     log::error!("Display error: {}", e);
-                // }
-                egui::Window::new(format!("Image {window_result}"))
-                    .default_pos([0.5 * vp_size.width(), 10.0])
-                    .default_size([0.7 * vp_size.width(), 0.7 * vp_size.height() - head_hight])
-                    .show(ctx, |ui| {
-                        let texture_handle: TextureHandle = ui.ctx().load_texture(window_result, gray_image(&contours_ctx.result), TextureOptions::LINEAR);
-                        ui.add(
-                            egui::Image::new(&texture_handle)
-                                .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
-                        );
-                    });
-
-                // let edge_detection_ctx = ContextRead::<EdgeDetectionCtx>::read(&contours_result);
-                // if let Err(e) = opencv::highgui::imshow(window_result, &edge_detection_ctx.result.mat) {
-                //     log::error!("Display error: {}", e);
-                // }
+                ).eval(frame.clone()).unwrap();
+                let contours_ctx: &DetectingContoursCvCtx = result_ctx.read();
+                self.display_image_window(ctx, window_contours, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [0.5 * vp_size.width(), 10.0], &contours_ctx.result);
+                let edges: &EdgeDetectionCtx = result_ctx.read();
+                let upper = edges.result.get(Side::Upper);
+                let result_img = Self::image_plot(&frame, upper, [0, 0, 255]);
+                let lower = edges.result.get(Side::Lower);
+                let result_img = Self::image_plot(&result_img, lower, [0, 255, 0]);
+                self.display_image_window(ctx, window_result, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 0.5 * vp_size.height()], &result_img);
             }
             Err(err) => log::error!("Read path '{}' error: {:?}", self.path, err),
         }
-
-        // egui::Window::new("AnalyzeFft input").show(ctx, |ui| {
-        //     let analyzeFft = self.analyzeFft.lock().unwrap();
-        //     ui.label(format!(" t: {:?}", analyzeFft.t));
-        //     ui.label(format!("t length: {}", analyzeFft.tList.len()));
-        //     ui.label(format!("xyPoints length: {}", analyzeFft.xyPoints.len()));
-        //     // ui.end_row();
-        //     if ui.button("just button").clicked() {
-        //     }
-        //     Plot::new("input").show(ui, |plotUi| {
-        //         plotUi.points(
-        //             Points::new(
-        //                 analyzeFft.xyPoints.buffer().clone(),
-        //             ),
-        //         )
-        //     });
-        // });
         ctx.request_repaint();
-        // std::thread::sleep(Duration::from_secs(3));
+        std::thread::sleep(Duration::from_millis(500));
     }
 }
 ///
@@ -282,36 +279,35 @@ impl ExtendedColors for Color32 {
     }
 }
 ///
-/// Returns color egui `Image` from `opencv::Mat`
-fn color_image(frame: &Image) -> ColorImage {
+/// Returns egui `Image` from `opencv::Mat`
+fn image(frame: &Image) -> ColorImage {
     let mut pixels: Vec<u8> = Vec::with_capacity(frame.width * frame.height * 4); // For RGBA
     // Iterate over Mat pixels and convert BGR to RGBA
     // This is a simplified example; error handling and different Mat types need consideration.
-    for y in 0..frame.height {
-        for x in 0..frame.width {
-            let pixel = frame.mat.at_2d::<opencv::core::Vec3b>(y as i32, x as i32).unwrap();
-            pixels.push(pixel[2]); // R
-            pixels.push(pixel[1]); // G
-            pixels.push(pixel[0]); // B
-            pixels.push(255);       // A (fully opaque)
+    if frame.mat.channels() == 3 {
+        for y in 0..frame.height {
+            for x in 0..frame.width {
+                let pixel = frame.mat.at_2d::<opencv::core::Vec3b>(y as i32, x as i32).unwrap();
+                pixels.push(pixel[2]); // R
+                pixels.push(pixel[1]); // G
+                pixels.push(pixel[0]); // B
+                pixels.push(255);       // A (fully opaque)
+            }
         }
-    }
-    ColorImage::from_rgba_unmultiplied([frame.width, frame.height], &pixels)
-}
-///
-/// Returns color egui `Image` from `opencv::Mat`
-fn gray_image(frame: &Image) -> ColorImage {
-    let mut pixels: Vec<u8> = Vec::with_capacity(frame.width * frame.height * 4); // For RGBA
-    // Iterate over Mat pixels and convert BGR to RGBA
-    // This is a simplified example; error handling and different Mat types need consideration.
-    for y in 0..frame.height {
-        for x in 0..frame.width {
-            let pixel = frame.mat.at_2d::<opencv::core::VecN<u8, 1>>(y as i32, x as i32).unwrap();
-            // pixels.push(pixel[2]); // R
-            // pixels.push(pixel[1]); // G
-            pixels.push(pixel[0]); // B
-            // pixels.push(255);       // A (fully opaque)
+        ColorImage::from_rgba_unmultiplied([frame.width, frame.height], &pixels)
+    } else if frame.mat.channels() == 1 {
+        for y in 0..frame.height {
+            for x in 0..frame.width {
+                let pixel = frame.mat.at_2d::<opencv::core::VecN<u8, 1>>(y as i32, x as i32).unwrap();
+                // pixels.push(pixel[2]); // R
+                // pixels.push(pixel[1]); // G
+                pixels.push(pixel[0]); // B
+                // pixels.push(255);       // A (fully opaque)
+            }
         }
+        ColorImage::from_gray([frame.width, frame.height], &pixels)//rgba_unmultiplied([frame.width, frame.height], &pixels)
+    } else {
+        log::warn!("image | Unsupported image format {} with {} channels", frame.mat.typ(), frame.mat.channels());
+        ColorImage::from_rgba_unmultiplied([frame.width, frame.height], &pixels)
     }
-    ColorImage::from_gray([frame.width, frame.height], &pixels)//rgba_unmultiplied([frame.width, frame.height], &pixels)
 }
