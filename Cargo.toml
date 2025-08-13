@@ -2,7 +2,14 @@
 name = "frdm-tools"
 version = "0.1.0"
 edition = "2024"
+
 build = "build.rs"
+
+[features]
+#
+# Used for `Plot` service and `fnPlot` function only
+# plot = ["dep:winit"]
+
 
 [dependencies]
 log = { version = "~0.4" }          #, git = "https://github.com/rust-lang/log"
@@ -64,6 +71,7 @@ parking_lot = { version = "~0.12", git = "https://github.com/Amanieu/parking_lot
 egui = "~0.32"
 egui_plot = "~0.33"
 eframe = "~0.32"
+winit = { version = "~0.30", optional = false }
 
 [lib]
 doctest = false
