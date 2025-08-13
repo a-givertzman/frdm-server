@@ -45,7 +45,7 @@ $$
 - $\alpha_i$ — угол между $i$-й стрелой и предыдущей (в градусах), для первой между стрелой и горизонтом.
 - $\alpha_{boom_i}$ — угол $i$-й стрелы относительно горизонта.
 
-## Общие формулы, необходимеы для расчета в общем виде
+## Общие формулы, необходимые для расчета в общем виде
 
 **1. Формула определения координат точки в повернутой системе координат**
 
@@ -211,10 +211,14 @@ $$
 
 - Если $K_{lFx(i,j)} == "G"$ , то мы берем из массива T значения из **второй** строки для i-ой стрелы и j-блока, так как туда записывали $G_i$ Для упрощения **a** - индекс строки массива, для $"G"$ **a --> 2**
 
-И считаем для каждого блока координаты по общей формул
+Данный параметр будет использоваться для телескопических стрел, для остальных - данный параметр не используется.
+Привязка будет к концу стрелы, так как большиство блоков находятся на конце стрелы.
+
+
+Далее считаем для каждого блока координаты по общей формул
 
 $$
-XY_{block(i,j)} = XY_x(l_{F_x(i,j)}, \quad l_{F_y(i,j)}, \quad \alpha_{boom(i)}) +  T_{a_i}
+XY_{block(i,j)} = XY_x(l_{F_x(i,j)}, \quad l_{F_y(i,j)}, \quad \alpha_{boom(i)}) +  G_{i}
 $$
 
 $$
@@ -225,11 +229,11 @@ Y_{block(i,j)}
 \end{bmatrix}
 $$
 
-## 4. Алгоритм определения точек схода каната
+## 4. Алгоритм определения точек схода каната на блоках 
 
 **1. Определение схемы схода каната** --> присваивание значений $k$ и $j$ в соответсвии с рисунком и таблицей ниже. 
 
-![Alt text to image](/assets/algorithm/схема_схода_каната.png)
+![Alt text to image](/assets/algorithm/схема_схода_каната.jpg)
 
 Существую 4 схемы схода каната, в соответсвие с рисунком необходимо определить к какому типу схему относится сход каната на i-том блоке. Далее по нему присваиваются значения $k$ и $j$ , как представлено ниже.
 
@@ -254,12 +258,7 @@ $$\alpha_{block} = \alpha_{horiz}(Y_1, Y_2, X_1, X_2)$$
 
 Расчитываем угол каната по формуле 
 
-$$\alpha_{rope} = \alpha_{block} + j \cdot asin(\
-\begin{bmatrix}
-{0.5 \cdot (D_1 + k \cdot D_2)} \\
-{l_{block}}
-\end{bmatrix})
-$$
+$$\alpha_{rope} = \alpha_{block} + j \cdot asin(\frac{0.5 \cdot (D_1 + k \cdot D_2)}{l_{block}})$$
 
 Где 
 - $D_1, D_2 -$ диаметры блоков 
@@ -277,6 +276,35 @@ $$Y_{2block} = Y_2 - j \cdot k \cdot 0.5 \cdot D_2 \cdot cos(\alpha_{rope}) $$
    
 $$l_{rope} = l_{section}(Y_{2block}, Y_{1block}, X_{2block}, X_{1block})$$
 
+## 5. Алгоритм учитывающий координаты блоков вне стрел
+
+Для расчета координат блоков вне стрелы введем параметр $Feature_{block}$, который характеризует положение блока:
+
+- *"{i} стрела"*
+- *"Вне стрелы"*
+- *"Подвеска"*
+
+**Координаты блоков крюковой подвески**
+- $if \quad Feature_{block} == {"Подвеска"}$ R
+
+$$lF_x == NaN$$
+**Координаты блоков внес стрел**
+- $else if \quad Feature_{block} == {"Вне стрелы"}$
+
+$$
+XY_{block(i,j)} = XY_x(-l_{F_x(i,j)}, \quad l_{F_y(i,j)}, \quad {0}) +  XY_x(l_{4,1}, \quad l_{3,1}, \quad {90})
+$$
+
+**Координаты блоков на стрелах**
+
+$$
+XY_{block(i,j)} = XY_x(l_{F_x(i,j)}, \quad l_{F_y(i,j)}, \quad \alpha_{boom(i)}) +  G_{i}
+$$
+
+
+И далее все собирается в один массив $XY_{F_boom}$
+
+![Alt text to image](/assets/algorithm/crane_with_0block.png)
 
 ## Реализация (Пример)
 
@@ -293,11 +321,12 @@ $$l_{rope} = l_{section}(Y_{2block}, Y_{1block}, X_{2block}, X_{1block})$$
 |$l_{3,i}$|float(мм)|Горизонтальное смещение точки $A_i$ стрелы относительно точки $G_{i-1}$ (относительно ГСК для первой срелы) в соответствии с рисунком. |
 |$l_{4,i}$|float(мм)|Вертикальное смещение точки $A_i$ стрелы относительно точки $G_{i-1}$ (относительно ГСК для первой срелы) в соответствии с рисунком. |
 |$j$|int|Номер блока|
-|$K_{lFx(i,j)}$|str|Признак, показывающий от какой точки брать координату: от конца или начала стрелы|
+|$K_{lFx(i,j)}$|str|Признак, показывающий от какой точки брать координату: от конца или начала стрелы (пока не используется)|
 |$l_{F_x(i,j)}$|float (мм)|Перпендикулярное расстояние от блока до оси стрелы| 
 |$l_{F_y(i,j)}$|float (мм)|Продольное расстояние (вдоль стрелы) от выбранной точки $K_{lFx}$ - (D или G) до проекции точки на ось стрелы |
 |$D_i$|float(mm)|Диаметр блока|
 |$Scheme_i$|int|Номер схемы|
+|$Feature_{block}$|str|Расположение блока(на стреле, вне стрелы, на подвеске)|
 
 
 ## Выходные данные
@@ -310,9 +339,22 @@ $$l_{rope} = l_{section}(Y_{2block}, Y_{1block}, X_{2block}, X_{1block})$$
 
 Исходные данные:
 -
-Исходные данные представлены для 5 блоков, без лебедки, так как для нее другой расчет 
+
+Пример реализации в коде `Python`
+-
+
+![Alt text to image](/assets/algorithm/python1.png)
 
 ```python
+import matplotlib.pyplot as plt
+import math
+import logging 
+import matplotlib.patches as patches
+
+logging.basicConfig(level = logging.DEBUG, force = True)
+# ---------------------------
+# Исходные данные
+# ---------------------------
 #alpha = [0, 23.783]            # Углы в градусах как в расчете у Вани
 alpha = [74, 128]               # Углы в градусах
 L_boom = [11200, 7984]          # Длины стрел (мм)
@@ -320,27 +362,34 @@ l1 = [0, 0]                     # вертикальное смещение то
 l2 = [0, 0]                     # горизонтальное смещение точки D
 l3 = [0, 0]                     # вертикальное смещение начала стрелы
 l4 = [10330, 0]                 # горизонтальное смещение начала стрелы
-D = [816.2, 816.2, 816.2, 816.2, 816.2] # диаметры блоков
-schemes = [1, 1, 2, 3, 3]       # схема схода каната на блоке 
+D = [844, 816.2, 816.2, 816.2, 816.2, 816.2, 0] # диаметры лебедки(1), блоков, подвески (последний)
+schemes = [1, 1, 1, 2, 3, 1]       # схема схода каната на блоке 
+Feature_block = [
+    "Вне стрелы",   # Блок 1
+    "1 Стрела",     # Блок 2
+    "2 Стрела",     # Блок 3
+    "2 Стрела",     # Блок 4
+    "2 Стрела",     # Блок 5
+    "2 Стрела",     # Блок 6
+    "Подвеска"      # Блок 7
+]
 
 # Размеры расположения блоков на стрелах
-lFx = [308, 1433, -1120, 268, 140]  # мм 
-lFy = [1090, 1743, 1005, 895, 0]   # мм
+# lFx = [308, -6551, -1120, 268, 140]  # мм 
+# lFy = [1090, 1743, 1005, 895, 0]   # мм
+
+lFx = [1830, 308, -6550, -1120, 268, 140, 0]  
+lFy = [710, 1090, 1743, 1005, 895, 0, 0]  
 
 #lFx = [308, 1435, -1121, 267, 136]  # мм как в расчете у Вани
 #lFy = [1100, 1730, 973, 860, -35]   # мм как в расчете у Вани
-K_lFx = ["G", "D", "G", "G", "G"]   # привязка блока к D(начало стрелы) или G(конец стрелы)
+#K_lFx = ["G", "D", "G", "G", "G"]   # привязка блока к D(начало стрелы) или G(конец стрелы)
 boom_index = [1, 2, 2, 2, 2]        # к какой стреле относится блок (нумерация с 1)
-```
 
+# ---------------------------
+# Вспомогательные функции
+# ---------------------------
 
-Пример реализации в коде `Python`
--
-
-![Alt text to image](/assets/algorithm/python1.png)
-
-
-```python
 def XY_rotate(lx, ly, alpha):
     angle_rad = math.radians(alpha)
     x = lx * math.cos(angle_rad) - ly * math.sin(angle_rad)
@@ -434,19 +483,54 @@ for i in range(1, n + 1):
 # ---------------------------
 # 4. Координаты блоков XY_block
 # ---------------------------
-XY_block = []
-for idx in range(len(lFx)):
-    boom_i = boom_index[idx] - 1
-    if K_lFx[idx] == "D":
-        base_point = T[boom_i][0]
-    elif K_lFx[idx] == "G":
-        base_point = T[boom_i][1]
-    else:
-        raise ValueError("Некорректное значение K_lFx")
+# XY_block = []
+# for idx in range(len(lFx)):
+#     boom_i = boom_index[idx] - 1
+#     base_point = T[boom_i][1]
+#     dx, dy = XY_rotate(lFx[idx], lFy[idx], alpha_boom[boom_i])
+#     XY_block.append((base_point[0] + dx, base_point[1] + dy))
 
-    dx, dy = XY_rotate(lFx[idx], lFy[idx], alpha_boom[boom_i])
-    XY_block.append((base_point[0] + dx, base_point[1] + dy))
+XY_block = []
+for idx in range(len(Feature_block)):
+    feature = Feature_block[idx]
+
+    if feature == "Вне стрелы":
+        # Формула из алгоритма:
+        dx1, dy1 = XY_rotate(-lFx[idx], lFy[idx], 0)
+        dx2, dy2 = XY_rotate(l4[0], l3[0], 90)  # от первой стрелы
+        x = dx1 + dx2
+        y = dy1 + dy2
+        XY_block.append((x, y))
+
+    elif feature.endswith("Стрела"):
+        # Определяем номер стрелы
+        boom_num = int(feature.split()[0]) - 1
+        base_point = T[boom_num][1]  # точка G
+        dx, dy = XY_rotate(lFx[idx], lFy[idx], alpha_boom[boom_num])
+        XY_block.append((base_point[0] + dx, base_point[1] + dy))
+
+    elif feature == "Подвеска":
+        XY_block.append((float('nan'), float('nan')))
+
+    else:
+        raise ValueError(f"Неизвестный тип блока: {feature}")
+
+
+# XY_block = []
+# for i in range(len(lFx)):
+#     base_point = T[boom_i][0]
+#     boom_i = boom_index[idx] - 1
+#     if K_lFx[idx] == "D":
+#         base_point = T[boom_i][0]
+#     elif K_lFx[idx] == "G":
+#         base_point = T[boom_i][1]
+#     else:
+#         raise ValueError("Некорректное значение K_lFx")
+
+#     dx, dy = XY_rotate(lFx[idx], lFy[idx], alpha_boom[boom_i])
+#     XY_block.append((base_point[0] + dx, base_point[1] + dy))
     
+
 # ---------------------------
 # 5. Расчёт параметров каната
 # ---------------------------
@@ -496,17 +580,19 @@ plt.axis('equal')
 # Стрелы
 colors = ['green', 'blue']
 for i, (D_pt, G_pt) in enumerate(T):
-    plt.plot([D_pt[0], G_pt[0]], [D_pt[1], G_pt[1]], color=colors[i], linewidth=1.5, label=f'Стрела {i+1}')
+    plt.plot([D_pt[0], G_pt[0]], [D_pt[1], G_pt[1]], color=colors[i], linewidth=1.5)
     plt.scatter([D_pt[0], G_pt[0]], [D_pt[1], G_pt[1]], color=colors[i], s=20, marker='s')
 
-# Блоки с диаметрами
+# Блоки
 for i, (x, y) in enumerate(XY_block):
-    radius = D[i] / 2  # из мм, D — это диаметр
+    if math.isnan(x) or math.isnan(y):
+        continue
+    radius = D[i] / 2
     circle = patches.Circle((x, y), radius, fill=False, color='deepskyblue', linewidth=1)
     plt.gca().add_patch(circle)
     plt.text(x + radius, y + radius, f'Блок {i+1}', fontsize=8, color='black')
 
-# Канаты между точками схода
+# Канаты
 for r in rope_data:
     plt.plot([r["X1_block"], r["X2_block"]], [r["Y1_block"], r["Y2_block"]],
              color='blue', linestyle='--')
@@ -515,5 +601,4 @@ for r in rope_data:
 
 plt.legend()
 plt.show()
-
 ```
