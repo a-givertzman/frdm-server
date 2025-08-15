@@ -7,7 +7,7 @@ use std::{str::FromStr, sync::{Arc, Once}, time::Duration};
 use egui::{
     scroll_area::ScrollBarVisibility, Align2, Color32, ColorImage, FontFamily, FontId, TextStyle, TextureHandle, TextureOptions 
 };
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side}, conf::DetectingContoursConf, domain::{Dot, Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
 
 ///
 /// 
@@ -58,11 +58,23 @@ impl UiApp {
             dbg: Dbg::new(parent, "UiApp"),
             path: path.into(),
             conf: vec![
-                Param::new("EdgeDetection.threshold", ParamVal::IRange(0..255), Value::Int(20)),
-                Param::new("Contours.gamma.factor", ParamVal::FRange(0.0..100.0), Value::Double(95.0)),
-                Param::new("Contours....", ParamVal::IRange(0..100), Value::Int(0)),
-                Param::new("AutoBrightnessContrast.histogram_clipping", ParamVal::IRange(0..100), Value::Int(0)),
+                Param::new("BrightnessContrast.histogram_clipping",         ParamVal::IRange(0..100),       Value::Int(1)),
+                Param::new("Contours.gamma.factor",                         ParamVal::FRange(0.0..100.0),   Value::Double(95.0)),
+                Param::new("Contours.gausian.blur_w",                       ParamVal::IRange(0..100),       Value::Int(7)),
+                Param::new("Contours.gausian.blur_h",                       ParamVal::IRange(0..100),       Value::Int(7)),
+                Param::new("Contours.gausian.sigma_x",                      ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
+                Param::new("Contours.gausian.sigma_y",                      ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
                 
+                Param::new("Contours.sobel.kernel_size",                    ParamVal::IRange(0..100),   Value::Int(3)),
+                Param::new("Contours.sobel.scale",                          ParamVal::FRange(0.0..100.0),   Value::Double(1.0)),
+                Param::new("Contours.sobel.delta",                          ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
+                
+                Param::new("Contours.overlay.src1_weight",                  ParamVal::FRange(0.0..100.0),   Value::Double(0.5)),
+                Param::new("Contours.overlay.src2_weight",                  ParamVal::FRange(0.0..100.0),   Value::Double(0.5)),
+                Param::new("Contours.overlay.gamma",                        ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
+
+                Param::new("EdgeDetection.threshold",                       ParamVal::IRange(0..255),       Value::Int(20)),
+                Param::new("FastScan.threshold",                            ParamVal::FRange(0.0..100.0),   Value::Double(1.2)),
             ],
             params: FxIndexMap::default(),
             zoom: 1.0,
@@ -267,14 +279,47 @@ impl eframe::App for UiApp {
                 opencv::core::rotate(&frame.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
                 let frame = Image::with(rotated);
                 self.display_image_window(ctx, window_origin, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
+                let conf = Conf {
+                    contours: DetectingContoursConf {
+                        gamma: GammaConf {
+                            factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
+                        },
+                        brightness_contrast: BrightnessContrastConf {
+                            histogram_clipping: self.params.get("BrightnessContrast.histogram_clipping").unwrap().1.as_int() as i32,
+                        },
+                        gausian: GausianConf {
+                            blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
+                            blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as i32,
+                            sigma_x: self.params.get("Contours.gausian.sigma_x").unwrap().1.as_double(),
+                            sigma_y: self.params.get("Contours.gausian.sigma_y").unwrap().1.as_double(),
+                        },
+                        sobel: SobelConf {
+                            kernel_size: self.params.get("Contours.sobel.kernel_size").unwrap().1.as_int() as i32,
+                            scale: self.params.get("Contours.sobel.scale").unwrap().1.as_double(),
+                            delta: self.params.get("Contours.sobel.delta").unwrap().1.as_double(),
+                        },
+                        overlay: OverlayConf {
+                            src1_weight: self.params.get("Contours.overlay.src1_weight").unwrap().1.as_double(),
+                            src2_weight: self.params.get("Contours.overlay.src2_weight").unwrap().1.as_double(),
+                            gamma: self.params.get("Contours.overlay.gamma").unwrap().1.as_double(),
+                        },
+                    },
+                    edge_detection: EdgeDetectionConf {
+                        threshold: self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8,
+                    },
+                    fast_scan: FastScanConf {
+                        geometry_defect_threshold: Threshold(self.params.get("FastScan.threshold").unwrap().1.as_double()),
+                    },
+                    fine_scan: FineScanConf::default(),
+                };
                 let result_ctx = EdgeDetection::new(
-                    self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8,
+                    conf.edge_detection.threshold,
                     DetectingContoursCv::new(
-                        DetectingContoursConf::default(),
+                        conf.contours.clone(),
                         AutoBrightnessAndContrast::new(
-                            self.params.get("AutoBrightnessContrast.histogram_clipping").unwrap().1.as_int() as i32,
+                            conf.contours.brightness_contrast.histogram_clipping,
                             AutoGamma::new(
-                                self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
+                                conf.contours.gamma.factor,
                                 Initial::new(
                                     InitialCtx::new(),
                                 ),
