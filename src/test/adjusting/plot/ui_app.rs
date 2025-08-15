@@ -5,7 +5,7 @@ use sal_sync::collections::FxIndexMap;
 use testing::entities::test_value::Value;
 use std::{str::FromStr, sync::{Arc, Once}, time::Duration};
 use egui::{
-    Align2, Color32, ColorImage, FontFamily, FontId, TextStyle, TextureHandle, TextureOptions 
+    scroll_area::ScrollBarVisibility, Align2, Color32, ColorImage, FontFamily, FontId, TextStyle, TextureHandle, TextureOptions 
 };
 use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side}, conf::DetectingContoursConf, domain::{Dot, Eval, Image}};
 
@@ -40,6 +40,8 @@ pub struct UiApp {
     conf: Vec<Param>,
     params: FxIndexMap<String, (String, Value)>,
     pub zoom: f32,
+    pub start_pos: egui::Pos2,
+    pub end_pos: egui::Pos2,
 }
 //
 //
@@ -64,6 +66,8 @@ impl UiApp {
             ],
             params: FxIndexMap::default(),
             zoom: 1.0,
+            start_pos: egui::pos2(0.0, 0.0),
+            end_pos: egui::pos2(100.0, 100.0),
         }
     }
     ///
@@ -144,19 +148,48 @@ impl UiApp {
             .default_size(size)
             .scroll(true)
             .show(ctx, |ui| {
-                let zoom_delta = ui.input(|i| i.zoom_delta());
-                if zoom_delta != 1.0 {
-                    self.zoom = self.zoom * (zoom_delta);
-                }
-                log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
+                // let zoom_delta = ui.input(|i| i.zoom_delta());
+                // if zoom_delta != 1.0 {
+                //     if zoom_delta > 1.0 {
+                //         self.zoom = self.zoom * 1.1;
+                //     } else {
+                //         self.zoom = self.zoom * 0.9;
+                //     }
+                // }
+                // log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
                 let texture_handle: TextureHandle = ui.ctx().load_texture(title, image(&frame), TextureOptions::LINEAR);
+                let mut scene_rect = ctx.input(|x| {
+                    x.viewport().inner_rect.unwrap_or(egui::Rect::ZERO)
+                });
+                let scale_factor = 1.0 / ctx.zoom_factor();
+                let image = egui::Image::new(&texture_handle)
+                    .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into());
+                    // .shrink_to_fit()
+                    // .sense(egui::Sense::all());
+                    // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
                 ui.add(
-                    egui::Image::new(&texture_handle)
-                    .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into())
-                        // .shrink_to_fit()
-                        .sense(egui::Sense::all())
-                        // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
+                    image
                 );
+                // let rect = egui::Rect::from_two_pos(self.start_pos, self.end_pos);
+                // let rect = egui::Rect::from_min_size(
+                //         egui::pos2(rect.min.x * scale_factor, rect.min.y * scale_factor),
+                //         egui::vec2(
+                //             rect.width() * scale_factor,
+                //             rect.height() * scale_factor,
+                //         ),
+                //     );
+                //     egui::Scene::new().sense(egui::Sense::all()).show(ui, &mut rect, |ui| {
+                //     let image = egui::Image::new(&texture_handle);
+                //     // .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into())
+                //         // .shrink_to_fit()
+                //         // .sense(egui::Sense::all());
+                //         // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
+                //     ui.add(
+                //         image
+                //     );
+                // });
+                ui.set_width(scene_rect.width());
+                ui.set_height(scene_rect.height());
             });
     }
     ///
