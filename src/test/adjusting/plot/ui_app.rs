@@ -43,6 +43,7 @@ pub struct UiApp {
     start_pos: egui::Pos2,
     end_pos: egui::Pos2,
     frame: Image,
+    is_changed: bool,
 }
 //
 //
@@ -55,9 +56,14 @@ impl UiApp {
     ) -> Self {
         Self::setup_custom_fonts(&cc.egui_ctx);
         Self::configure_text_styles(&cc.egui_ctx);
+        let path = path.into();
+        let (frame, is_changed) = match Image::load(&path) {
+            Ok(frame) => (frame, true),
+            Err(_) => (Image::with(opencv::core::Mat::default()), false),
+        };
         Self {
             dbg: Dbg::new(parent, "UiApp"),
-            path: path.into(),
+            path,
             conf: vec![
                 Param::new("BrightnessContrast.histogram_clipping",         ParamVal::IRange(0..100),       Value::Int(1)),
                 Param::new("Contours.gamma.factor",                         ParamVal::FRange(0.0..100.0),   Value::Double(95.0)),
@@ -81,7 +87,8 @@ impl UiApp {
             zoom: 1.0,
             start_pos: egui::pos2(0.0, 0.0),
             end_pos: egui::pos2(100.0, 100.0),
-            frame: Image::with(opencv::core::Mat::default()),
+            frame,
+            is_changed,
         }
     }
     ///
@@ -228,7 +235,6 @@ impl eframe::App for UiApp {
         });
         let vp_size = ctx.input(|i| i.viewport().inner_rect).unwrap();
         let head_hight = 34.0;
-        let mut is_changed = true;
         egui::Window::new("Parameters")
             .anchor(Align2::RIGHT_BOTTOM, [0.0, 0.0])
             .default_size([0.4 * vp_size.width(), 0.5 * vp_size.height() - head_hight])
@@ -245,7 +251,7 @@ impl eframe::App for UiApp {
                         match Image::load(&self.path) {
                             Ok(frame) => {
                                 self.frame = frame;
-                                is_changed = true;
+                                self.is_changed = true;
                             }
                             Err(err) => log::error!("Read path '{}' error: {:?}", self.path, err),
                         }
@@ -271,14 +277,14 @@ impl eframe::App for UiApp {
                                     ParamVal::IRange(_) => *value = Value::Int(Self::parse(&self.dbg, &param.key, text, param.default.as_int())),
                                     ParamVal::FRange(_) => *value = Value::Double(Self::parse(&self.dbg, &param.key, text, param.default.as_double())),
                                 }
-                                is_changed = true;
+                                self.is_changed = true;
                             };                          
                         });
                     }
                 });
             });
-            if is_changed {
-                is_changed = false;
+            if self.is_changed {
+                self.is_changed = false;
                 let mut rotated = opencv::core::Mat::default();
                 opencv::core::rotate(&self.frame.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
                 let frame = Image::with(rotated);
