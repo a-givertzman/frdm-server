@@ -148,14 +148,14 @@ impl UiApp {
             .default_size(size)
             .scroll(true)
             .show(ctx, |ui| {
-                // let zoom_delta = ui.input(|i| i.zoom_delta());
-                // if zoom_delta != 1.0 {
-                //     if zoom_delta > 1.0 {
-                //         self.zoom = self.zoom * 1.1;
-                //     } else {
-                //         self.zoom = self.zoom * 0.9;
-                //     }
-                // }
+                let zoom_delta = ui.input(|i| i.zoom_delta());
+                if zoom_delta != 1.0 {
+                    if zoom_delta > 1.0 {
+                        self.zoom = self.zoom * 1.1;
+                    } else {
+                        self.zoom = self.zoom * 0.9;
+                    }
+                }
                 // log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
                 let texture_handle: TextureHandle = ui.ctx().load_texture(title, image(&frame), TextureOptions::LINEAR);
                 let mut scene_rect = ctx.input(|x| {
