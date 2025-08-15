@@ -43,7 +43,9 @@ pub struct UiApp {
     start_pos: egui::Pos2,
     end_pos: egui::Pos2,
     frame: Image,
-    is_changed: bool,
+    contour_frame: Option<Image>,
+    result_frame: Option<Image>,
+    is_changed: usize,
 }
 //
 //
@@ -54,15 +56,19 @@ impl UiApp {
         cc: &CreationContext,
         // renderDelay: Duration,
     ) -> Self {
+        let dbg = Dbg::new(parent, "UiApp");
         Self::setup_custom_fonts(&cc.egui_ctx);
         Self::configure_text_styles(&cc.egui_ctx);
         let path = path.into();
         let (frame, is_changed) = match Image::load(&path) {
-            Ok(frame) => (frame, true),
-            Err(_) => (Image::with(opencv::core::Mat::default()), false),
+            Ok(frame) => (frame, 3),
+            Err(err) => {
+                log::error!("{dbg}.new | Read path '{}' error: {:?}", path, err);
+                (Image::with(opencv::core::Mat::default()), 0)
+            }
         };
         Self {
-            dbg: Dbg::new(parent, "UiApp"),
+            dbg,
             path,
             conf: vec![
                 Param::new("BrightnessContrast.histogram_clipping",         ParamVal::IRange(0..100),       Value::Int(1)),
@@ -88,6 +94,8 @@ impl UiApp {
             start_pos: egui::pos2(0.0, 0.0),
             end_pos: egui::pos2(100.0, 100.0),
             frame,
+            contour_frame: None,
+            result_frame: None,
             is_changed,
         }
     }
@@ -251,7 +259,7 @@ impl eframe::App for UiApp {
                         match Image::load(&self.path) {
                             Ok(frame) => {
                                 self.frame = frame;
-                                self.is_changed = true;
+                                self.is_changed = 2;
                             }
                             Err(err) => log::error!("Read path '{}' error: {:?}", self.path, err),
                         }
@@ -277,75 +285,81 @@ impl eframe::App for UiApp {
                                     ParamVal::IRange(_) => *value = Value::Int(Self::parse(&self.dbg, &param.key, text, param.default.as_int())),
                                     ParamVal::FRange(_) => *value = Value::Double(Self::parse(&self.dbg, &param.key, text, param.default.as_double())),
                                 }
-                                self.is_changed = true;
+                                self.is_changed = 2;
                             };                          
                         });
                     }
                 });
             });
-            if self.is_changed {
-                self.is_changed = false;
-                let mut rotated = opencv::core::Mat::default();
-                opencv::core::rotate(&self.frame.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
-                let frame = Image::with(rotated);
-                // self.display_image_window(ctx, window_origin, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
-                let conf = Conf {
-                    contours: DetectingContoursConf {
-                        gamma: GammaConf {
-                            factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
-                        },
-                        brightness_contrast: BrightnessContrastConf {
-                            histogram_clipping: self.params.get("BrightnessContrast.histogram_clipping").unwrap().1.as_int() as i32,
-                        },
-                        gausian: GausianConf {
-                            blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
-                            blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as i32,
-                            sigma_x: self.params.get("Contours.gausian.sigma_x").unwrap().1.as_double(),
-                            sigma_y: self.params.get("Contours.gausian.sigma_y").unwrap().1.as_double(),
-                        },
-                        sobel: SobelConf {
-                            kernel_size: self.params.get("Contours.sobel.kernel_size").unwrap().1.as_int() as i32,
-                            scale: self.params.get("Contours.sobel.scale").unwrap().1.as_double(),
-                            delta: self.params.get("Contours.sobel.delta").unwrap().1.as_double(),
-                        },
-                        overlay: OverlayConf {
-                            src1_weight: self.params.get("Contours.overlay.src1_weight").unwrap().1.as_double(),
-                            src2_weight: self.params.get("Contours.overlay.src2_weight").unwrap().1.as_double(),
-                            gamma: self.params.get("Contours.overlay.gamma").unwrap().1.as_double(),
-                        },
+        if self.is_changed > 0 {
+            self.is_changed -= 1;
+            let mut rotated = opencv::core::Mat::default();
+            opencv::core::rotate(&self.frame.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
+            let frame = Image::with(rotated);
+            // self.display_image_window(ctx, window_origin, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
+            let conf = Conf {
+                contours: DetectingContoursConf {
+                    gamma: GammaConf {
+                        factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
                     },
-                    edge_detection: EdgeDetectionConf {
-                        threshold: self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8,
+                    brightness_contrast: BrightnessContrastConf {
+                        histogram_clipping: self.params.get("BrightnessContrast.histogram_clipping").unwrap().1.as_int() as i32,
                     },
-                    fast_scan: FastScanConf {
-                        geometry_defect_threshold: Threshold(self.params.get("FastScan.threshold").unwrap().1.as_double()),
+                    gausian: GausianConf {
+                        blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
+                        blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as i32,
+                        sigma_x: self.params.get("Contours.gausian.sigma_x").unwrap().1.as_double(),
+                        sigma_y: self.params.get("Contours.gausian.sigma_y").unwrap().1.as_double(),
                     },
-                    fine_scan: FineScanConf::default(),
-                };
-                let result_ctx = EdgeDetection::new(
-                    conf.edge_detection.threshold,
-                    DetectingContoursCv::new(
-                        conf.contours.clone(),
-                        AutoBrightnessAndContrast::new(
-                            conf.contours.brightness_contrast.histogram_clipping,
-                            AutoGamma::new(
-                                conf.contours.gamma.factor,
-                                Initial::new(
-                                    InitialCtx::new(),
-                                ),
+                    sobel: SobelConf {
+                        kernel_size: self.params.get("Contours.sobel.kernel_size").unwrap().1.as_int() as i32,
+                        scale: self.params.get("Contours.sobel.scale").unwrap().1.as_double(),
+                        delta: self.params.get("Contours.sobel.delta").unwrap().1.as_double(),
+                    },
+                    overlay: OverlayConf {
+                        src1_weight: self.params.get("Contours.overlay.src1_weight").unwrap().1.as_double(),
+                        src2_weight: self.params.get("Contours.overlay.src2_weight").unwrap().1.as_double(),
+                        gamma: self.params.get("Contours.overlay.gamma").unwrap().1.as_double(),
+                    },
+                },
+                edge_detection: EdgeDetectionConf {
+                    threshold: self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8,
+                },
+                fast_scan: FastScanConf {
+                    geometry_defect_threshold: Threshold(self.params.get("FastScan.threshold").unwrap().1.as_double()),
+                },
+                fine_scan: FineScanConf::default(),
+            };
+            let result_ctx = EdgeDetection::new(
+                conf.edge_detection.threshold,
+                DetectingContoursCv::new(
+                    conf.contours.clone(),
+                    AutoBrightnessAndContrast::new(
+                        conf.contours.brightness_contrast.histogram_clipping,
+                        AutoGamma::new(
+                            conf.contours.gamma.factor,
+                            Initial::new(
+                                InitialCtx::new(),
                             ),
                         ),
                     ),
-                ).eval(frame.clone()).unwrap();
-                let contours_ctx: &DetectingContoursCvCtx = result_ctx.read();
-                self.display_image_window(ctx, window_contours, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 0.5 * vp_size.height()], &contours_ctx.result);
-                let edges: &EdgeDetectionCtx = result_ctx.read();
-                let upper = edges.result.get(Side::Upper);
-                let result_img = Self::image_plot(&frame, upper, [0, 0, 255]);
-                let lower = edges.result.get(Side::Lower);
-                let result_img = Self::image_plot(&result_img, lower, [0, 255, 0]);
-                self.display_image_window(ctx, window_result, [0.70 * vp_size.width(), 0.70 * vp_size.height() - head_hight], [10.0, 10.0], &result_img);
-            }
+                ),
+            ).eval(frame.clone()).unwrap();
+            let contours_ctx: &DetectingContoursCvCtx = result_ctx.read();
+            self.contour_frame = Some(contours_ctx.result.clone());
+            let edges: &EdgeDetectionCtx = result_ctx.read();
+            let upper = edges.result.get(Side::Upper);
+            let result_img = Self::image_plot(&frame, upper, [0, 0, 255]);
+            let lower = edges.result.get(Side::Lower);
+            let result_img = Self::image_plot(&result_img, lower, [0, 255, 0]);
+            self.result_frame = Some(result_img)
+        }
+        if let Some(frame) = self.contour_frame.clone() {
+            self.display_image_window(ctx, window_contours, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 0.5 * vp_size.height()], &frame);
+        }
+        if let Some(frame) = self.result_frame.clone() {
+            self.display_image_window(ctx, window_result, [0.70 * vp_size.width(), 0.70 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
+        }
         ctx.request_repaint();
         // std::thread::sleep(Duration::from_millis(500));
     }
