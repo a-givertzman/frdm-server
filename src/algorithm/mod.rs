@@ -1,5 +1,6 @@
 mod auto_correction;
 mod context;
+mod cropping;
 mod detecting_contours;
 mod detecting_contours_cv;
 mod fast_scan;
@@ -12,6 +13,7 @@ mod initial_points;
 
 pub use auto_correction::*;
 pub use context::*;
+pub use cropping::*;
 pub use fast_scan::*;
 pub use geometry_defect::*;
 pub use graham::*;

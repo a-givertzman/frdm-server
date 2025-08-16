@@ -1,7 +1,7 @@
 use super::{context::Context};
 use crate::{
     algorithm::{
-        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx, auto_correction::{AutoGammaCtx, AutoBrightnessAndContrastCtx},
+        auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx}, geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx, CroppingCtx
     }, domain::Error,
 };
 ///
@@ -38,6 +38,19 @@ impl ContextWrite<DetectingContoursCvCtx> for Context {
 impl ContextRead<DetectingContoursCvCtx> for Context {
     fn read(&self) -> &DetectingContoursCvCtx {
         &self.detecting_contours_cv
+    }
+}
+//
+//
+impl ContextWrite<CroppingCtx> for Context {
+    fn write(mut self, value: CroppingCtx) -> Result<Self, Error> {
+        self.cropping = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<CroppingCtx> for Context {
+    fn read(&self) -> &CroppingCtx {
+        &self.cropping
     }
 }
 //

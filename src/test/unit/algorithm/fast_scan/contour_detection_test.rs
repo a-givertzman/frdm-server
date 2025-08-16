@@ -13,9 +13,7 @@ use sal_core::dbg::Dbg;
 use walkdir::WalkDir;
 use crate::{
     algorithm::{
-        ContextRead, 
-        DetectingContoursCv, 
-        EdgeDetection,
+        ContextRead, Cropping, DetectingContoursCv, EdgeDetection, CroppingCtx
     }, 
     conf::Conf,
 };
@@ -74,6 +72,7 @@ fn eval() {
         "#)).unwrap(),
     );
     let conf = Conf::new(&dbg, conf);
+    let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let scan_rope = 
         EdgeDetection::new(
             conf.edge_detection.threshold,
@@ -95,6 +94,7 @@ fn eval() {
     let wbright = "Bright";
     let wcontours = "Contours";
     let wedges = "Edges";
+    let wcropped = "Cropped";
     if let Err(err) = opencv::highgui::named_window(winp, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
@@ -108,6 +108,9 @@ fn eval() {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
     if let Err(err) = opencv::highgui::named_window(wedges, opencv::highgui::WINDOW_NORMAL) {
+        log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
+    }
+    if let Err(err) = opencv::highgui::named_window(wcropped, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
 
@@ -130,9 +133,12 @@ fn eval() {
                 core::rotate(&inp, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 let mut res = rotated.clone();
                 let src_frame = Image::with(rotated);
+                let test = src_frame.clone();
                 let time = Instant::now();
                 let ctx = scan_rope.eval(src_frame).unwrap();
+                let cropping = cropp.eval(test).unwrap();
                 log::warn!("{dbg}.eval | Elapsed: {:?}", time.elapsed());
+                let crop: &CroppingCtx = cropping.read();
                 let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &DetectingContoursCvCtx = ctx.read();
@@ -174,6 +180,7 @@ fn eval() {
 
 
                 // highgui::imshow(winp, &rotated).unwrap();
+                highgui::imshow(wcropped, &crop.result.mat).unwrap();
                 highgui::imshow(wgamma, &ada).unwrap();
                 highgui::imshow(wbright, &bright.result.mat).unwrap();
                 highgui::imshow(wcontours, &contours.result.mat).unwrap();
