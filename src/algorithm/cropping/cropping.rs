@@ -20,11 +20,14 @@ pub struct Cropping {
 }
 //
 //
-impl Cropping{
+impl Cropping {
     ///
-    /// 
-    /// 
-    pub fn new(x: i32,width: i32, y: i32, height: i32, ctx: impl Eval<(), EvalResult> + 'static) -> Self {
+    /// Cropping source image (from `ctx`) using specified parameters
+    /// - `x` - new left edge
+    /// - `width` - new image width
+    /// - `y` - new top edge
+    /// - `height` - new image height
+    pub fn new(x: i32, width: i32, y: i32, height: i32, ctx: impl Eval<(), EvalResult> + 'static) -> Self {
         Self { 
             x,
             width,
