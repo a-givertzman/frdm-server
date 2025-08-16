@@ -24,7 +24,7 @@ impl AutoGamma {
     ///     bigger the value more the effect of [AutoGamma] algorythm
     ///     - exposure 35: beatter percent - 60 %
     ///     - exposure 95: beatter percent - 95 %
-    pub fn new(factor: f64, ctx: impl Eval<(), EvalResult>+ 'static) -> Self {
+    pub fn new(factor: f64, ctx: impl Eval<(), EvalResult> + 'static) -> Self {
         Self { 
             factor: factor,
             ctx: Box::new(ctx),

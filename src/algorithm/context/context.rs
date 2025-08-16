@@ -1,6 +1,6 @@
-use crate::algorithm::{
-    geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx, auto_correction::{AutoGammaCtx, AutoBrightnessAndContrastCtx},
-};
+use crate::{algorithm::{
+    auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx}, geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx, CroppingCtx
+}, };
 use super::testing_ctx::TestingCtx;
 ///
 /// # Calculation context
@@ -12,6 +12,8 @@ pub struct Context {
     pub(super) initial: InitialCtx,
     /// Filtered and binarised image
     pub(super) detecting_contours_cv: DetectingContoursCvCtx,
+    /// Cropped image
+    pub(super) cropping: CroppingCtx,
     /// Gamma-corrected image
     pub(super) auto_gamma: AutoGammaCtx,
     /// Image with corrected brightness and contrast
@@ -37,6 +39,7 @@ impl Context {
         Self {
             initial,
             detecting_contours_cv: DetectingContoursCvCtx::default(),
+            cropping: CroppingCtx::default(),
             auto_gamma: AutoGammaCtx::default(),
             auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),
             edge_detection: EdgeDetectionCtx::default(),
