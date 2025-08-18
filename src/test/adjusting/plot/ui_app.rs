@@ -187,9 +187,9 @@ impl UiApp {
                 log::warn!("{}.stream | Create Window Error: {}", dbg, err);
             }
         }
-        std::thread::spawn(|| {
-            opencv::highgui::wait_key(0).unwrap();
-        });
+        // std::thread::spawn(|| {
+        //     opencv::highgui::wait_key(0).unwrap();
+        // });
     }
     ///
     /// Adds an Image to Ui
@@ -269,7 +269,7 @@ impl eframe::App for UiApp {
             let mut path_error = None;
             egui::Window::new("Parameters")
                 .anchor(Align2::RIGHT_BOTTOM, [0.0, 0.0])
-                .default_size([0.4 * vp_size.width(), 0.5 * vp_size.height() - head_hight])
+                // .default_size([0.4 * vp_size.width(), 0.5 * vp_size.height() - head_hight])
                 .show(ctx, |ui| {
                     ui.horizontal(|ui| {
                         ui.add_sized(
@@ -443,9 +443,11 @@ impl eframe::App for UiApp {
             }
             if let Some(frame) = self.contour_frame.clone() {
                 self.display_image_window(ctx, window_contours, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 0.5 * vp_size.height()], &frame);
+                opencv::highgui::imshow(window_contours, &frame.mat).unwrap();
             }
             if let Some(frame) = self.result_frame.clone() {
                 self.display_image_window(ctx, window_result, [0.70 * vp_size.width(), 0.70 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
+                opencv::highgui::imshow(window_result, &frame.mat).unwrap();
             }
         }
         ctx.request_repaint();
