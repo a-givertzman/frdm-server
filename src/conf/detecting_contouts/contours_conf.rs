@@ -1,12 +1,17 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, SobelConf};
+use crate::{conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, SobelConf}, algorithm::CroppingConf};
 
 ///
 /// ## Configuration for `Contour dectection` algorithm
 /// 
 /// ### Example:
 /// ```yaml
+/// cropping:
+///     x: 10           # new left edge
+///     width: 1900     # new image width
+///     y: 10           # new top edge
+///     height: 1180    # new image height
 /// gamma:
 ///     factor: 95.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
 /// brightness-contrast:
@@ -28,6 +33,8 @@ use crate::conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, S
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct DetectingContoursConf {
+    /// Configuration for `Cropping` operator
+    pub cropping: CroppingConf,
     /// Configuration for `Gamma auto correction` algorithm
     pub gamma: GammaConf,
     /// Configuration for `Brightness and contrast auto correction`
@@ -51,6 +58,9 @@ impl DetectingContoursConf {
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::trace!("{}.new | name: {:?}", dbg, name);
+        let cropping = conf.get("cropping").expect(&format!("{dbg}.new | 'cropping' - not found or wrong configuration"));
+        let cropping = CroppingConf::new(&name, cropping);
+        log::trace!("{dbg}.new | cropping: {:#?}", cropping);
         let gamma = conf.get("gamma").expect(&format!("{dbg}.new | 'gamma' - not found or wrong configuration"));
         let gamma = GammaConf::new(&name, gamma);
         log::trace!("{dbg}.new | gamma: {:#?}", gamma);
@@ -67,6 +77,7 @@ impl DetectingContoursConf {
         let overlay = OverlayConf::new(&name, overlay);
         log::trace!("{dbg}.new | overlay: {:#?}", overlay);
         Self {
+            cropping,
             gamma,
             brightness_contrast,
             gausian,
@@ -80,6 +91,7 @@ impl DetectingContoursConf {
 impl Default for DetectingContoursConf {
     fn default() -> Self {
         Self {
+            cropping: CroppingConf::default(),
             gamma: GammaConf::default(),
             brightness_contrast: BrightnessContrastConf::default(),
             gausian: GausianConf::default(),

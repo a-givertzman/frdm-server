@@ -7,7 +7,7 @@ use std::{str::FromStr, sync::{Arc, Once}, time::Duration};
 use egui::{
     Align2, Color32, ColorImage, FontFamily, FontId, TextStyle, TextureHandle, TextureOptions 
 };
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
 
 ///
 /// 
@@ -71,8 +71,15 @@ impl UiApp {
             dbg,
             path,
             conf: vec![
+                Param::new("Contours.cropping.x",                           ParamVal::IRange(0..6000),      Value::Int(0)),
+                Param::new("Contours.cropping.width",                       ParamVal::IRange(0..6000),      Value::Int(1900)),
+                Param::new("Contours.cropping.y",                           ParamVal::IRange(0..6000),      Value::Int(0)),
+                Param::new("Contours.cropping.height",                      ParamVal::IRange(0..6000),      Value::Int(1200)),
+
                 Param::new("BrightnessContrast.histogram_clipping",         ParamVal::IRange(0..100),       Value::Int(1)),
+
                 Param::new("Contours.gamma.factor",                         ParamVal::FRange(0.0..100.0),   Value::Double(95.0)),
+
                 Param::new("Contours.gausian.blur_w",                       ParamVal::IRange(0..100),       Value::Int(7)),
                 Param::new("Contours.gausian.blur_h",                       ParamVal::IRange(0..100),       Value::Int(7)),
                 Param::new("Contours.gausian.sigma_x",                      ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
@@ -299,6 +306,12 @@ impl eframe::App for UiApp {
                 // self.display_image_window(ctx, window_origin, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
                 let conf = Conf {
                     contours: DetectingContoursConf {
+                        cropping: CroppingConf {
+                            x: self.params.get("Contours.cropping.x").unwrap().1.as_int() as i32,
+                            width: self.params.get("Contours.cropping.width").unwrap().1.as_int() as i32,
+                            y: self.params.get("Contours.cropping.y").unwrap().1.as_int() as i32,
+                            height: self.params.get("Contours.cropping.height").unwrap().1.as_int() as i32,
+                        },
                         gamma: GammaConf {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
                         },
@@ -338,8 +351,14 @@ impl eframe::App for UiApp {
                             conf.contours.brightness_contrast.histogram_clipping,
                             AutoGamma::new(
                                 conf.contours.gamma.factor,
-                                Initial::new(
-                                    InitialCtx::new(),
+                                Cropping::new(
+                                    conf.contours.cropping.x,
+                                    conf.contours.cropping.width,
+                                    conf.contours.cropping.y,
+                                    conf.contours.cropping.height,
+                                    Initial::new(
+                                        InitialCtx::new(),
+                                    ),
                                 ),
                             ),
                         ),

@@ -8,6 +8,11 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 /// ### Example
 /// ```yaml
 /// contours:
+///     cropping:
+///         x: 10           # new left edge
+///         width: 1900     # new image width
+///         y: 10           # new top edge
+///         height: 1180    # new image height
 ///     gamma:
 ///         factor: 95.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
 ///     brightness-contrast:

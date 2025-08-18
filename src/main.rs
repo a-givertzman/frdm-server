@@ -10,7 +10,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, DetectingContoursCv, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold
+        AutoBrightnessAndContrast, AutoGamma, Cropping, DetectingContoursCv, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold
     }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -47,8 +47,14 @@ fn main() {
                     conf.contours.brightness_contrast.histogram_clipping,
                     AutoGamma::new(
                         conf.contours.gamma.factor,
-                        Initial::new(
-                            InitialCtx::new(),
+                        Cropping::new(
+                            conf.contours.cropping.x,
+                            conf.contours.cropping.width,
+                            conf.contours.cropping.y,
+                            conf.contours.cropping.height,
+                            Initial::new(
+                                InitialCtx::new(),
+                            ),
                         ),
                     ),
                 ),

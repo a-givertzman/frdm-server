@@ -82,8 +82,14 @@ fn eval() {
                     conf.contours.brightness_contrast.histogram_clipping,
                     AutoGamma::new(
                         conf.contours.gamma.factor,
-                        Initial::new(
-                            InitialCtx::new(),
+                        Cropping::new(
+                            conf.contours.cropping.x,
+                            conf.contours.cropping.width,
+                            conf.contours.cropping.y,
+                            conf.contours.cropping.height,
+                            Initial::new(
+                                InitialCtx::new(),
+                            ),
                         ),
                     ),
                 ),

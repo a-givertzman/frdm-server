@@ -1,12 +1,11 @@
 use std::time::Instant;
-
 use opencv::core::Mat;
 use sal_core::error::Error;
 use crate::algorithm::{
     ContextWrite,
     EvalResult,
 };
-use crate::algorithm::auto_correction::AutoGammaCtx;
+use crate::algorithm::{auto_correction::AutoGammaCtx, ContextRead, CroppingCtx};
 use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
@@ -15,7 +14,7 @@ use crate::{Eval, domain::Image};
 /// Reference: [Automatic contrast and brightness adjustment of a color photo of a sheet of paper with OpenCV](https://stackoverflow.com/questions/56905592/automatic-contrast-and-brightness-adjustment-of-a-color-photo-of-a-sheet-of-pape)
 pub struct AutoGamma {
     factor: f64,
-    ctx: Box<dyn Eval<(), EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 impl AutoGamma {
     ///
@@ -24,7 +23,7 @@ impl AutoGamma {
     ///     bigger the value more the effect of [AutoGamma] algorythm
     ///     - exposure 35: beatter percent - 60 %
     ///     - exposure 95: beatter percent - 95 %
-    pub fn new(factor: f64, ctx: impl Eval<(), EvalResult> + 'static) -> Self {
+    pub fn new(factor: f64, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self { 
             factor: factor,
             ctx: Box::new(ctx),
@@ -36,11 +35,12 @@ impl AutoGamma {
 impl Eval<Image, EvalResult> for AutoGamma {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("AutoGamma", "eval");
-        match self.ctx.eval(()) {
+        match self.ctx.eval(frame) {
             Ok(ctx) => {
                 // build a lookup table mapping the pixel values [0, 255] to
                 // their adjusted gamma values
                 let t = Instant::now();
+                let frame = ContextRead::<CroppingCtx>::read(&ctx).result.clone();
                 let factor = self.factor / 100.0;
                 let mid = 0.5f64;
                 match opencv::core::mean(&frame.mat, &Mat::default()){
