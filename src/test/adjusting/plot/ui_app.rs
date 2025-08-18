@@ -5,7 +5,7 @@ use sal_sync::collections::FxIndexMap;
 use testing::entities::test_value::Value;
 use std::{str::FromStr, sync::{Arc, Once}, time::Duration};
 use egui::{
-    Align2, Color32, ColorImage, FontFamily, FontId, TextStyle, TextureHandle, TextureOptions 
+    Align2, Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions 
 };
 use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
 
@@ -37,15 +37,18 @@ impl Param {
 pub struct UiApp {
     dbg: Dbg,
     path: String,
+    rotate: bool,
     conf: Vec<Param>,
     params: FxIndexMap<String, (String, Value)>,
     zoom: f32,
     start_pos: egui::Pos2,
     end_pos: egui::Pos2,
+    origin: Image,
     frame: Image,
     contour_frame: Option<Image>,
     result_frame: Option<Image>,
     is_changed: usize,
+    alg_err: Option<String>,
 }
 //
 //
@@ -60,16 +63,27 @@ impl UiApp {
         Self::setup_custom_fonts(&cc.egui_ctx);
         Self::configure_text_styles(&cc.egui_ctx);
         let path = path.into();
-        let (frame, is_changed) = match Image::load(&path) {
-            Ok(frame) => (frame, 3),
+        let rotate= true;
+        let (origin, frame, is_changed) = match Image::load(&path) {
+            Ok(frame) => {
+                match rotate {
+                    true => {
+                        let mut rotated = opencv::core::Mat::default();
+                        opencv::core::rotate(&frame.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
+                        (frame, Image::with(rotated), 3)
+                    }
+                    false => (frame.clone(), frame, 3),
+                }
+            }
             Err(err) => {
                 log::error!("{dbg}.new | Read path '{}' error: {:?}", path, err);
-                (Image::with(opencv::core::Mat::default()), 0)
+                (Image::with(opencv::core::Mat::default()), Image::with(opencv::core::Mat::default()), 0)
             }
         };
         Self {
             dbg,
             path,
+            rotate,
             conf: vec![
                 Param::new("Contours.cropping.x",                           ParamVal::IRange(0..6000),      Value::Int(0)),
                 Param::new("Contours.cropping.width",                       ParamVal::IRange(0..6000),      Value::Int(1900)),
@@ -100,10 +114,12 @@ impl UiApp {
             zoom: 1.0,
             start_pos: egui::pos2(0.0, 0.0),
             end_pos: egui::pos2(100.0, 100.0),
+            origin,
             frame,
             contour_frame: None,
             result_frame: None,
             is_changed,
+            alg_err: None,
         }
     }
     ///
@@ -187,9 +203,9 @@ impl UiApp {
                 let zoom_delta = ui.input(|i| i.zoom_delta());
                 if zoom_delta != 1.0 {
                     if zoom_delta > 1.0 {
-                        self.zoom = self.zoom * 1.1;
+                        self.zoom = self.zoom * 1.02;
                     } else {
-                        self.zoom = self.zoom * 0.9;
+                        self.zoom = self.zoom * 0.98;
                     }
                 }
                 // log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
@@ -230,10 +246,10 @@ impl UiApp {
     }
     ///
     /// Returns Image with array of dots
-    fn image_plot(frame: &Image, dots: Vec<Dot<usize>>, color: [u8; 3]) -> Image {
+    fn image_plot(frame: &Image, dots: Vec<Dot<usize>>, color: [u8; 3], cropping: &CroppingConf) -> Image {
         let mut res = frame.clone();
         for dot in dots {
-            *res.mat.at_2d_mut::<opencv::core::Vec3b>(dot.y as i32, dot.x as i32).unwrap() = opencv::core::Vec3b::from_array(color);
+            *res.mat.at_2d_mut::<opencv::core::Vec3b>(dot.y as i32 + cropping.y, dot.x as i32 + cropping.x).unwrap() = opencv::core::Vec3b::from_array(color);
         }
         res
     }
@@ -250,28 +266,72 @@ impl eframe::App for UiApp {
         });
         if let Some(vp_size) = ctx.input(|i| i.viewport().inner_rect) {
             let head_hight = 34.0;
+            let mut path_error = None;
             egui::Window::new("Parameters")
                 .anchor(Align2::RIGHT_BOTTOM, [0.0, 0.0])
                 .default_size([0.4 * vp_size.width(), 0.5 * vp_size.height() - head_hight])
                 .show(ctx, |ui| {
-                    let mut path = self.path.clone();
                     ui.horizontal(|ui| {
                         ui.add_sized(
                             [32.0, 16.0 * 2.0 + 6.0], 
                             egui::Label::new(format!("image↕ ")), //⇔⇕   ↔
                         );
                         ui.separator();
-                        if ui.add(egui::TextEdit::singleline(&mut path)).changed() {
-                            self.path = path;
+                        if ui.add(egui::TextEdit::singleline(&mut self.path)).changed() {
                             match Image::load(&self.path) {
                                 Ok(frame) => {
-                                    self.frame = frame;
+                                    self.origin = frame.clone();
+                                    match self.rotate {
+                                        true => {
+                                            let mut rotated = opencv::core::Mat::default();
+                                            opencv::core::rotate(&self.origin.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
+                                            self.frame = Image::with(rotated);
+                                        }
+                                        false => self.frame = frame,
+                                    }
                                     self.is_changed = 2;
                                 }
-                                Err(err) => log::error!("Read path '{}' error: {:?}", self.path, err),
+                                Err(err) => {
+                                    log::error!("Read path '{}' error: {:?}", self.path, err);
+                                    path_error = Some(format!("Read path '{}' error: {:?}", self.path, err));
+                                }
                             }
                         };                          
+                        ui.separator();
+                        if ui.add(egui::Checkbox::new(&mut self.rotate, "Rotate")).changed() {
+                            match self.rotate {
+                                true => {
+                                    let mut rotated = opencv::core::Mat::default();
+                                    opencv::core::rotate(&self.origin.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
+                                    self.frame = Image::with(rotated);
+                                }
+                                false => self.frame = self.origin.clone(),
+                            }
+                            self.is_changed = 2;
+                        };
                     });
+                    ui.horizontal(|ui| {
+                        ui.add(
+                            // [32.0, 16.0 * 2.0 + 6.0], 
+                            egui::Label::new(format!("Image: {} x {}", self.frame.width, self.frame.height))
+                        );
+                    });
+                    if let Some(path_err) = path_error {
+                        ui.horizontal(|ui| {
+                            ui.add(
+                                // [32.0, 16.0 * 2.0 + 6.0], 
+                                egui::Label::new(RichText::new(path_err).color(Color32::ORANGE_ACCENT)), //⇔⇕   ↔
+                            );
+                        });
+                    }
+                    if let Some(alg_err) = &self.alg_err {
+                        ui.horizontal(|ui| {
+                            ui.add(
+                                // [32.0, 16.0 * 2.0 + 6.0], 
+                                egui::Label::new(RichText::new(alg_err).color(Color32::ORANGE_ACCENT)), //⇔⇕   ↔
+                            );
+                        });
+                    }
                     egui::ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .stick_to_bottom(true)
@@ -300,17 +360,18 @@ impl eframe::App for UiApp {
                 });
             if self.is_changed > 0 {
                 self.is_changed -= 1;
-                let mut rotated = opencv::core::Mat::default();
-                opencv::core::rotate(&self.frame.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
-                let frame = Image::with(rotated);
                 // self.display_image_window(ctx, window_origin, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
+                let cropping_x = self.params.get("Contours.cropping.x").unwrap().1.as_int() as i32;
+                let cropping_width = self.params.get("Contours.cropping.width").unwrap().1.as_int() as i32;
+                let cropping_y = self.params.get("Contours.cropping.y").unwrap().1.as_int() as i32;
+                let cropping_height = self.params.get("Contours.cropping.height").unwrap().1.as_int() as i32;
                 let conf = Conf {
                     contours: DetectingContoursConf {
                         cropping: CroppingConf {
-                            x: self.params.get("Contours.cropping.x").unwrap().1.as_int() as i32,
-                            width: self.params.get("Contours.cropping.width").unwrap().1.as_int() as i32,
-                            y: self.params.get("Contours.cropping.y").unwrap().1.as_int() as i32,
-                            height: self.params.get("Contours.cropping.height").unwrap().1.as_int() as i32,
+                            x: cropping_x,
+                            width: if cropping_x + cropping_width <= self.frame.width as i32 {cropping_width} else {self.frame.width as i32 - cropping_x},
+                            y: cropping_y,
+                            height: if cropping_y + cropping_height <= self.frame.height as i32 {cropping_height} else {self.frame.height as i32} - cropping_y,
                         },
                         gamma: GammaConf {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
@@ -363,15 +424,22 @@ impl eframe::App for UiApp {
                             ),
                         ),
                     ),
-                ).eval(frame.clone()).unwrap();
-                let contours_ctx: &DetectingContoursCvCtx = result_ctx.read();
-                self.contour_frame = Some(contours_ctx.result.clone());
-                let edges: &EdgeDetectionCtx = result_ctx.read();
-                let upper = edges.result.get(Side::Upper);
-                let result_img = Self::image_plot(&frame, upper, [0, 0, 255]);
-                let lower = edges.result.get(Side::Lower);
-                let result_img = Self::image_plot(&result_img, lower, [0, 255, 0]);
-                self.result_frame = Some(result_img)
+                ).eval(self.frame.clone());
+                match result_ctx {
+                    Ok(result_ctx) => {
+                        self.alg_err = None;
+                        let contours_ctx: &DetectingContoursCvCtx = result_ctx.read();
+                        self.contour_frame = Some(contours_ctx.result.clone());
+                        let edges: &EdgeDetectionCtx = result_ctx.read();
+                        let upper = edges.result.get(Side::Upper);
+                        let result_img = Self::image_plot(&self.frame, upper, [0, 0, 255], &conf.contours.cropping);
+                        let lower = edges.result.get(Side::Lower);
+                        let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.contours.cropping);
+                        self.result_frame = Some(result_img)
+                    }
+                    Err(err) => self.alg_err = Some(format!("Error in the algorithms: {err}")),
+                }
+                
             }
             if let Some(frame) = self.contour_frame.clone() {
                 self.display_image_window(ctx, window_contours, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 0.5 * vp_size.height()], &frame);
