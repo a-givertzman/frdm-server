@@ -3,7 +3,7 @@ use opencv::core::{MatTrait, MatTraitConst};
 use sal_core::dbg::Dbg;
 use sal_sync::collections::FxIndexMap;
 use testing::entities::test_value::Value;
-use std::{str::FromStr, sync::{Arc, Once}, time::Duration};
+use std::{str::FromStr, sync::{Arc, Once}, time::{Duration, Instant}};
 use egui::{
     Align2, Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions 
 };
@@ -38,6 +38,7 @@ pub struct UiApp {
     dbg: Dbg,
     path: String,
     rotate: bool,
+    show_images: bool,
     conf: Vec<Param>,
     params: FxIndexMap<String, (String, Value)>,
     zoom: f32,
@@ -49,6 +50,7 @@ pub struct UiApp {
     result_frame: Option<Image>,
     is_changed: usize,
     alg_err: Option<String>,
+    elapsed: Option<Duration>,
 }
 //
 //
@@ -84,6 +86,7 @@ impl UiApp {
             dbg,
             path,
             rotate,
+            show_images: false,
             conf: vec![
                 Param::new("Contours.cropping.x",                           ParamVal::IRange(0..6000),      Value::Int(0)),
                 Param::new("Contours.cropping.width",                       ParamVal::IRange(0..6000),      Value::Int(1900)),
@@ -120,6 +123,7 @@ impl UiApp {
             result_frame: None,
             is_changed,
             alg_err: None,
+            elapsed: None,
         }
     }
     ///
@@ -187,6 +191,8 @@ impl UiApp {
                 log::warn!("{}.stream | Create Window Error: {}", dbg, err);
             }
         }
+        opencv::highgui::wait_key(1).unwrap();
+
         // std::thread::spawn(|| {
         //     opencv::highgui::wait_key(0).unwrap();
         // });
@@ -194,55 +200,57 @@ impl UiApp {
     ///
     /// Adds an Image to Ui
     fn display_image_window(&mut self, ctx: &egui::Context, title: impl Into<String>, size: impl Into<egui::Vec2>, pos: impl Into<egui::Pos2>, frame: &Image) {
-        let title = title.into();
-        egui::Window::new(format!("Image {title}"))
-            .default_pos(pos)
-            .default_size(size)
-            .scroll(true)
-            .show(ctx, |ui| {
-                let zoom_delta = ui.input(|i| i.zoom_delta());
-                if zoom_delta != 1.0 {
-                    if zoom_delta > 1.0 {
-                        self.zoom = self.zoom * 1.02;
-                    } else {
-                        self.zoom = self.zoom * 0.98;
+        if self.show_images {
+            let title = title.into();
+            egui::Window::new(format!("Image {title}"))
+                .default_pos(pos)
+                .default_size(size)
+                .scroll(true)
+                .show(ctx, |ui| {
+                    let zoom_delta = ui.input(|i| i.zoom_delta());
+                    if zoom_delta != 1.0 {
+                        if zoom_delta > 1.0 {
+                            self.zoom = self.zoom * 1.02;
+                        } else {
+                            self.zoom = self.zoom * 0.98;
+                        }
                     }
-                }
-                // log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
-                let texture_handle: TextureHandle = ui.ctx().load_texture(title, image(&frame), TextureOptions::LINEAR);
-                let mut scene_rect = ctx.input(|x| {
-                    x.viewport().inner_rect.unwrap_or(egui::Rect::ZERO)
+                    // log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
+                    let texture_handle: TextureHandle = ui.ctx().load_texture(title, image(&frame), TextureOptions::LINEAR);
+                    let mut scene_rect = ctx.input(|x| {
+                        x.viewport().inner_rect.unwrap_or(egui::Rect::ZERO)
+                    });
+                    let scale_factor = 1.0 / ctx.zoom_factor();
+                    let image = egui::Image::new(&texture_handle)
+                        .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into());
+                        // .shrink_to_fit()
+                        // .sense(egui::Sense::all());
+                        // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
+                    ui.add(
+                        image
+                    );
+                    // let rect = egui::Rect::from_two_pos(self.start_pos, self.end_pos);
+                    // let rect = egui::Rect::from_min_size(
+                    //         egui::pos2(rect.min.x * scale_factor, rect.min.y * scale_factor),
+                    //         egui::vec2(
+                    //             rect.width() * scale_factor,
+                    //             rect.height() * scale_factor,
+                    //         ),
+                    //     );
+                    //     egui::Scene::new().sense(egui::Sense::all()).show(ui, &mut rect, |ui| {
+                    //     let image = egui::Image::new(&texture_handle);
+                    //     // .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into())
+                    //         // .shrink_to_fit()
+                    //         // .sense(egui::Sense::all());
+                    //         // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
+                    //     ui.add(
+                    //         image
+                    //     );
+                    // });
+                    ui.set_width(scene_rect.width());
+                    ui.set_height(scene_rect.height());
                 });
-                let scale_factor = 1.0 / ctx.zoom_factor();
-                let image = egui::Image::new(&texture_handle)
-                    .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into());
-                    // .shrink_to_fit()
-                    // .sense(egui::Sense::all());
-                    // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
-                ui.add(
-                    image
-                );
-                // let rect = egui::Rect::from_two_pos(self.start_pos, self.end_pos);
-                // let rect = egui::Rect::from_min_size(
-                //         egui::pos2(rect.min.x * scale_factor, rect.min.y * scale_factor),
-                //         egui::vec2(
-                //             rect.width() * scale_factor,
-                //             rect.height() * scale_factor,
-                //         ),
-                //     );
-                //     egui::Scene::new().sense(egui::Sense::all()).show(ui, &mut rect, |ui| {
-                //     let image = egui::Image::new(&texture_handle);
-                //     // .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into())
-                //         // .shrink_to_fit()
-                //         // .sense(egui::Sense::all());
-                //         // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
-                //     ui.add(
-                //         image
-                //     );
-                // });
-                ui.set_width(scene_rect.width());
-                ui.set_height(scene_rect.height());
-            });
+        }
     }
     ///
     /// Returns Image with array of dots
@@ -268,13 +276,13 @@ impl eframe::App for UiApp {
             let head_hight = 34.0;
             let mut path_error = None;
             egui::Window::new("Parameters")
-                .anchor(Align2::RIGHT_BOTTOM, [0.0, 0.0])
-                // .default_size([0.4 * vp_size.width(), 0.5 * vp_size.height() - head_hight])
+                .anchor(Align2::RIGHT_TOP, [0.0, 0.0])
+                .default_size([0.8 * vp_size.width(), vp_size.height() - head_hight])
                 .show(ctx, |ui| {
                     ui.horizontal(|ui| {
                         ui.add_sized(
                             [32.0, 16.0 * 2.0 + 6.0], 
-                            egui::Label::new(format!("image↕ ")), //⇔⇕   ↔
+                            egui::Label::new(format!("Image↕ ")), //⇔⇕   ↔
                         );
                         ui.separator();
                         if ui.add(egui::TextEdit::singleline(&mut self.path)).changed() {
@@ -309,28 +317,24 @@ impl eframe::App for UiApp {
                             }
                             self.is_changed = 2;
                         };
+                        ui.separator();
+                        if ui.add(egui::Checkbox::new(&mut self.show_images, "Show images")).changed() {
+                            self.is_changed = 2;
+                        };
                     });
                     ui.horizontal(|ui| {
-                        ui.add(
-                            // [32.0, 16.0 * 2.0 + 6.0], 
-                            egui::Label::new(format!("Image: {} x {}", self.frame.width, self.frame.height))
-                        );
+                        ui.add(egui::Label::new(format!("Image: {} x {}", self.frame.width, self.frame.height)));
+                        ui.separator();
+                        match self.elapsed {
+                            Some(elapsed) => ui.add(egui::Label::new(format!("Elapse: {:?}", elapsed))),
+                            None => ui.add(egui::Label::new(format!("Elapse: ---"))),
+                        }
                     });
                     if let Some(path_err) = path_error {
-                        ui.horizontal(|ui| {
-                            ui.add(
-                                // [32.0, 16.0 * 2.0 + 6.0], 
-                                egui::Label::new(RichText::new(path_err).color(Color32::ORANGE_ACCENT)), //⇔⇕   ↔
-                            );
-                        });
+                        ui.horizontal(|ui| ui.add(egui::Label::new(RichText::new(path_err).color(Color32::ORANGE_ACCENT))));
                     }
                     if let Some(alg_err) = &self.alg_err {
-                        ui.horizontal(|ui| {
-                            ui.add(
-                                // [32.0, 16.0 * 2.0 + 6.0], 
-                                egui::Label::new(RichText::new(alg_err).color(Color32::ORANGE_ACCENT)), //⇔⇕   ↔
-                            );
-                        });
+                        ui.horizontal(|ui| ui.add(egui::Label::new(RichText::new(alg_err).color(Color32::ORANGE_ACCENT))));
                     }
                     egui::ScrollArea::vertical()
                     .auto_shrink([false; 2])
@@ -404,6 +408,7 @@ impl eframe::App for UiApp {
                     },
                     fine_scan: FineScanConf::default(),
                 };
+                let t = Instant::now();
                 let result_ctx = EdgeDetection::new(
                     conf.edge_detection.threshold,
                     DetectingContoursCv::new(
@@ -427,6 +432,7 @@ impl eframe::App for UiApp {
                 ).eval(self.frame.clone());
                 match result_ctx {
                     Ok(result_ctx) => {
+                        self.elapsed = Some(t.elapsed());
                         self.alg_err = None;
                         let contours_ctx: &DetectingContoursCvCtx = result_ctx.read();
                         self.contour_frame = Some(contours_ctx.result.clone());
@@ -437,17 +443,22 @@ impl eframe::App for UiApp {
                         let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.contours.cropping);
                         self.result_frame = Some(result_img)
                     }
-                    Err(err) => self.alg_err = Some(format!("Error in the algorithms: {err}")),
+                    Err(err) => {
+                        self.alg_err = Some(format!("Error in the algorithms: {err}"));
+                        self.elapsed = None;
+                    }
                 }
                 
             }
             if let Some(frame) = self.contour_frame.clone() {
                 self.display_image_window(ctx, window_contours, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 0.5 * vp_size.height()], &frame);
                 opencv::highgui::imshow(window_contours, &frame.mat).unwrap();
+                opencv::highgui::wait_key(1).unwrap();
             }
             if let Some(frame) = self.result_frame.clone() {
                 self.display_image_window(ctx, window_result, [0.70 * vp_size.width(), 0.70 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
                 opencv::highgui::imshow(window_result, &frame.mat).unwrap();
+                opencv::highgui::wait_key(1).unwrap();
             }
         }
         ctx.request_repaint();

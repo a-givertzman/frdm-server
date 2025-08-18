@@ -12,13 +12,14 @@ fn main() {
     let dbg = Dbg::own("main");
     
     eframe::run_native(
-        "Rpi-FFT-App", 
+        "Adjusting", 
         eframe::NativeOptions {
             // fullscreen: true,
             // maximized: true,
             viewport: egui::ViewportBuilder::default()
+                .with_position(egui::pos2(800.0, 100.0))
                 // .with_fullscreen(true),
-                .with_inner_size([1920.0, 1100.0]),
+                .with_inner_size([800.0, 1100.0]),
             event_loop_builder: event_loop_builder(),
             ..Default::default()
         }, 
