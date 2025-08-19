@@ -58,7 +58,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                         ) {
                             Ok(_) => {
                                 // Calculate cumulative distribution from the histogram
-                                let mut accumulator = vec![255.0; 256];
+                                let mut accumulator = vec![];
                                 match hist.at::<f32>(0) {
                                     Ok(val) => accumulator.push(*val),
                                     Err(err) => return Err(error.pass(err.to_string())),
@@ -73,6 +73,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                         Err(err) => return Err(error.pass(err.to_string())),
                                     }
                                 }
+                                // log::debug!("AutoBrightnessAndContrast.eval | accumulator: {:?}", accumulator);
                                 // Locate points to clip
                                 let maximum = match accumulator.last() {
                                     Some(max) => max,
@@ -82,16 +83,22 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                 clip_hist_percent = clip_hist_percent / 2.0;
                                 // Locate left cut
                                 let mut minimum_gray = 0;
-                                // accumulator[minimum_gray] < clip_hist_percent
-                                while accumulator.get(minimum_gray).map_or(false, |acc_val| *acc_val < clip_hist_percent) {
-                                    minimum_gray += 1;
+                                for i in 0..accumulator.len() {
+                                    minimum_gray = i;
+                                    if !(accumulator[i] < clip_hist_percent) {
+                                        break;
+                                    }
                                 }
                                 // Locate right cut
                                 let mut maximum_gray = (hist_size - 1) as usize;
-                                // accumulator[maximum_gray] >= (maximum - clip_hist_percent)
-                                while accumulator.get(maximum_gray).map_or(true, |acc_val| *acc_val >= (maximum - clip_hist_percent)) {
-                                    maximum_gray -= 1;
+                                for i in (0..accumulator.len()).rev() {
+                                    maximum_gray = i;
+                                    if !(accumulator[i] >= (maximum - clip_hist_percent)) {
+                                        break;
+                                    }
                                 }
+                                log::debug!("AutoBrightnessAndContrast.eval | minimum_gray: {:?}", minimum_gray);
+                                log::debug!("AutoBrightnessAndContrast.eval | maximum_gray: {:?}", maximum_gray);
                                 // Calculate alpha and beta values
                                 let alpha = 255.0 / ((maximum_gray - minimum_gray) as f64);
                                 let beta = - (minimum_gray as f64) * alpha;

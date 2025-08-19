@@ -1,5 +1,5 @@
 use eframe::CreationContext;
-use opencv::core::{MatTrait, MatTraitConst};
+use opencv::core::{MatExprTraitConst, MatTrait, MatTraitConst, MatTraitConstManual};
 use sal_core::dbg::Dbg;
 use sal_sync::collections::FxIndexMap;
 use testing::entities::test_value::Value;
@@ -7,7 +7,7 @@ use std::{str::FromStr, sync::{Arc, Once}, time::{Duration, Instant}};
 use egui::{
     Align2, Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions, TopBottomPanel 
 };
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, AutoGammaCtx, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
 
 ///
 /// 
@@ -46,6 +46,7 @@ pub struct UiApp {
     end_pos: egui::Pos2,
     origin: Image,
     frame: Image,
+    hist_frame: Option<Image>,
     contour_frame: Option<Image>,
     result_frame: Option<Image>,
     is_changed: usize,
@@ -119,6 +120,7 @@ impl UiApp {
             end_pos: egui::pos2(100.0, 100.0),
             origin,
             frame,
+            hist_frame: None,
             contour_frame: None,
             result_frame: None,
             is_changed,
@@ -261,6 +263,102 @@ impl UiApp {
         }
         res
     }
+    ///
+    /// Returns an image with hist
+    fn display_hist(frame: &Image, clip_percent: f32) -> Image {
+        let mut gray = opencv::core::Mat::default();
+        match opencv::imgproc::cvt_color(&frame.mat, &mut gray, opencv::imgproc::COLOR_BGR2GRAY, 0) {
+            Ok(_) => {
+                let mut hist = opencv::core::Mat::default();
+                let hist_size = 256 as i32;
+                let imgs: opencv::core::Vector<opencv::core::Mat> = opencv::core::Vector::from_iter([gray.clone()]);
+                match opencv::imgproc::calc_hist(
+                    &imgs,
+                    &opencv::core::Vector::from_slice(&[0]),
+                    &opencv::core::Mat::default(),
+                    &mut hist,
+                    &opencv::core::Vector::from_slice(&[hist_size]),
+                    &opencv::core::Vector::from_slice(&[0.0 ,256.0]),
+                    false,
+                ) {
+                    Ok(_) => {
+                        let mut accumulator = vec![];
+                        let mut hist_max = 0.0;
+                        let hist_factor = 500.0;
+                        accumulator.push(*hist.at::<f32>(0).unwrap());
+                        for index in 1..(hist_size as usize) {
+                            match hist.at::<f32>(index as i32) {
+                                Ok(val) => {
+                                    if *val > hist_max {
+                                        hist_max = *val;
+                                    }
+                                    if let Some(acc_val) = accumulator.get(index -1) {
+                                        accumulator.push(acc_val + *val)
+                                    }
+                                }
+                                Err(err) => todo!(),
+                            }
+                        }
+                        hist_max = hist_max / hist_factor;
+                        // log::debug!("AutoBrightnessAndContrast.eval | accumulator: {:?}", accumulator);
+                        // Locate points to clip
+                        let maximum = match accumulator.last() {
+                            Some(max) => max,
+                            None => todo!("Empty `accumulator`")
+                        };
+                        let clip_hist_percent = clip_percent * maximum / 100.0;
+                        let clip_hist_percent = clip_hist_percent / 2.0;
+                        // Locate left cut
+                        let mut minimum_gray = 0;
+                        for i in 0..accumulator.len() {
+                            minimum_gray = i;
+                            if !(accumulator[i] < clip_hist_percent) {
+                                break;
+                            }
+                        }
+                        log::debug!("UiApp.display_hist | minimum_gray: {:?}", minimum_gray);
+                        // Locate right cut
+                        let mut maximum_gray = (hist_size - 1) as usize;
+                        for i in (0..accumulator.len()).rev() {
+                            maximum_gray = i;
+                            if !(accumulator[i] >= (maximum - clip_hist_percent)) {
+                                break;
+                            }
+                        }
+                        log::debug!("UiApp.display_hist | maximum_gray: {:?}", maximum_gray);
+                        let hist_width = hist.cols();
+                        let hist_height = hist.rows();
+                        // let plot = opencv::core::Mat::zeros_size(opencv::core::Size_::new(256, hist_max as i32 + 10), opencv::core::CV_8UC3).unwrap();
+                        log::debug!("UiApp.display_hist.eval | hist_max: {:?}", hist_max);
+                        let mut plot = opencv::core::Mat::new_rows_cols_with_default((hist_max as i32) + 10, 256, opencv::core::CV_8UC3, opencv::core::VecN::new(0.0, 0.0, 0.0, 0.0)).unwrap();
+                        for col in 0..(hist_size as usize) {
+                            match hist.at::<f32>(col as i32) {
+                                Ok(val) => {
+                                    *plot.at_2d_mut((hist_max - *val / hist_factor) as i32, col as i32).unwrap() = opencv::core::Vec3b::from_array([0,255,0]);
+                                }
+                                Err(err) => todo!(),
+                            }
+                        }
+                        let plot = Self::image_plot(
+                            &Image::with(plot),
+                            (0..(hist_max as usize)).map(|y| Dot {x: minimum_gray, y: y as usize}).collect(),
+                            [0, 0, 255],
+                            &CroppingConf { x: 0, width: hist_width, y: 0, height: hist_height },
+                        );
+                        let plot = Self::image_plot(
+                            &plot,
+                            (0..(hist_max as usize)).map(|y| Dot {x: maximum_gray, y: y as usize}).collect(),
+                            [255, 0, 0],
+                            &CroppingConf { x: 0, width: hist_width, y: 0, height: hist_height },
+                        );
+                        plot
+                    }
+                    Err(err) => Image::default(),
+                }
+            }
+            Err(_) => Image::default(),
+        }
+    }
 }
 //
 //
@@ -268,9 +366,10 @@ impl eframe::App for UiApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let window_origin = "Orgin";
         let window_contours = "DetectingContoursCv";
+        let window_hist = "Hist";
         let window_result = "Result";
         START.call_once(|| {
-            Self::setup_opencv_windows(&self.dbg, vec![window_origin, window_result]);
+            Self::setup_opencv_windows(&self.dbg, vec![window_origin, window_result, window_hist]);
         });
         if let Some(vp_size) = ctx.input(|i| i.viewport().inner_rect) {
             let head_hight = 34.0;
@@ -438,7 +537,9 @@ impl eframe::App for UiApp {
                         let result_img = Self::image_plot(&self.frame, upper, [0, 0, 255], &conf.contours.cropping);
                         let lower = edges.result.get(Side::Lower);
                         let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.contours.cropping);
-                        self.result_frame = Some(result_img)
+                        self.result_frame = Some(result_img);
+                        let gamma_ctx: &AutoGammaCtx = result_ctx.read();
+                        self.hist_frame = Some(Self::display_hist(&gamma_ctx.result, conf.contours.brightness_contrast.histogram_clipping as f32));
                     }
                     Err(err) => {
                         self.alg_err = Some(format!("Error in the algorithms: {err}"));
@@ -455,6 +556,11 @@ impl eframe::App for UiApp {
             if let Some(frame) = self.result_frame.clone() {
                 self.display_image_window(ctx, window_result, [0.70 * vp_size.width(), 0.70 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
                 opencv::highgui::imshow(window_result, &frame.mat).unwrap();
+                opencv::highgui::wait_key(1).unwrap();
+            }
+            if let Some(frame) = self.hist_frame.clone() {
+                // self.display_image_window(ctx, window_contours, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 0.5 * vp_size.height()], &frame);
+                opencv::highgui::imshow(window_hist, &frame.mat).unwrap();
                 opencv::highgui::wait_key(1).unwrap();
             }
         }
