@@ -5,7 +5,7 @@ use sal_sync::collections::FxIndexMap;
 use testing::entities::test_value::Value;
 use std::{str::FromStr, sync::{Arc, Once}, time::{Duration, Instant}};
 use egui::{
-    Align2, Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions 
+    Align2, Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions, TopBottomPanel 
 };
 use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
 
@@ -275,17 +275,21 @@ impl eframe::App for UiApp {
         if let Some(vp_size) = ctx.input(|i| i.viewport().inner_rect) {
             let head_hight = 34.0;
             let mut path_error = None;
-            egui::Window::new("Parameters")
-                .anchor(Align2::RIGHT_TOP, [0.0, 0.0])
-                .default_size([0.8 * vp_size.width(), vp_size.height() - head_hight])
+            egui::TopBottomPanel::bottom("StatusBar").exact_height(32.0).show(ctx, |ui| ui.horizontal(|ui| {
+                ui.add(egui::Label::new(format!("Image: {} x {}", self.frame.width, self.frame.height)));
+                ui.separator();
+                match self.elapsed {
+                    Some(elapsed) => ui.add(egui::Label::new(format!("Elapse: {:?}", elapsed))),
+                    None => ui.add(egui::Label::new(format!("Elapse: ---"))),
+                };
+            }));
+            egui::SidePanel::left("Parameters")
+                .default_width(700.0)
                 .show(ctx, |ui| {
                     ui.horizontal(|ui| {
-                        ui.add_sized(
-                            [32.0, 16.0 * 2.0 + 6.0], 
-                            egui::Label::new(format!("Image↕ ")), //⇔⇕   ↔
-                        );
+                        ui.add(egui::Label::new(format!("Image↕ ")));
                         ui.separator();
-                        if ui.add(egui::TextEdit::singleline(&mut self.path)).changed() {
+                        if ui.add_sized([ui.available_width() - 4.0, 24.0], egui::TextEdit::singleline(&mut self.path)).changed() {
                             match Image::load(&self.path) {
                                 Ok(frame) => {
                                     self.origin = frame.clone();
@@ -304,8 +308,9 @@ impl eframe::App for UiApp {
                                     path_error = Some(format!("Read path '{}' error: {:?}", self.path, err));
                                 }
                             }
-                        };                          
-                        ui.separator();
+                        };
+                    });
+                    ui.horizontal(|ui| {
                         if ui.add(egui::Checkbox::new(&mut self.rotate, "Rotate")).changed() {
                             match self.rotate {
                                 true => {
@@ -322,14 +327,6 @@ impl eframe::App for UiApp {
                             self.is_changed = 2;
                         };
                     });
-                    ui.horizontal(|ui| {
-                        ui.add(egui::Label::new(format!("Image: {} x {}", self.frame.width, self.frame.height)));
-                        ui.separator();
-                        match self.elapsed {
-                            Some(elapsed) => ui.add(egui::Label::new(format!("Elapse: {:?}", elapsed))),
-                            None => ui.add(egui::Label::new(format!("Elapse: ---"))),
-                        }
-                    });
                     if let Some(path_err) = path_error {
                         ui.horizontal(|ui| ui.add(egui::Label::new(RichText::new(path_err).color(Color32::ORANGE_ACCENT))));
                     }
@@ -337,30 +334,30 @@ impl eframe::App for UiApp {
                         ui.horizontal(|ui| ui.add(egui::Label::new(RichText::new(alg_err).color(Color32::ORANGE_ACCENT))));
                     }
                     egui::ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .stick_to_bottom(true)
-                    .show(ui, |ui| {
-                        for (i, param) in self.conf.iter().enumerate() {
-                            ui.horizontal(|ui| {
-                                ui.add_sized(
-                                    [128.0, 16.0 * 2.0 + 6.0], 
-                                    egui::Label::new(format!("{:?}\t|\t{:?}", i, param.key)),
-                                );
-                                ui.separator();
-                                let (text, value) = self.params.entry(param.key.clone()).or_insert(match &param.val {
-                                    ParamVal::IRange(_) => (param.default.to_string(), Value::Int(param.default.as_int())),
-                                    ParamVal::FRange(_) => (param.default.to_string(), Value::Double(param.default.as_double())),
+                        .auto_shrink([false; 2])
+                        .stick_to_bottom(true)
+                        .show(ui, |ui| {
+                            for (i, param) in self.conf.iter().enumerate() {
+                                ui.horizontal(|ui| {
+                                    ui.add_sized(
+                                        [128.0, 16.0 * 2.0 + 6.0], 
+                                        egui::Label::new(format!("{:?}\t|\t{:?}", i, param.key)),
+                                    );
+                                    ui.separator();
+                                    let (text, value) = self.params.entry(param.key.clone()).or_insert(match &param.val {
+                                        ParamVal::IRange(_) => (param.default.to_string(), Value::Int(param.default.as_int())),
+                                        ParamVal::FRange(_) => (param.default.to_string(), Value::Double(param.default.as_double())),
+                                    });
+                                    if ui.add(egui::TextEdit::singleline(text)).changed() {
+                                        match &param.val {
+                                            ParamVal::IRange(_) => *value = Value::Int(Self::parse(&self.dbg, &param.key, text, param.default.as_int())),
+                                            ParamVal::FRange(_) => *value = Value::Double(Self::parse(&self.dbg, &param.key, text, param.default.as_double())),
+                                        }
+                                        self.is_changed = 2;
+                                    };                          
                                 });
-                                if ui.add(egui::TextEdit::singleline(text)).changed() {
-                                    match &param.val {
-                                        ParamVal::IRange(_) => *value = Value::Int(Self::parse(&self.dbg, &param.key, text, param.default.as_int())),
-                                        ParamVal::FRange(_) => *value = Value::Double(Self::parse(&self.dbg, &param.key, text, param.default.as_double())),
-                                    }
-                                    self.is_changed = 2;
-                                };                          
-                            });
-                        }
-                    });
+                            }
+                        });
                 });
             if self.is_changed > 0 {
                 self.is_changed -= 1;
