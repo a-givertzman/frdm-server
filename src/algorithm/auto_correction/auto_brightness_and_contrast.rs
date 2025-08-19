@@ -58,14 +58,18 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                         ) {
                             Ok(_) => {
                                 // Calculate cumulative distribution from the histogram
-                                let mut accumulator = vec![255.0; 255];
+                                let mut accumulator = vec![255.0; 256];
                                 match hist.at::<f32>(0) {
                                     Ok(val) => accumulator.push(*val),
                                     Err(err) => return Err(error.pass(err.to_string())),
                                 }
                                 for index in 1..(hist_size as usize) {
                                     match hist.at::<f32>(index as i32) {
-                                        Ok(val) => accumulator.push(accumulator[index -1] + * val),
+                                        Ok(val) => {
+                                            if let Some(acc_val) = accumulator.get(index -1) {
+                                                accumulator.push(acc_val + * val)
+                                            }
+                                        }
                                         Err(err) => return Err(error.pass(err.to_string())),
                                     }
                                 }
@@ -78,12 +82,14 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                 clip_hist_percent = clip_hist_percent / 2.0;
                                 // Locate left cut
                                 let mut minimum_gray = 0;
-                                while accumulator[minimum_gray] < clip_hist_percent {
+                                // accumulator[minimum_gray] < clip_hist_percent
+                                while accumulator.get(minimum_gray).map_or(true, |acc_val| *acc_val < clip_hist_percent) {
                                     minimum_gray += 1;
                                 }
                                 // Locate right cut
                                 let mut maximum_gray = (hist_size - 1) as usize;
-                                while accumulator[maximum_gray] >= (maximum - clip_hist_percent) {
+                                // accumulator[maximum_gray] >= (maximum - clip_hist_percent)
+                                while accumulator.get(maximum_gray).map_or(true, |acc_val| *acc_val >= (maximum - clip_hist_percent)) {
                                     maximum_gray -= 1;
                                 }
                                 // Calculate alpha and beta values
