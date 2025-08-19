@@ -89,7 +89,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                 // Locate right cut
                                 let mut maximum_gray = (hist_size - 1) as usize;
                                 // accumulator[maximum_gray] >= (maximum - clip_hist_percent)
-                                while accumulator.get(maximum_gray).map_or(false, |acc_val| *acc_val >= (maximum - clip_hist_percent)) {
+                                while accumulator.get(maximum_gray).map_or(true, |acc_val| *acc_val >= (maximum - clip_hist_percent)) {
                                     maximum_gray -= 1;
                                 }
                                 // Calculate alpha and beta values
