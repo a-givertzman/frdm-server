@@ -93,7 +93,7 @@ impl UiApp {
                 Param::new("Contours.cropping.y",                           ParamVal::IRange(0..6000),      Value::Int(0)),
                 Param::new("Contours.cropping.height",                      ParamVal::IRange(0..6000),      Value::Int(1200)),
 
-                Param::new("BrightnessContrast.histogram_clipping",         ParamVal::IRange(0..100),       Value::Int(1)),
+                Param::new("BrightnessContrast.Clipping",                   ParamVal::IRange(0..100),       Value::Int(1)),
 
                 Param::new("Contours.gamma.factor",                         ParamVal::FRange(1.1..100.0),   Value::Double(95.0)),
 
@@ -378,7 +378,7 @@ impl eframe::App for UiApp {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
                         },
                         brightness_contrast: BrightnessContrastConf {
-                            histogram_clipping: self.params.get("BrightnessContrast.histogram_clipping").unwrap().1.as_int() as i32,
+                            histogram_clipping: self.params.get("BrightnessContrast.Clipping").unwrap().1.as_int() as i32,
                         },
                         gausian: GausianConf {
                             blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
