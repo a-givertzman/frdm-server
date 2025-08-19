@@ -60,7 +60,7 @@ impl Eval<Image, EvalResult> for AutoGamma {
                                                 width: frame.width,
                                                 height: frame.height,
                                                 timestamp: frame.timestamp,
-                                                mat: dst,
+                                                mat: frame.mat, //dst,
                                                 bytes: frame.bytes,
                                             }
                                         };
