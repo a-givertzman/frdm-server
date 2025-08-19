@@ -58,7 +58,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                         ) {
                             Ok(_) => {
                                 // Calculate cumulative distribution from the histogram
-                                let mut accumulator = vec![];
+                                let mut accumulator = vec![255.0; 255];
                                 match hist.at::<f32>(0) {
                                     Ok(val) => accumulator.push(*val),
                                     Err(err) => return Err(error.pass(err.to_string())),

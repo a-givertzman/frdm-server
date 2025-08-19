@@ -95,7 +95,7 @@ impl UiApp {
 
                 Param::new("BrightnessContrast.histogram_clipping",         ParamVal::IRange(0..100),       Value::Int(1)),
 
-                Param::new("Contours.gamma.factor",                         ParamVal::FRange(0.0..100.0),   Value::Double(95.0)),
+                Param::new("Contours.gamma.factor",                         ParamVal::FRange(1.1..100.0),   Value::Double(95.0)),
 
                 Param::new("Contours.gausian.blur_w",                       ParamVal::IRange(0..100),       Value::Int(7)),
                 Param::new("Contours.gausian.blur_h",                       ParamVal::IRange(0..100),       Value::Int(7)),
@@ -103,7 +103,7 @@ impl UiApp {
                 Param::new("Contours.gausian.sigma_y",                      ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
                 
                 Param::new("Contours.sobel.kernel_size",                    ParamVal::IRange(0..100),   Value::Int(3)),
-                Param::new("Contours.sobel.scale",                          ParamVal::FRange(0.0..100.0),   Value::Double(1.0)),
+                Param::new("Contours.sobel.scale",                          ParamVal::FRange(0.0..100.0),   Value::Double(11.0)),
                 Param::new("Contours.sobel.delta",                          ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
                 
                 Param::new("Contours.overlay.src1_weight",                  ParamVal::FRange(0.0..100.0),   Value::Double(0.5)),
@@ -372,7 +372,7 @@ impl eframe::App for UiApp {
                             x: cropping_x,
                             width: if cropping_x + cropping_width <= self.frame.width as i32 {cropping_width} else {self.frame.width as i32 - cropping_x},
                             y: cropping_y,
-                            height: if cropping_y + cropping_height <= self.frame.height as i32 {cropping_height} else {self.frame.height as i32} - cropping_y,
+                            height: if cropping_y + cropping_height <= self.frame.height as i32 {cropping_height} else {self.frame.height as i32 - cropping_y},
                         },
                         gamma: GammaConf {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),

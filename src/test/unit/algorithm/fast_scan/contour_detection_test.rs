@@ -45,10 +45,15 @@ fn eval() {
     let conf = ConfTree::new_root(
         serde_yaml::from_str(&format!(r#"
             contours:
+                cropping:
+                    x: 650           # new left edge
+                    width: 1250     # new image width
+                    y: 400           # new top edge
+                    height: 750    # new image height
                 gamma:
-                    factor: 70.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                    factor: 99.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 brightness-contrast:
-                    histogram-clipping: 1     # optional histogram clipping, default = 0 %
+                    histogram-clipping: 3     # optional histogram clipping, default = 0 %
                 gausian:
                     blur-size:
                         width: 7
@@ -72,7 +77,7 @@ fn eval() {
         "#)).unwrap(),
     );
     let conf = Conf::new(&dbg, conf);
-    let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
+    // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let scan_rope = 
         EdgeDetection::new(
             conf.edge_detection.threshold,
@@ -120,7 +125,7 @@ fn eval() {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
 
-    let image_dir = "/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp110_rope/retrived"; 
+    let image_dir = "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
 
     for path in std::fs::read_dir(image_dir).unwrap().into_iter()
         .filter_map(|e| {
@@ -137,18 +142,17 @@ fn eval() {
                 let inp = frame_mat.clone();
                 let mut rotated = Mat::default();
                 core::rotate(&inp, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
-                let mut res = rotated.clone();
-                let src_frame = Image::with(rotated);
+                let src_frame = Image::with(inp);
                 let test = src_frame.clone();
                 let time = Instant::now();
                 let ctx = scan_rope.eval(src_frame).unwrap();
-                let cropping = cropp.eval(test).unwrap();
                 log::warn!("{dbg}.eval | Elapsed: {:?}", time.elapsed());
-                let crop: &CroppingCtx = cropping.read();
+                let crop: &CroppingCtx = ctx.read();    
                 let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &DetectingContoursCvCtx = ctx.read();
                 let edges: &EdgeDetectionCtx = ctx.read();
+                let mut res = crop.result.mat.clone();
                 let edges_cont = contours.result.mat.clone();
                 let upper = edges.result.get(Side::Upper);
                 let lower = edges.result.get(Side::Lower);

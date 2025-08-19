@@ -24,7 +24,7 @@ fn main() {
             ..Default::default()
         }, 
         Box::new(|cc| Ok(Box::new(
-            UiApp::new(&dbg, "src/test/complex/testing_files/rope_0.jpeg", cc),
+            UiApp::new(&dbg, "src/test/complex/exp65_rope_frame_5.jpeg", cc),
         )))
     ).unwrap();
 }
