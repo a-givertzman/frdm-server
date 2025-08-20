@@ -52,7 +52,8 @@ fn eval() {
                 gamma:
                     factor: 99.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 brightness-contrast:
-                    histogram-clipping: 3     # optional histogram clipping, default = 0 %
+                    hist-clip-left: 1.5     # optional histogram clipping from right, default = 0.0 %
+                    hist-clip-right: 1.5    # optional histogram clipping from right, default = 0.0 %
                 gausian:
                     blur-size:
                         width: 7
