@@ -44,7 +44,8 @@ fn main() {
             DetectingContoursCv::new(
                 conf.contours.clone(),
                 AutoBrightnessAndContrast::new(
-                    conf.contours.brightness_contrast.histogram_clipping,
+                    conf.contours.brightness_contrast.hist_clip_left,
+                    conf.contours.brightness_contrast.hist_clip_right,
                     AutoGamma::new(
                         conf.contours.gamma.factor,
                         Cropping::new(

@@ -94,7 +94,8 @@ impl UiApp {
                 Param::new("Contours.cropping.y",                           ParamVal::IRange(0..6000),      Value::Int(0)),
                 Param::new("Contours.cropping.height",                      ParamVal::IRange(0..6000),      Value::Int(1200)),
 
-                Param::new("BrightnessContrast.Clipping",                   ParamVal::IRange(0..100),       Value::Int(1)),
+                Param::new("BrightnessContrast.Clip-left",                  ParamVal::IRange(0..100),       Value::Int(0)),
+                Param::new("BrightnessContrast.Clip-right",                 ParamVal::IRange(0..100),       Value::Int(100)),
 
                 Param::new("Contours.gamma.factor",                         ParamVal::FRange(1.1..100.0),   Value::Double(95.0)),
 
@@ -265,7 +266,7 @@ impl UiApp {
     }
     ///
     /// Returns an image with hist
-    fn display_hist(frame: &Image, clip_percent: f32) -> Image {
+    fn display_hist(frame: &Image, hist_clip_left: f32, hist_clip_right: f32) -> Image {
         // let mut gray = opencv::core::Mat::default();
         // match opencv::imgproc::cvt_color(&frame.mat, &mut gray, opencv::imgproc::COLOR_BGR2GRAY, 0) {
         //     Ok(_) => {
@@ -307,13 +308,15 @@ impl UiApp {
                             Some(max) => max,
                             None => todo!("Empty `accumulator`")
                         };
-                        let clip_hist_percent = clip_percent * maximum / 100.0;
-                        let clip_hist_percent = clip_hist_percent / 2.0;
+                        log::debug!("UiApp.display_hist | maximum: {:?}", maximum);
+                        let hist_clip_left = hist_clip_left * maximum / 100.0;
+                        let hist_clip_right = hist_clip_right * maximum / 100.0;
+                        // let clip_hist_percent = clip_hist_percent / 2.0;
                         // Locate left cut
                         let mut minimum_gray = 0;
                         for i in 0..accumulator.len() {
                             minimum_gray = i;
-                            if !(accumulator[i] < clip_hist_percent) {
+                            if !(accumulator[i] < hist_clip_left) {
                                 break;
                             }
                         }
@@ -322,7 +325,7 @@ impl UiApp {
                         let mut maximum_gray = (hist_size - 1) as usize;
                         for i in (0..accumulator.len()).rev() {
                             maximum_gray = i;
-                            if !(accumulator[i] >= (maximum - clip_hist_percent)) {
+                            if !(accumulator[i] >= (maximum - hist_clip_right)) {
                                 break;
                             }
                         }
@@ -485,7 +488,8 @@ impl eframe::App for UiApp {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
                         },
                         brightness_contrast: BrightnessContrastConf {
-                            histogram_clipping: self.params.get("BrightnessContrast.Clipping").unwrap().1.as_int() as i32,
+                            hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_int() as i32,
+                            hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_int() as i32,
                         },
                         gausian: GausianConf {
                             blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
@@ -518,7 +522,8 @@ impl eframe::App for UiApp {
                     DetectingContoursCv::new(
                         conf.contours.clone(),
                         AutoBrightnessAndContrast::new(
-                            conf.contours.brightness_contrast.histogram_clipping,
+                            conf.contours.brightness_contrast.hist_clip_left,
+                            conf.contours.brightness_contrast.hist_clip_right,
                             AutoGamma::new(
                                 conf.contours.gamma.factor,
                                 Cropping::new(
@@ -547,7 +552,11 @@ impl eframe::App for UiApp {
                         let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.contours.cropping);
                         self.result_frame = Some(result_img);
                         // let gamma_ctx: &AutoGammaCtx = result_ctx.read();
-                        self.hist_frame = Some(Self::display_hist(&contours_ctx.result, conf.contours.brightness_contrast.histogram_clipping as f32));
+                        self.hist_frame = Some(Self::display_hist(
+                            &contours_ctx.result,
+                            conf.contours.brightness_contrast.hist_clip_left as f32,
+                            conf.contours.brightness_contrast.hist_clip_right as f32,
+                        ));
                     }
                     Err(err) => {
                         self.alg_err = Some(format!("Error in the algorithms: {err}"));

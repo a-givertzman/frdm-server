@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, AutoGammaCtx, Context, ContextWrite, DetectingContoursCvCtx, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
-use opencv::{core::{self, Mat, MatTrait, Vec3b, Vector, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
+use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
 use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
@@ -10,7 +10,6 @@ use debugging::session::debug_session::{
     Backtrace
 };
 use sal_core::dbg::Dbg;
-use walkdir::WalkDir;
 use crate::{
     algorithm::{
         ContextRead, Cropping, DetectingContoursCv, EdgeDetection, CroppingCtx
@@ -84,7 +83,8 @@ fn eval() {
             DetectingContoursCv::new(
                 conf.contours.clone(),
                 AutoBrightnessAndContrast::new(
-                    conf.contours.brightness_contrast.histogram_clipping,
+                    conf.contours.brightness_contrast.hist_clip_left,
+                    conf.contours.brightness_contrast.hist_clip_right,
                     AutoGamma::new(
                         conf.contours.gamma.factor,
                         Cropping::new(

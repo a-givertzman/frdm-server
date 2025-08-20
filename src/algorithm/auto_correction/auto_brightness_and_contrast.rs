@@ -16,16 +16,19 @@ use crate::{Eval, domain::Image};
 /// 
 /// Reference: [Automatic contrast and brightness adjustment of a color photo of a sheet of paper with OpenCV](https://stackoverflow.com/questions/56905592/automatic-contrast-and-brightness-adjustment-of-a-color-photo-of-a-sheet-of-pape)
 pub struct AutoBrightnessAndContrast {
-    histogram_clipping: i32,
+    clip_left: i32,
+    clip_right: i32,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 impl AutoBrightnessAndContrast {
     ///
     /// Returns [AutoBrightnessAndContrast] new instance
-    /// - `histogram_clipping` - optional histogram clipping, default = 0 %
-    pub fn new(histogram_clipping: i32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    /// - `clip_left` - optional histogram clipping from left (dark pixels), default = 0 %
+    /// - `clip_right` - optional histogram clipping from right (light pixels), default = 100 %
+    pub fn new(clip_left: i32, clip_right: i32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self { 
-            histogram_clipping,
+            clip_left,
+            clip_right,
             ctx: Box::new(ctx),
         }
     }
@@ -39,7 +42,6 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
             Ok(ctx) => {
                 let t = Instant::now();
                 let frame = ContextRead::<AutoGammaCtx>::read(&ctx).result.clone();
-                let mut clip_hist_percent = self.histogram_clipping as f32;
                 let mut gray = Mat::default();
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
@@ -79,13 +81,16 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                     Some(max) => max,
                                     None => return Err(error.pass("Empty `accumulator`"))
                                 };
-                                clip_hist_percent = clip_hist_percent * maximum / 100.0;
-                                clip_hist_percent = clip_hist_percent / 2.0;
+                                log::debug!("AutoBrightnessAndContrast.eval | maximum: {:?}", maximum);
+                                let clip_hist_left = (self.clip_left as f32) * maximum / 100.0;
+                                // let clip_hist_left = clip_hist_percent / 2.0;
+                                let clip_hist_right = (self.clip_right as f32) * maximum / 100.0;
+                                // clip_hist_right = clip_hist_percent / 2.0;
                                 // Locate left cut
                                 let mut minimum_gray = 0;
                                 for i in 0..accumulator.len() {
                                     minimum_gray = i;
-                                    if !(accumulator[i] < clip_hist_percent) {
+                                    if !(accumulator[i] < clip_hist_left) {
                                         break;
                                     }
                                 }
@@ -93,7 +98,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                 let mut maximum_gray = (hist_size - 1) as usize;
                                 for i in (0..accumulator.len()).rev() {
                                     maximum_gray = i;
-                                    if !(accumulator[i] >= (maximum - clip_hist_percent)) {
+                                    if !(accumulator[i] >= (maximum - clip_hist_right)) {
                                         break;
                                     }
                                 }
