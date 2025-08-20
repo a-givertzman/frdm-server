@@ -21,9 +21,11 @@ fn main() {
     let conf = CameraConf::read(&dbg, path);
     let mut camera = Camera::new(conf);
     let recv = camera.stream();
-    let handle = camera.read().unwrap();
-    
-    std::thread::spawn(move || {
+    let mut handles = vec![];
+    handles.push(
+        camera.read().unwrap()
+    );
+    let handle = std::thread::spawn(move || {
         // input key detection
         crossterm::execute!(
             std::io::stdout(),
@@ -62,6 +64,7 @@ fn main() {
             }
         }
     });
+    handles.push(handle);
     let window = "Retrived";
     let window2 = "Processed";
     let mut counter = 0;
@@ -147,5 +150,5 @@ fn main() {
         // .eval(());
         // _ = result;
     }
-    handle.join().unwrap()
+    let _: Vec<()> = handles.into_iter().map(|h| h.join().unwrap()).collect();
 }
