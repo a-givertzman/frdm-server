@@ -1,11 +1,11 @@
 use eframe::CreationContext;
-use opencv::core::{MatExprTraitConst, MatTrait, MatTraitConst, MatTraitConstManual};
+use opencv::core::{MatTrait, MatTraitConst};
 use sal_core::dbg::Dbg;
 use sal_sync::collections::FxIndexMap;
 use testing::entities::test_value::Value;
 use std::{str::FromStr, sync::{Arc, Once}, time::{Duration, Instant}};
 use egui::{
-    Align2, Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions, TopBottomPanel 
+    Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions, TopBottomPanel 
 };
 use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, AutoGammaCtx, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
 
@@ -95,7 +95,7 @@ impl UiApp {
                 Param::new("Contours.cropping.height",                      ParamVal::IRange(0..6000),      Value::Int(1200)),
 
                 Param::new("BrightnessContrast.Clip-left",                  ParamVal::IRange(0..100),       Value::Int(0)),
-                Param::new("BrightnessContrast.Clip-right",                 ParamVal::IRange(0..100),       Value::Int(100)),
+                Param::new("BrightnessContrast.Clip-right",                 ParamVal::IRange(0..100),       Value::Int(0)),
 
                 Param::new("Contours.gamma.factor",                         ParamVal::FRange(1.1..100.0),   Value::Double(95.0)),
 

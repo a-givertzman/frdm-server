@@ -10,7 +10,7 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 /// ```yaml
 /// brightness-contrast:
 ///     hist-clip-left: 1      # optional histogram clipping, default = 0 %
-///     hist-clip-right: 99     # optional histogram clipping, default = 0 %
+///     hist-clip-right: 1     # optional histogram clipping, default = 0 %
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrightnessContrastConf {
@@ -20,7 +20,7 @@ pub struct BrightnessContrastConf {
     pub hist_clip_left: i32,
     /// Optional histogram clipping from right, %
     /// 
-    /// Default: 100
+    /// Default: 0
     pub hist_clip_right: i32,
 }
 //

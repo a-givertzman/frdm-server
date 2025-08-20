@@ -24,7 +24,7 @@ impl AutoBrightnessAndContrast {
     ///
     /// Returns [AutoBrightnessAndContrast] new instance
     /// - `clip_left` - optional histogram clipping from left (dark pixels), default = 0 %
-    /// - `clip_right` - optional histogram clipping from right (light pixels), default = 100 %
+    /// - `clip_right` - optional histogram clipping from right (light pixels), default = 0 %
     pub fn new(clip_left: i32, clip_right: i32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self { 
             clip_left,
