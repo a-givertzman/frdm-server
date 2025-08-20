@@ -26,14 +26,13 @@ fn main() {
         camera.read().unwrap()
     );
     println!(r#"
-        Add '--cam-pause' argumet to test commad to Pause / Resume the Camera
+        Add '--cam-pause' argumet to the cli commad to anable Pause / Resume for the Camera
             Then press a key:
                 Esc or 'q' to exit,
                 'p' to suspend / resume camera"#);
     if let Some(arg) = std::env::args().find(|arg| arg == "--cam-pause") {
         println!("Arg: {}", arg);
         let handle = std::thread::spawn(move || {
-            // input key detection
             crossterm::terminal::enable_raw_mode().unwrap();
             let mut paused = false;
             loop {
