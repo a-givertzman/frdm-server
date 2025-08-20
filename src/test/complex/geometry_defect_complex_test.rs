@@ -17,7 +17,8 @@ use crate::{
         GeometryDefect, 
         GeometryDefectCtx, 
         Mad, 
-        Threshold
+        Threshold,
+        ResultCtx,
     }, 
     conf::{
         Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf
@@ -51,7 +52,8 @@ fn eval() {
     let test_data = [
         (
             1,
-            "src/test/complex/testing_files/rope_0.jpeg",
+            "src/test/unit/algorithm/detecting_contours/testing_files/rope_0.jpeg",
+            // "src/test/complex/testing_files/rope_0.jpeg",
             vec![]
         )
     ];
@@ -114,6 +116,6 @@ impl Eval<Image, EvalResult> for FakePassImg {
         let ctx = Context::new(
             InitialCtx::new()
         );
-        ctx.write(AutoBrightnessAndContrastCtx { result: frame })
+        ctx.write(ResultCtx { frame })
     }
 }
