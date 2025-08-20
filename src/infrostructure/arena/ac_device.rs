@@ -280,13 +280,13 @@ impl AcDevice {
         let error = Error::new(&dbg, "read");
         let exit = self.exit.clone();
         log::debug!("{}.read | Get node map...", dbg);
-        let dbg_ = &dbg.clone();
         let mut notify = ChangeNotify::new(
             &dbg,
             NotifyState::Offline,
             vec![
-                (NotifyState::Suspend,  Box::new(|_: ()| log::info!("{dbg_}.read | Suspended"))),
-                (NotifyState::Read, Box::new(|_: ()| log::info!("{dbg_} Offline"))),
+                (NotifyState::Suspend,  Box::new(|_: ()| log::info!("{dbg}.read | Suspended"))),
+                (NotifyState::Read, Box::new(|_: ()| log::info!("{dbg}.read | Receiving frames..."))),
+                (NotifyState::Offline, Box::new(|_: ()| log::info!("{dbg}.read | Dissconnected"))),
             ],
         );
         match self.node() {
@@ -349,6 +349,7 @@ impl AcDevice {
                                                             true => notify.add(NotifyState::Suspend, ()),
                                                             false => {
                                                                 log::trace!("{}.read | Read image...", dbg);
+                                                                notify.add(NotifyState::Read, ());
                                                                 match self.get_buffer() {
                                                                     Ok(mut buffer) => {
                                                                         match buffer.image() {

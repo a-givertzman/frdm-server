@@ -4,6 +4,7 @@ mod conf;
 mod domain;
 mod infrostructure;
 use std::fs;
+use crossterm::event::{KeyEventKind, KeyEventState};
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
@@ -21,6 +22,40 @@ fn main() {
     let mut camera = Camera::new(conf);
     let recv = camera.stream();
     let handle = camera.read().unwrap();
+    
+    std::thread::spawn(move || {
+        // input key detection
+        let mut paused = false;
+        loop {
+            match crossterm::event::read().unwrap() {
+                crossterm::event::Event::Key(crossterm::event::KeyEvent {
+                    code: crossterm::event::KeyCode::Char('p'),
+                    modifiers: crossterm::event::KeyModifiers::NONE,
+                    kind: KeyEventKind::Press,
+                    state: KeyEventState::NONE,
+                }) => {
+                    match paused {
+                        true => camera.suspend(),
+                        false => camera.resume(),
+                    }
+                    paused = !paused;
+                },
+                crossterm::event::Event::Key(crossterm::event::KeyEvent {
+                    code: crossterm::event::KeyCode::Char('q'),
+                    modifiers: crossterm::event::KeyModifiers::NONE,
+                    kind: KeyEventKind::Press,
+                    state: KeyEventState::NONE,
+                }) => std::process::exit(0),
+                crossterm::event::Event::Key(crossterm::event::KeyEvent {
+                    code: crossterm::event::KeyCode::Esc,
+                    modifiers: crossterm::event::KeyModifiers::NONE,
+                    kind: KeyEventKind::Press,
+                    state: KeyEventState::NONE,
+                }) => std::process::exit(0),
+                _ => (),
+            }
+        }
+    });
     let window = "Retrived";
     let window2 = "Processed";
     let mut counter = 0;

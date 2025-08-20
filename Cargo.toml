@@ -72,6 +72,9 @@ egui = "~0.32"
 egui_plot = "~0.33"
 eframe = "~0.32"
 winit = { version = "~0.30", optional = false }
+#
+# Terminal tools
+crossterm = "~0.29"
 
 [lib]
 doctest = false
