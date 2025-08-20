@@ -14,6 +14,7 @@ pub struct Camera {
     conf: CameraConf,
     send: Sender<Image>,
     recv: Option<Receiver<Image>>,
+    suspend: Arc<AtomicBool>,
     exit: Arc<AtomicBool>,
 }
 //
@@ -33,6 +34,7 @@ impl Camera {
             conf,
             send,
             recv: Some(recv),
+            suspend: Arc::new(AtomicBool::new(false)),
             exit: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -173,6 +175,16 @@ impl Camera {
             Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
         }
         Ok(CameraIntoIterator { frames })
+    }
+    ///
+    /// Suspending receiving frames from camera
+    pub fn suspend(&self) {
+        self.suspend.store(true, Ordering::Release);
+    }
+    ///
+    /// Resuming receiving frames from camera
+    pub fn resume(&self) {
+        self.suspend.store(false, Ordering::Release);
     }
     ///
     /// Sends `Exit` signal to stop reading.
