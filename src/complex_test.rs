@@ -25,46 +25,49 @@ fn main() {
     handles.push(
         camera.read().unwrap()
     );
-    let handle = std::thread::spawn(move || {
-        // input key detection
-        crossterm::execute!(
-            std::io::stdout(),
-            crossterm::terminal::Clear(crossterm::terminal::ClearType::All),
-            crossterm::cursor::MoveTo(0, 0),
-            crossterm::style::Print(r#"Press a key: \n   Esc or 'q' to exit, \n   p to suspend / resume camera"#)
-        ).unwrap();
-        let mut paused = false;
-        loop {
-            match crossterm::event::read().unwrap() {
-                crossterm::event::Event::Key(crossterm::event::KeyEvent {
-                    code: crossterm::event::KeyCode::Char('p'),
-                    modifiers: crossterm::event::KeyModifiers::NONE,
-                    kind: KeyEventKind::Press,
-                    state: KeyEventState::NONE,
-                }) => {
-                    match paused {
-                        true => camera.suspend(),
-                        false => camera.resume(),
-                    }
-                    paused = !paused;
-                },
-                crossterm::event::Event::Key(crossterm::event::KeyEvent {
-                    code: crossterm::event::KeyCode::Char('q'),
-                    modifiers: crossterm::event::KeyModifiers::NONE,
-                    kind: KeyEventKind::Press,
-                    state: KeyEventState::NONE,
-                }) => std::process::exit(0),
-                crossterm::event::Event::Key(crossterm::event::KeyEvent {
-                    code: crossterm::event::KeyCode::Esc,
-                    modifiers: crossterm::event::KeyModifiers::NONE,
-                    kind: KeyEventKind::Press,
-                    state: KeyEventState::NONE,
-                }) => std::process::exit(0),
-                _ => (),
+    println!(r#"
+        Add '--cam-pause' argumet to test commad to Pause / Resume the Camera
+            Then press a key:
+                Esc or 'q' to exit,
+                'p' to suspend / resume camera"#);
+    if let Some(arg) = std::env::args().find(|arg| arg == "--cam-pause") {
+        println!("Arg: {}", arg);
+        let handle = std::thread::spawn(move || {
+            // input key detection
+            crossterm::terminal::enable_raw_mode().unwrap();
+            let mut paused = false;
+            loop {
+                match crossterm::event::read().unwrap() {
+                    crossterm::event::Event::Key(crossterm::event::KeyEvent {
+                        code: crossterm::event::KeyCode::Char('p'),
+                        modifiers: crossterm::event::KeyModifiers::NONE,
+                        kind: KeyEventKind::Press,
+                        state: KeyEventState::NONE,
+                    }) => {
+                        match paused {
+                            true => camera.suspend(),
+                            false => camera.resume(),
+                        }
+                        paused = !paused;
+                    },
+                    crossterm::event::Event::Key(crossterm::event::KeyEvent {
+                        code: crossterm::event::KeyCode::Char('q'),
+                        modifiers: crossterm::event::KeyModifiers::NONE,
+                        kind: KeyEventKind::Press,
+                        state: KeyEventState::NONE,
+                    }) => std::process::exit(0),
+                    crossterm::event::Event::Key(crossterm::event::KeyEvent {
+                        code: crossterm::event::KeyCode::Esc,
+                        modifiers: crossterm::event::KeyModifiers::NONE,
+                        kind: KeyEventKind::Press,
+                        state: KeyEventState::NONE,
+                    }) => std::process::exit(0),
+                    _ => (),
+                }
             }
-        }
-    });
-    handles.push(handle);
+        });
+        handles.push(handle);
+    }    
     let window = "Retrived";
     let window2 = "Processed";
     let mut counter = 0;
