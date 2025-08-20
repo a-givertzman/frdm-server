@@ -5,7 +5,7 @@ use sal_core::error::Error;
 use crate::algorithm::{
     ContextWrite, ContextRead,
     DetectingContoursCvCtx, AutoBrightnessAndContrastCtx,
-    EvalResult,
+    EvalResult, ResultCtx,
 };
 use crate::conf::DetectingContoursConf;
 use crate::{Eval, domain::Image};
@@ -50,7 +50,8 @@ impl Eval<Image, EvalResult> for DetectingContoursCv {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let frame = ContextRead::<AutoBrightnessAndContrastCtx>::read(&ctx).result.clone();
+                let result: &ResultCtx = ctx.read();
+                let frame = &result.frame;
                 let mut gray = core::Mat::default();
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
@@ -89,15 +90,16 @@ impl Eval<Image, EvalResult> for DetectingContoursCv {
                                                                 let mut grad = core::Mat::default();
                                                                 match core::add_weighted_def(&absx, self.conf.overlay.src1_weight, &absy, self.conf.overlay.src2_weight, self.conf.overlay.gamma, &mut grad) {
                                                                     Ok(_) => {
-                                                                        let result = DetectingContoursCvCtx {
-                                                                            result: Image {
-                                                                                width: frame.width,
-                                                                                height: frame.height,
-                                                                                timestamp: frame.timestamp,
-                                                                                mat: grad,
-                                                                                bytes: frame.bytes,
-                                                                            }
+                                                                        let frame = Image {
+                                                                            width: frame.width,
+                                                                            height: frame.height,
+                                                                            timestamp: frame.timestamp,
+                                                                            mat: grad,
+                                                                            bytes: frame.bytes,
                                                                         };
+                                                                        let result = DetectingContoursCvCtx { result: frame.clone() };
+                                                                        let ctx = ctx.write(result)?;
+                                                                        let result = ResultCtx { frame };
                                                                         log::debug!("DetectingContoursCv.eval | Elapsed: {:?}", t.elapsed());
                                                                         ctx.write(result)
                                                                     }

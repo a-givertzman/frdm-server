@@ -4,9 +4,11 @@ use opencv::core::Mat;
 use sal_core::error::Error;
 use crate::algorithm::{
     ContextWrite,
+    CroppingCtx,
+    ContextRead,
     EvalResult,
+    ResultCtx,
 };
-use crate::algorithm::cropping::CroppingCtx;
 use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
@@ -16,7 +18,7 @@ pub struct Cropping {
     width: i32,
     y: i32,
     height: i32,
-    ctx: Box<dyn Eval<(), EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 //
 //
@@ -27,7 +29,7 @@ impl Cropping {
     /// - `width` - new image width
     /// - `y` - new top edge
     /// - `height` - new image height
-    pub fn new(x: i32, width: i32, y: i32, height: i32, ctx: impl Eval<(), EvalResult> + 'static) -> Self {
+    pub fn new(x: i32, width: i32, y: i32, height: i32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self { 
             x,
             width,
@@ -42,24 +44,27 @@ impl Cropping {
 impl Eval<Image, EvalResult> for Cropping {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("Cropping", "eval");
-        match self.ctx.eval(()) {
+        match self.ctx.eval(frame) {
             Ok(ctx) => {
-                        match Mat::roi(&frame.mat, core::Rect { x: self.x,y: self.y,width: self.width,height: self.height,}) {
-                                Ok(cropped) => {
-                                    let result = CroppingCtx {
-                                        result: Image {
-                                            width: cropped.cols() as usize,
-                                            height: cropped.rows() as usize,
-                                            timestamp: frame.timestamp,
-                                            mat: cropped.clone_pointee(),
-                                            bytes: frame.bytes,
-                                        }
-                                    };
-                                    ctx.write(result)
-                                },
-                                Err(err) => Err(error.pass(err.to_string())),
-                            }
-                        }
+                let result: &ResultCtx = ctx.read();
+                let frame = &result.frame;
+                match Mat::roi(&frame.mat, core::Rect { x: self.x,y: self.y,width: self.width,height: self.height,}) {
+                        Ok(cropped) => {
+                            let frame = Image {
+                                width: cropped.cols() as usize,
+                                height: cropped.rows() as usize,
+                                timestamp: frame.timestamp,
+                                mat: cropped.clone_pointee(),
+                                bytes: frame.bytes,
+                            };
+                            let result = CroppingCtx { result: frame.clone() };
+                            let ctx = ctx.write(result)?;
+                            let result = ResultCtx { frame };
+                            ctx.write(result)
+                        },
+                        Err(err) => Err(error.pass(err.to_string())),
+                    }
+                }
             Err(err) => Err(error.pass(err)),
         }
     }

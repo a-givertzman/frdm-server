@@ -67,6 +67,7 @@ fn eval() {
         conf.fast_scan.geometry_defect_threshold,
         *Box::new(Mad::new()),
         EdgeDetection::new(
+            conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             DetectingContoursCv::new(
                 conf.contours,

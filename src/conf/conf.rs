@@ -14,9 +14,10 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 ///         y: 10           # new top edge
 ///         height: 1180    # new image height
 ///     gamma:
-///         factor: 95.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+///         factor: 95.0            # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
 ///     brightness-contrast:
-///         histogram-clipping: 1     # optional histogram clipping, default = 0 %
+///         hist-clip-left: 1.0     # optional histogram clipping from right, default = 0.0 %
+///         hist-clip-right: 1.0    # optional histogram clipping from right, default = 0.0 %
 ///     gausian:
 ///         blur-size:              # blur radius
 ///             width: 3
@@ -32,7 +33,8 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 ///         src2-weight: 0.5
 ///         gamma: 0.0
 /// edge-detection:
-///     threshold: 1                        # 0...255
+///     otsu-tune: 1.0      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+///     threshold: 1        # 0...255, used if otsu-tune is not specified
 /// fast-scan:
 ///     geometry-defect-threshold: 1.2      # 1.1...1.3
 /// fine-scan:

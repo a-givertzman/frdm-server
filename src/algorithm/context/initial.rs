@@ -1,4 +1,4 @@
-use crate::{algorithm::{Context, InitialCtx, EvalResult}, domain::Eval};
+use crate::{algorithm::{Context, EvalResult, InitialCtx, ContextWrite, ResultCtx}, domain::{Eval, Image}};
 ///
 /// Takes [InitialCtx]
 /// Returns [Context] with only [InitialCtx]
@@ -18,9 +18,10 @@ impl Initial{
 }
 //
 //
-impl Eval<(), EvalResult> for Initial {
-    fn eval(&self, _: ()) -> EvalResult {
+impl Eval<Image, EvalResult> for Initial {
+    fn eval(&self, frame: Image) -> EvalResult {
         // let error = Error::new("Initial", "eval");
-        Ok(Context::new(self.ctx.clone()))
+        let ctx = Context::new(self.ctx.clone());
+        ctx.write(ResultCtx { frame })
     }
 }

@@ -6,6 +6,7 @@ use crate::algorithm::{
     ContextWrite, ContextRead,
     AutoGammaCtx,
     EvalResult,
+    ResultCtx,
 };
 use crate::algorithm::auto_correction::AutoBrightnessAndContrastCtx;
 use crate::{Eval, domain::Image};
@@ -16,8 +17,8 @@ use crate::{Eval, domain::Image};
 /// 
 /// Reference: [Automatic contrast and brightness adjustment of a color photo of a sheet of paper with OpenCV](https://stackoverflow.com/questions/56905592/automatic-contrast-and-brightness-adjustment-of-a-color-photo-of-a-sheet-of-pape)
 pub struct AutoBrightnessAndContrast {
-    clip_left: i32,
-    clip_right: i32,
+    clip_left: f32,
+    clip_right: f32,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 impl AutoBrightnessAndContrast {
@@ -25,7 +26,7 @@ impl AutoBrightnessAndContrast {
     /// Returns [AutoBrightnessAndContrast] new instance
     /// - `clip_left` - optional histogram clipping from left (dark pixels), default = 0 %
     /// - `clip_right` - optional histogram clipping from right (light pixels), default = 0 %
-    pub fn new(clip_left: i32, clip_right: i32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(clip_left: f32, clip_right: f32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self { 
             clip_left,
             clip_right,
@@ -41,7 +42,8 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let frame = ContextRead::<AutoGammaCtx>::read(&ctx).result.clone();
+                let result: &ResultCtx = ctx.read();
+                let frame = &result.frame;
                 let mut gray = Mat::default();
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
@@ -82,9 +84,9 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                     None => return Err(error.pass("Empty `accumulator`"))
                                 };
                                 log::debug!("AutoBrightnessAndContrast.eval | maximum: {:?}", maximum);
-                                let clip_hist_left = (self.clip_left as f32) * maximum / 100.0;
+                                let clip_hist_left = self.clip_left * maximum / 100.0;
                                 // let clip_hist_left = clip_hist_percent / 2.0;
-                                let clip_hist_right = (self.clip_right as f32) * maximum / 100.0;
+                                let clip_hist_right = self.clip_right * maximum / 100.0;
                                 // clip_hist_right = clip_hist_percent / 2.0;
                                 // Locate left cut
                                 let mut minimum_gray = 0;
@@ -110,15 +112,16 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                 let mut dst = Mat::default();
                                 match opencv::core::convert_scale_abs(&frame.mat, &mut dst, alpha * 1.99, beta) {
                                     Ok(_) => {
-                                        let result = AutoBrightnessAndContrastCtx {
-                                            result: Image {
-                                                width: frame.width,
-                                                height: frame.height,
-                                                timestamp: frame.timestamp,
-                                                mat: dst,
-                                                bytes: frame.bytes,
-                                            }
+                                        let frame = Image {
+                                            width: frame.width,
+                                            height: frame.height,
+                                            timestamp: frame.timestamp,
+                                            mat: dst,
+                                            bytes: frame.bytes,
                                         };
+                                        let result = AutoBrightnessAndContrastCtx { result: frame.clone() };
+                                        let ctx = ctx.write(result)?;
+                                        let result = ResultCtx { frame };
                                         log::debug!("AutoBrightnessAndContrast.eval | Elapsed: {:?}", t.elapsed());
                                         ctx.write(result)
                                     }

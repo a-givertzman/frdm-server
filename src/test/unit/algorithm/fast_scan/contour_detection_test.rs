@@ -68,7 +68,8 @@ fn eval() {
                     src2-weight: 0.5
                     gamma: 0.0
             edge-detection:
-                threshold: 50                        # 0...255
+                otsu-tune: 1.0      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                threshold: 50       # 0...255, used if otsu-tune is not specified
             fast-scan:
                 geometry-defect-threshold: 1.2      # 1.1..1.3, absolute threshold to detect the geometry deffects
             fine-scan:
@@ -79,6 +80,7 @@ fn eval() {
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let scan_rope = 
         EdgeDetection::new(
+            conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             DetectingContoursCv::new(
                 conf.contours.clone(),

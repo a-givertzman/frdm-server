@@ -13,11 +13,12 @@ use crate::{conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, 
 ///     y: 10           # new top edge
 ///     height: 1180    # new image height
 /// gamma:
-///     factor: 95.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+///     factor: 95.0             # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
 /// brightness-contrast:
-///     histogram-clipping: 1     # optional histogram clipping, default = 0 %
+///     hist-clip-left: 1.0      # optional histogram clipping, default = 0.0 %
+///     hist-clip-right: 1.0     # optional histogram clipping, default = 0.0 %
 /// gausian:
-///         blur-size:            # blur radius
+///     blur-size:            # blur radius
 ///         width: 3
 ///         height: 3
 ///     sigma-x: 0.0

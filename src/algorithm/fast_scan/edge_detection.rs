@@ -2,7 +2,7 @@ use std::time::Instant;
 use opencv::{core::{Mat, MatTraitConst, MatTraitConstManual}, imgproc};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, DetectingContoursCvCtx, EvalResult, InitialPoints},
+    algorithm::{ContextRead, ContextWrite, EvalResult, InitialPoints, ResultCtx},
     domain::{Dot, Eval, Filter, Image, FilterLowPass},
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
@@ -10,6 +10,7 @@ use super::edge_detection_ctx::EdgeDetectionCtx;
 /// Take [Image]
 /// Return vectors of [Dot] for upper and lower edges of rope
 pub struct EdgeDetection {
+    otsu_tune: Option<f64>,
     threshold: u8,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
@@ -18,8 +19,9 @@ pub struct EdgeDetection {
 impl EdgeDetection {
     ///
     /// Returns [EdgeDetection] new instance
-    pub fn new(threshold: u8, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(otsu_tune: Option<f64>, threshold: u8, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self {
+            otsu_tune,
             threshold,
             ctx: Box::new(ctx),
         }
@@ -33,18 +35,24 @@ impl Eval<Image, EvalResult> for EdgeDetection {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let image = ContextRead::<DetectingContoursCvCtx>::read(&ctx).result.clone();
-                let mut otsu = Mat::default();
-                let threshold = (imgproc::threshold(&image.mat, &mut otsu, 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * 0.99).round()as u8;
-                let rows = image.mat.rows();
-                let cols = image.mat.cols();
+                let result: &ResultCtx = ctx.read();
+                let frame = &result.frame;
+                let threshold = match self.otsu_tune {
+                    Some(otsu_tune) => {
+                        let mut otsu = Mat::default();
+                        (imgproc::threshold(&frame.mat, &mut otsu, 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8
+                    },
+                    None => self.threshold,
+                };
+                let rows = frame.mat.rows();
+                let cols = frame.mat.cols();
                 let mut upper_edge = Vec::with_capacity(cols as usize);
                 let mut lower_edge = Vec::with_capacity(cols as usize);
                 let mut filter_smooth_upper = FilterLowPass::<6, _>::new(None, 1.0);
                 let mut filter_smooth_lower = FilterLowPass::<6, _>::new(None, 1.0);
                 let mut upper;
                 let mut lower;
-                let mat = image.mat.data_bytes().unwrap();
+                let mat = frame.mat.data_bytes().unwrap();
                 for x in 0..cols {
                     upper = false;
                     lower = false;

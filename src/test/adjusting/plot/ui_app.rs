@@ -94,8 +94,8 @@ impl UiApp {
                 Param::new("Contours.cropping.y",                           ParamVal::IRange(0..6000),      Value::Int(0)),
                 Param::new("Contours.cropping.height",                      ParamVal::IRange(0..6000),      Value::Int(1200)),
 
-                Param::new("BrightnessContrast.Clip-left",                  ParamVal::IRange(0..100),       Value::Int(0)),
-                Param::new("BrightnessContrast.Clip-right",                 ParamVal::IRange(0..100),       Value::Int(0)),
+                Param::new("BrightnessContrast.Clip-left",                  ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
+                Param::new("BrightnessContrast.Clip-right",                 ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
 
                 Param::new("Contours.gamma.factor",                         ParamVal::FRange(1.1..100.0),   Value::Double(95.0)),
 
@@ -112,6 +112,7 @@ impl UiApp {
                 Param::new("Contours.overlay.src2_weight",                  ParamVal::FRange(0.0..100.0),   Value::Double(0.5)),
                 Param::new("Contours.overlay.gamma",                        ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
 
+                Param::new("EdgeDetection.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(1.0)),
                 Param::new("EdgeDetection.threshold",                       ParamVal::IRange(0..255),       Value::Int(20)),
                 Param::new("FastScan.threshold",                            ParamVal::FRange(0.0..100.0),   Value::Double(1.2)),
             ],
@@ -476,6 +477,7 @@ impl eframe::App for UiApp {
                 let cropping_width = self.params.get("Contours.cropping.width").unwrap().1.as_int() as i32;
                 let cropping_y = self.params.get("Contours.cropping.y").unwrap().1.as_int() as i32;
                 let cropping_height = self.params.get("Contours.cropping.height").unwrap().1.as_int() as i32;
+                let otsu_tune = self.params.get("EdgeDetection.Otsu-tune").unwrap().1.as_double();
                 let conf = Conf {
                     contours: DetectingContoursConf {
                         cropping: CroppingConf {
@@ -488,8 +490,8 @@ impl eframe::App for UiApp {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
                         },
                         brightness_contrast: BrightnessContrastConf {
-                            hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_int() as i32,
-                            hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_int() as i32,
+                            hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_int() as f32,
+                            hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_int() as f32,
                         },
                         gausian: GausianConf {
                             blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
@@ -509,6 +511,7 @@ impl eframe::App for UiApp {
                         },
                     },
                     edge_detection: EdgeDetectionConf {
+                        otsu_tune: (otsu_tune == 0.0).then(|| otsu_tune),
                         threshold: self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8,
                     },
                     fast_scan: FastScanConf {
@@ -518,6 +521,7 @@ impl eframe::App for UiApp {
                 };
                 let t = Instant::now();
                 let result_ctx = EdgeDetection::new(
+                    conf.edge_detection.otsu_tune,
                     conf.edge_detection.threshold,
                     DetectingContoursCv::new(
                         conf.contours.clone(),
@@ -554,8 +558,8 @@ impl eframe::App for UiApp {
                         // let gamma_ctx: &AutoGammaCtx = result_ctx.read();
                         self.hist_frame = Some(Self::display_hist(
                             &contours_ctx.result,
-                            conf.contours.brightness_contrast.hist_clip_left as f32,
-                            conf.contours.brightness_contrast.hist_clip_right as f32,
+                            conf.contours.brightness_contrast.hist_clip_left,
+                            conf.contours.brightness_contrast.hist_clip_right,
                         ));
                     }
                     Err(err) => {

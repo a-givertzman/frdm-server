@@ -14,6 +14,7 @@
 mod context_access;
 mod context;
 mod initial;
+mod result_ctx;
 ///
 /// TODO: To be moved to the better place
 mod testing_ctx;
@@ -21,6 +22,7 @@ mod testing_ctx;
 pub use context_access::*;
 pub use context::*;
 pub use initial::*;
+pub use result_ctx::*;
 pub use testing_ctx::*;
 
 use crate::domain::Error;

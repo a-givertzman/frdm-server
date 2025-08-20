@@ -1,8 +1,12 @@
 use super::{context::Context};
 use crate::{
     algorithm::{
-        auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx}, geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx, CroppingCtx
-    }, domain::Error,
+        auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
+        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
+        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx,
+        ResultCtx,
+    },
+    domain::Error,
 };
 ///
 /// Provides restricted write access to the [Context] members
@@ -116,5 +120,18 @@ impl ContextWrite<GeometryDefectCtx> for Context {
 impl ContextRead<GeometryDefectCtx> for Context {
     fn read(&self) -> &GeometryDefectCtx {
         &self.geometry_defect
+    }
+}
+//
+//
+impl ContextWrite<ResultCtx> for Context {
+    fn write(mut self, value: ResultCtx) -> Result<Self, Error> {
+        self.result = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<ResultCtx> for Context {
+    fn read(&self) -> &ResultCtx {
+        &self.result
     }
 }
