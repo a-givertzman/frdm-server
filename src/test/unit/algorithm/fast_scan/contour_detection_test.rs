@@ -45,10 +45,10 @@ fn eval() {
         serde_yaml::from_str(&format!(r#"
             contours:
                 cropping:
-                    x: 650           # new left edge
-                    width: 1250     # new image width
-                    y: 400           # new top edge
-                    height: 750    # new image height
+                    x: 250           # new left edge
+                    width: 964     # new image width
+                    y: 50           # new top edge
+                    height: 1100    # new image height
                 gamma:
                     factor: 99.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 brightness-contrast:
@@ -128,7 +128,8 @@ fn eval() {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
 
-    let image_dir = "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
+    let image_dir = "src/test/unit/algorithm/detecting_contours/testing_files";
+    // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
 
     for path in std::fs::read_dir(image_dir).unwrap().into_iter()
         .filter_map(|e| {
@@ -145,7 +146,8 @@ fn eval() {
                 let inp = frame_mat.clone();
                 let mut rotated = Mat::default();
                 core::rotate(&inp, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
-                let src_frame = Image::with(inp);
+                let src_frame = Image::with(rotated);
+                log::warn!("{dbg}.eval | src_frame size: {} x {}", src_frame.width, src_frame.height);
                 let test = src_frame.clone();
                 let time = Instant::now();
                 let ctx = scan_rope.eval(src_frame).unwrap();

@@ -490,8 +490,8 @@ impl eframe::App for UiApp {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
                         },
                         brightness_contrast: BrightnessContrastConf {
-                            hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_int() as f32,
-                            hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_int() as f32,
+                            hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_double() as f32,
+                            hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_double() as f32,
                         },
                         gausian: GausianConf {
                             blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
