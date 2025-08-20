@@ -14,6 +14,14 @@ use crate::{
 };
 ///
 /// Application entry point
+/// 
+/// - For basic test execute:
+/// 
+///     `clear && cargo run --bin complex-test --release -- --nocapture`
+/// 
+/// - For Pause / Resume the Camera execute:
+/// 
+///     `clear && cargo run --bin complex-test --release -- --nocapture --cam-pause`
 fn main() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
     let dbg = Dbg::own("main");
