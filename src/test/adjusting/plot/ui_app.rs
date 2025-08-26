@@ -478,6 +478,7 @@ impl eframe::App for UiApp {
                 let cropping_y = self.params.get("Contours.cropping.y").unwrap().1.as_int() as i32;
                 let cropping_height = self.params.get("Contours.cropping.height").unwrap().1.as_int() as i32;
                 let otsu_tune = self.params.get("EdgeDetection.Otsu-tune").unwrap().1.as_double();
+                let threshold = self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8;
                 let conf = Conf {
                     contours: DetectingContoursConf {
                         cropping: CroppingConf {
@@ -512,7 +513,7 @@ impl eframe::App for UiApp {
                     },
                     edge_detection: EdgeDetectionConf {
                         otsu_tune: (otsu_tune == 0.0).then(|| otsu_tune),
-                        threshold: self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8,
+                        threshold: (threshold == 0).then(|| threshold) ,
                     },
                     fast_scan: FastScanConf {
                         geometry_defect_threshold: Threshold(self.params.get("FastScan.threshold").unwrap().1.as_double()),

@@ -11,7 +11,7 @@ use super::edge_detection_ctx::EdgeDetectionCtx;
 /// Return vectors of [Dot] for upper and lower edges of rope
 pub struct EdgeDetection {
     otsu_tune: Option<f64>,
-    threshold: u8,
+    threshold: Option<u8>,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 //
@@ -19,7 +19,7 @@ pub struct EdgeDetection {
 impl EdgeDetection {
     ///
     /// Returns [EdgeDetection] new instance
-    pub fn new(otsu_tune: Option<f64>, threshold: u8, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(otsu_tune: Option<f64>, threshold: Option<u8>, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self {
             otsu_tune,
             threshold,
@@ -37,12 +37,11 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let t = Instant::now();
                 let result: &ResultCtx = ctx.read();
                 let frame = &result.frame;
-                let threshold = match self.otsu_tune {
-                    Some(otsu_tune) => {
-                        let mut otsu = Mat::default();
-                        (imgproc::threshold(&frame.mat, &mut otsu, 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8
-                    },
-                    None => self.threshold,
+                let threshold = match (self.otsu_tune, self.threshold) {
+                    (None, None) => imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap().round() as u8,
+                    (None, Some(threshold)) => threshold,
+                    (Some(otsu_tune), None) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
+                    (Some(otsu_tune), Some(_)) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
                 };
                 let rows = frame.mat.rows();
                 let cols = frame.mat.cols();
