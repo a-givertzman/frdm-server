@@ -30,7 +30,7 @@ mod edge_detection_test {
             path,
             imgcodecs::IMREAD_GRAYSCALE,
         ).unwrap();
-        let ctx = EdgeDetection::new(None, 1, FakePassImg::new()).eval(Image::with(img.clone())).unwrap();
+        let ctx = EdgeDetection::new(None, Some(1), FakePassImg::new()).eval(Image::with(img.clone())).unwrap();
         let edges: &EdgeDetectionCtx = ctx.read();
         let mut img_of_edges = imgcodecs::imread(
             path,
@@ -64,7 +64,7 @@ mod edge_detection_test {
         let img = Mat::from_slice_2d(&matrix).unwrap();
         let mut img_of_edges = Mat::default();
         imgproc::cvt_color(&img, &mut img_of_edges, imgproc::COLOR_GRAY2BGR, 0).unwrap();
-        let ctx = EdgeDetection::new(None, 1, FakePassImg::new()).eval(Image::with(img)).unwrap();
+        let ctx = EdgeDetection::new(None, Some(1), FakePassImg::new()).eval(Image::with(img)).unwrap();
         let edges: &EdgeDetectionCtx = ctx.read();
         for dot in edges.result.get(Side::Upper) {
             if dot.x >= 0 && dot.y >= 0 {
@@ -127,7 +127,7 @@ mod edge_detection_test {
         for (step, img, target) in test_data {
             let result = EdgeDetection::new(
                 None,
-                1,
+                Some(1),
                 FakePassImg::new()
             )
             .eval(img)

@@ -104,7 +104,7 @@ impl UiApp {
                 Param::new("Contours.gausian.sigma_x",                      ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
                 Param::new("Contours.gausian.sigma_y",                      ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
                 
-                Param::new("Contours.sobel.kernel_size",                    ParamVal::IRange(0..100),   Value::Int(3)),
+                Param::new("Contours.sobel.kernel_size",                    ParamVal::IRange(0..100),       Value::Int(3)),
                 Param::new("Contours.sobel.scale",                          ParamVal::FRange(0.0..100.0),   Value::Double(11.0)),
                 Param::new("Contours.sobel.delta",                          ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
                 
@@ -113,8 +113,8 @@ impl UiApp {
                 Param::new("Contours.overlay.gamma",                        ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
 
                 Param::new("EdgeDetection.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(1.0)),
-                Param::new("EdgeDetection.threshold",                       ParamVal::IRange(0..255),       Value::Int(20)),
-                Param::new("FastScan.threshold",                            ParamVal::FRange(0.0..100.0),   Value::Double(1.2)),
+                Param::new("EdgeDetection.Threshold",                       ParamVal::IRange(0..255),       Value::Int(0)),
+                Param::new("FastScan.Threshold",                            ParamVal::FRange(0.0..100.0),   Value::Double(1.2)),
             ],
             params: FxIndexMap::default(),
             zoom: 1.0,
@@ -178,11 +178,11 @@ impl UiApp {
     }
     ///
     /// Converts string into `T` if posible
-    fn parse<T: FromStr>(dbg: &Dbg, key: impl std::fmt::Display, text: &str, default: T) -> T where <T as FromStr>::Err: std::fmt::Debug {
+    fn parse<T: FromStr + std::fmt::Debug>(dbg: &Dbg, key: impl std::fmt::Display, text: &str, default: T) -> T where <T as FromStr>::Err: std::fmt::Debug {
         match text.parse() {
             Ok(val) => val,
             Err(err) => {
-                log::warn!("{}.update | Error parse param '{}': {:?}", dbg, key, err);
+                log::warn!("{}.update | Can't parse param '{}', value '{:?}', by default used {:?}", dbg, key, err, default);
                 default
             }
         }
@@ -478,7 +478,7 @@ impl eframe::App for UiApp {
                 let cropping_y = self.params.get("Contours.cropping.y").unwrap().1.as_int() as i32;
                 let cropping_height = self.params.get("Contours.cropping.height").unwrap().1.as_int() as i32;
                 let otsu_tune = self.params.get("EdgeDetection.Otsu-tune").unwrap().1.as_double();
-                let threshold = self.params.get("EdgeDetection.threshold").unwrap().1.as_int() as u8;
+                let threshold = self.params.get("EdgeDetection.Threshold").unwrap().1.as_int() as u8;
                 let conf = Conf {
                     contours: DetectingContoursConf {
                         cropping: CroppingConf {
@@ -516,7 +516,7 @@ impl eframe::App for UiApp {
                         threshold: (threshold == 0).then(|| threshold) ,
                     },
                     fast_scan: FastScanConf {
-                        geometry_defect_threshold: Threshold(self.params.get("FastScan.threshold").unwrap().1.as_double()),
+                        geometry_defect_threshold: Threshold(self.params.get("FastScan.Threshold").unwrap().1.as_double()),
                     },
                     fine_scan: FineScanConf::default(),
                 };
