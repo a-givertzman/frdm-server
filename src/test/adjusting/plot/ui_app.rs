@@ -112,7 +112,7 @@ impl UiApp {
                 Param::new("Contours.overlay.src2_weight",                  ParamVal::FRange(0.0..100.0),   Value::Double(0.5)),
                 Param::new("Contours.overlay.gamma",                        ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
 
-                Param::new("EdgeDetection.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(1.0)),
+                Param::new("EdgeDetection.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(0.0)),
                 Param::new("EdgeDetection.Threshold",                       ParamVal::IRange(0..255),       Value::Int(0)),
                 Param::new("FastScan.Threshold",                            ParamVal::FRange(0.0..100.0),   Value::Double(1.2)),
             ],
