@@ -181,10 +181,12 @@ impl Camera {
     /// Suspending receiving frames from camera
     pub fn suspend(&self) {
         self.suspend.store(true, Ordering::Release);
+        log::debug!("{}.suspend | Suspension mode: ON", self.dbg);
     }
     ///
     /// Resuming receiving frames from camera
     pub fn resume(&self) {
+        log::debug!("{}.resume | Suspension mode: OFF", self.dbg);
         self.suspend.store(false, Ordering::Release);
     }
     ///
