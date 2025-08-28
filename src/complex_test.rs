@@ -51,11 +51,11 @@ fn main() {
                         kind: KeyEventKind::Press,
                         state: KeyEventState::NONE,
                     }) => {
+                        paused = !paused;
                         match paused {
                             true => camera.suspend(),
                             false => camera.resume(),
                         }
-                        paused = !paused;
                     },
                     crossterm::event::Event::Key(crossterm::event::KeyEvent {
                         code: crossterm::event::KeyCode::Char('q'),
