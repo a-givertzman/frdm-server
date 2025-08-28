@@ -62,13 +62,19 @@ fn main() {
                         modifiers: crossterm::event::KeyModifiers::NONE,
                         kind: KeyEventKind::Press,
                         state: KeyEventState::NONE,
-                    }) => std::process::exit(0),
+                    }) => {
+                        crossterm::terminal::disable_raw_mode().unwrap();
+                        std::process::exit(0);
+                    }
                     crossterm::event::Event::Key(crossterm::event::KeyEvent {
                         code: crossterm::event::KeyCode::Esc,
                         modifiers: crossterm::event::KeyModifiers::NONE,
                         kind: KeyEventKind::Press,
                         state: KeyEventState::NONE,
-                    }) => std::process::exit(0),
+                    }) => {
+                        crossterm::terminal::disable_raw_mode().unwrap();
+                        std::process::exit(0);
+                    }
                     _ => (),
                 }
             }

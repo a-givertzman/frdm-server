@@ -53,6 +53,7 @@ impl AcDevice {
         system: acSystem,
         index: usize,
         conf: CameraConf,
+        suspend: Option<Arc<AtomicBool>>,
         exit: Option<Arc<AtomicBool>>,
     ) -> Self {
         let name = Name::new(parent.into(), format!("AcDevice({index})"));
@@ -63,7 +64,7 @@ impl AcDevice {
             system,
             conf,
             image_timeout: 3000,
-            suspend: Arc::new(AtomicBool::new(false)),
+            suspend: suspend.unwrap_or(Arc::new(AtomicBool::new(false))),
             exit: exit.unwrap_or(Arc::new(AtomicBool::new(false))),
         }
     }

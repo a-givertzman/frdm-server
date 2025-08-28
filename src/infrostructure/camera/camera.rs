@@ -56,6 +56,7 @@ impl Camera {
         let dbg = self.dbg.clone();
         let conf = self.conf.clone();
         let send = self.send.clone();
+        let suspend = self.suspend.clone();
         let exit = self.exit.clone();
         let handle = std::thread::spawn(move || {
             log::info!("{}.read | Start", dbg);
@@ -87,7 +88,7 @@ impl Camera {
                                     match &conf.index {
                                         Some(index) => {
                                             if devices >= index + 1 {
-                                                let mut device = AcDevice::new(&dbg, ac_system.system, *index, conf.clone(), Some(exit.clone()));
+                                                let mut device = AcDevice::new(&dbg, ac_system.system, *index, conf.clone(), Some(exit.clone()), Some(suspend.clone()));
                                                 let result = device.listen(|frame| {
                                                     if let Err(err) = send.send(frame) {
                                                         log::warn!("{}.read | Send Error: {}", dbg, err);
