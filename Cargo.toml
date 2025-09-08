@@ -25,7 +25,7 @@ api-tools = { tag = "0.2.1", git = "https://github.com/a-givertzman/rust-api-too
 sal-sync = { tag = "0.3.0", git = "https://github.com/a-givertzman/rust-sal-sync.git" }
 #
 # Collections
-indexmap = { version = "~2.10", git = "https://github.com/indexmap-rs/indexmap" }
+indexmap = { version = "~2.11", git = "https://github.com/indexmap-rs/indexmap" }
 linked-hash-map = { version = "~0.5", git = "https://github.com/contain-rs/linked-hash-map" }
 hashers = { version = "~1.0", git = "https://github.com/tmmcguire/hashers" }
 circular-buffer = "~1.1"
