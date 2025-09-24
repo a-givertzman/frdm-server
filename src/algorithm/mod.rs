@@ -8,6 +8,7 @@ mod geometry_defect;
 mod graham;
 mod initial_ctx;
 mod mad;
+mod temporal_filter;
 mod width_emissions;
 mod initial_points;
 
@@ -21,5 +22,6 @@ pub use detecting_contours::*;
 pub use detecting_contours_cv::*;
 pub use initial_ctx::*;
 pub use mad::*;
+pub use temporal_filter::*;
 pub use width_emissions::*;
 pub use initial_points::*;
