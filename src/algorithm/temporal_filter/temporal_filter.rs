@@ -54,20 +54,17 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                 for (i, pixel) in mat.iter().enumerate() {
                     match filters.get_mut(i) {
                         Some(filter) => {
-                            match filter.add(*pixel) {
-                                Some(value) => {
-                                    match result.get_mut(i) {
-                                        Some(r) => *r = value,
-                                        None => todo!(),
-                                    }
+                            if let Some(value) = filter.add(*pixel) {
+                                match result.get_mut(i) {
+                                    Some(r) => *r = value,
+                                    None => return Err(error.err(format!("Output image format error, index [{i}] out of range {width} x {height} = {pixels}"))),
                                 }
-                                None => todo!(),
                             }
                         }
-                        None => return Err(error.err(format!("Input image format error, index [{i}] out of range {width} x {height} = {pixels}"))),
+                        None => return Err(error.err(format!("Filters matrix format error, index [{i}] out of range {width} x {height} = {pixels}"))),
                     }
                 }
-                match Mat::from_slice(&result) {
+                match Mat::new_nd_with_data(&[width, height], &result) {
                     Ok(result) => {
                         let result = ResultCtx { frame: Image::with(result.clone_pointee()) };
                         log::debug!("DetectingContoursCv.eval | Elapsed: {:?}", t.elapsed());
