@@ -4,6 +4,7 @@ fn main() {
     // to make it avalible for system lib loader
     println!(r"cargo:rustc-link-search=/usr/lib/arena-sdk/lib64");
     println!(r"cargo:rustc-link-search=src/infrostructure/arena/ArenaSDK_Linux_x64/lib64");
+    println!(r"cargo:rustc-link-arg=-Wl,--allow-shlib-undefined");
     // println!(r"cargo:rustc-link-search=src/infrostructure/arena/ArenaSDK_Linux_x64/GenICam/library/lib/Linux64_x64");
     // println!(r"cargo:rustc-link-search=src/infrostructure/arena/ArenaSDK_Linux_x64/ffmpeg");
     // Deppending on the OS...
