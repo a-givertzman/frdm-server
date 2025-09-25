@@ -9,7 +9,8 @@ use crate::{
     domain::{
             Dot, 
             Error, 
-            Eval
+            Eval, 
+            Image,
         }
     };
 use super::WidthEmissionsCtx;
@@ -80,8 +81,8 @@ impl WidthEmissions {
 }
 //
 //
-impl Eval<(), EvalResult> for WidthEmissions {
-    fn eval(&self, _: ()) -> EvalResult {
+impl Eval<Image, EvalResult> for WidthEmissions {
+    fn eval(&self, _: Image) -> EvalResult {
         let error = Error::new(&self.dbg, "eval");
         match self.ctx.eval(()) {
             Ok(ctx) => {

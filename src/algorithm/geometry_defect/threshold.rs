@@ -1,6 +1,6 @@
 ///
 /// Store threshodls values for algorithm's
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Threshold(pub f64);
 //
 //
@@ -24,5 +24,12 @@ impl Threshold {
     /// Returns geometry threshold minimum value 1.3
     pub fn max() -> Self {
         Self(Self::VALUES[2])
+    }
+}
+//
+//
+impl Default for Threshold {
+    fn default() -> Self {
+        Self(1.2)
     }
 }

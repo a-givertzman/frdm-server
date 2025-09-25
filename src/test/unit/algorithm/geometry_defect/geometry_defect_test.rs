@@ -177,9 +177,7 @@ mod geometry_defect {
         for (step, threshold, initial_points, target) in test_data {
             let mut ctx = MocEval {
                 ctx: Context::new(
-                    InitialCtx::new(
-                        Image::default()
-                    )
+                    InitialCtx::new()
                 ),
             };
             ctx.ctx = ctx.ctx
@@ -193,7 +191,7 @@ mod geometry_defect {
                     *Box::new(Mad::new()), 
                     ctx
                 ),
-            ).eval(());
+            ).eval(Image::default());
             match result {
                 Ok(result) => {
                     let result = ContextRead::<GeometryDefectCtx>::read(&result)

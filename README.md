@@ -35,9 +35,9 @@ Lens focal length | Image width  | Image hight | Field depth    | Image deformat
     - **Importent:** Be shure the MTU for ethernet interfgace used by camera is set to 900 bytes
     - **Importent:** Also folluw [this instruction](src/infrostructure/arena/readme.md) to properly setup network inteface
     - Download Arena SDK v0.1.95 or later from [Downloads](https://thinklucid.com/downloads-hub/) (for Ubuntu)
-    - Execute install script with the path to the Arena SDK donloaded archive
+    - Execute install script with the path to the Arena SDK donloaded archive and project root
         ```bash
-        src/infrostructure/arena/install.sh "path/ArenaSDK_v0.1.95_Linux_x64.tar.gz"
+        src/infrostructure/arena/install.sh "path/ArenaSDK_v0.1.95_Linux_x64.tar.gz" ./
         ```
 
     - [Original instructions](https://support.thinklucid.com/using-opencv-with-arena-sdk-on-linux/) - **Not recomended**

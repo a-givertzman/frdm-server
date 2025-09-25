@@ -1,5 +1,14 @@
-use crate::algorithm::{
-    geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx
+use crate::{
+    algorithm::{
+        auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
+        geometry_defect::GeometryDefectCtx,
+        width_emissions::WidthEmissionsCtx,
+        CroppingCtx,
+        DetectingContoursCvCtx,
+        EdgeDetectionCtx,
+        InitialCtx,
+        ResultCtx,
+    },
 };
 use super::testing_ctx::TestingCtx;
 ///
@@ -10,8 +19,16 @@ use super::testing_ctx::TestingCtx;
 pub struct Context {
     /// where store source frame
     pub(super) initial: InitialCtx,
+    /// Common result image from current step
+    pub(super) result: ResultCtx,
     /// Filtered and binarised image
     pub(super) detecting_contours_cv: DetectingContoursCvCtx,
+    /// Cropped image
+    pub(super) cropping: CroppingCtx,
+    /// Gamma-corrected image
+    pub(super) auto_gamma: AutoGammaCtx,
+    /// Image with corrected brightness and contrast
+    pub(super) auto_brightness_and_contrast: AutoBrightnessAndContrastCtx,
     /// points of rope perimeter
     pub(super) edge_detection: EdgeDetectionCtx,
     /// points that deviate in width from the threshold
@@ -32,7 +49,11 @@ impl Context {
     pub fn new(initial: InitialCtx) -> Self {
         Self {
             initial,
+            result: ResultCtx::default(),
             detecting_contours_cv: DetectingContoursCvCtx::default(),
+            cropping: CroppingCtx::default(),
+            auto_gamma: AutoGammaCtx::default(),
+            auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),
             edge_detection: EdgeDetectionCtx::default(),
             width_emissions: WidthEmissionsCtx::default(),
             geometry_defect: GeometryDefectCtx::default(),

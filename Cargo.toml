@@ -1,42 +1,51 @@
 [package]
 name = "frdm-tools"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2024"
 
+build = "build.rs"
+
+[features]
+#
+# Used for `Plot` service and `fnPlot` function only
+# plot = ["dep:winit"]
+
+
 [dependencies]
-log = "~0.4"
-env_logger = "~0.11"
+log = { version = "~0.4" }          #, git = "https://github.com/rust-lang/log"
+env_logger = { version = "~0.11" }  # , git = "https://github.com/rust-cli/env_logger"
 #
 #
-# sal-core = { path = "../sal-core/" }
-sal-core = { git = "https://github.com/a-givertzman/rust-sal-core.git", tag = "0.0.3" }
+sal-core = { tag = "0.1.0", git = "https://github.com/a-givertzman/rust-sal-core.git" }
 testing = { git = "https://github.com/a-givertzman/rust-testing.git" }
-# testing = { git = "https://github.com/a-givertzman/rust-testing.git", tag = "0.1.2" }
-debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "0.0.1" }
-api-tools = { git = "https://github.com/a-givertzman/rust-api-tools.git", tag = "0.2.1" }
+# testing = { tag = "0.1.2", git = "https://github.com/a-givertzman/rust-testing.git" }
+debugging = { tag = "0.0.1", git = "https://github.com/a-givertzman/rust-debuging.git" }
+api-tools = { tag = "0.2.1", git = "https://github.com/a-givertzman/rust-api-tools.git" }
 # api-tools = { path = "../api-tools/" }
-sal-sync = { git = "https://github.com/a-givertzman/rust-sal-sync.git", tag = "0.2.0" }
+sal-sync = { tag = "0.3.0", git = "https://github.com/a-givertzman/rust-sal-sync.git" }
 #
 # Collections
-indexmap = "~2.9"
-linked-hash-map = "~0.5"
-hashers = "~1.0"
+indexmap = { version = "~2.11", git = "https://github.com/indexmap-rs/indexmap" }
+linked-hash-map = { version = "~0.5", git = "https://github.com/contain-rs/linked-hash-map" }
+hashers = { version = "~1.0", git = "https://github.com/tmmcguire/hashers" }
+circular-buffer = "~1.2"
 #
 # Serde
-serde = { version = "^1.0", features = ["derive"] }
-serde_yaml = "~0.9"
-serde_json = "~1.0"
+serde = { version = "~1.0", features = ["derive"] }         # , git = "https://github.com/serde-rs/serde"
+serde_yaml = { version = "~0.9" }                           # , git = "https://github.com/dtolnay/serde-yaml"
+serde_json = { version = "~1.0" }                           # , git = "https://github.com/serde-rs/json"
+bincode = "~2.0"
 #
 #
-regex = "~1.11"
+regex = { version = "~1.11", git = "https://github.com/rust-lang/regex" }
 #
 #
-strum = "~0.27"
-strum_macros = "~0.27"
+strum = { version = "~0.27", git = "https://github.com/Peternator7/strum" }
+strum_macros = { version = "~0.27", git = "https://github.com/Peternator7/strum" }
 #
 #
 # OpenCV
-opencv = "~0.94"
+opencv = { version = "~0.95", features = ["clang-runtime"], git = "https://github.com/twistedfall/opencv-rust" }
 #
 #
 # Photon image processing
@@ -45,12 +54,31 @@ photon-rs = { version = "0.3.2", default-features = false, git = "https://github
 #
 # Image
 #
+# For folder processing
+walkdir = "2.3"
 #
 # [build-dependencies]
 # cc = "^1.1"
 #
-libc = "~0.2"
+# libc = { version = "1.0.0-alpha.1", git = "https://github.com/rust-lang/libc.git" }
+libc = "~0.2"          # , git = "https://github.com/rust-lang/libc.git"
 #
 # Sync
-kanal = { git = "https://github.com/fereidani/kanal.git", version = "~0.1" }
-parking_lot = { git = "https://github.com/Amanieu/parking_lot.git", version = "~0.12" }
+kanal = { version = "~0.1", git = "https://github.com/fereidani/kanal.git" }
+parking_lot = { version = "~0.12", git = "https://github.com/Amanieu/parking_lot.git" }
+#
+# UI
+egui = "~0.32"
+egui_plot = "~0.33"
+eframe = "~0.32"
+winit = { version = "~0.30", optional = false }
+#
+# Terminal tools
+crossterm = "~0.29"
+
+[lib]
+doctest = false
+
+[[bin]]
+name = "complex-test"
+path = "src/complex_test.rs"

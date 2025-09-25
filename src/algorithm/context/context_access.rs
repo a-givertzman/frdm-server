@@ -1,9 +1,12 @@
 use super::{context::Context};
 use crate::{
     algorithm::{
-        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx,
-    }, 
-    domain::Error 
+        auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
+        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
+        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx,
+        ResultCtx,
+    },
+    domain::Error,
 };
 ///
 /// Provides restricted write access to the [Context] members
@@ -43,6 +46,45 @@ impl ContextRead<DetectingContoursCvCtx> for Context {
 }
 //
 //
+impl ContextWrite<CroppingCtx> for Context {
+    fn write(mut self, value: CroppingCtx) -> Result<Self, Error> {
+        self.cropping = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<CroppingCtx> for Context {
+    fn read(&self) -> &CroppingCtx {
+        &self.cropping
+    }
+}
+//
+//
+impl ContextWrite<AutoGammaCtx> for Context {
+    fn write(mut self, value: AutoGammaCtx) -> Result<Self, Error> {
+        self.auto_gamma = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<AutoGammaCtx> for Context {
+    fn read(&self) -> &AutoGammaCtx {
+        &self.auto_gamma
+    }
+}
+//
+//
+impl ContextWrite<AutoBrightnessAndContrastCtx> for Context {
+    fn write(mut self, value: AutoBrightnessAndContrastCtx) -> Result<Self, Error> {
+        self.auto_brightness_and_contrast = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<AutoBrightnessAndContrastCtx> for Context {
+    fn read(&self) -> &AutoBrightnessAndContrastCtx {
+        &self.auto_brightness_and_contrast
+    }
+}
+//
+//
 impl ContextWrite<EdgeDetectionCtx> for Context {
     fn write(mut self, value: EdgeDetectionCtx) -> Result<Self, Error> {
         self.edge_detection = value;
@@ -78,5 +120,18 @@ impl ContextWrite<GeometryDefectCtx> for Context {
 impl ContextRead<GeometryDefectCtx> for Context {
     fn read(&self) -> &GeometryDefectCtx {
         &self.geometry_defect
+    }
+}
+//
+//
+impl ContextWrite<ResultCtx> for Context {
+    fn write(mut self, value: ResultCtx) -> Result<Self, Error> {
+        self.result = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<ResultCtx> for Context {
+    fn read(&self) -> &ResultCtx {
+        &self.result
     }
 }

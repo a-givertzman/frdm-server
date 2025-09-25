@@ -5,7 +5,7 @@ use crate::{
             GeometryDefectCtx, GeometryDefectType, Threshold
         }, mad::{Bond, MadCtx}, width_emissions::WidthEmissionsCtx, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, Side
     }, 
-    domain::{Error, Eval}
+    domain::{Error, Eval, Image},
 };
 ///
 /// Represents detecting [geometry defect's](design/theory/geometry_rope_defects.md)
@@ -13,7 +13,7 @@ pub struct GeometryDefect {
     dbg: Dbg,
     threshold: Threshold,
     mad: Box<dyn Eval<Vec<usize>, MadCtx>>,
-    ctx: Box<dyn Eval<(), EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 //
 //
@@ -23,7 +23,7 @@ impl GeometryDefect {
     pub fn new(
         threshold: Threshold,
         mad: impl Eval<Vec<usize>, MadCtx> + 'static,
-        ctx: impl Eval<(), EvalResult> + 'static,
+        ctx: impl Eval<Image, EvalResult> + 'static,
     ) -> Self {
         Self {
             dbg: Dbg::own("GeometryDefect"),
@@ -85,10 +85,10 @@ impl GeometryDefect {
 }
 //
 //
-impl Eval<(), EvalResult> for GeometryDefect {
-    fn eval(&self, _: ()) -> EvalResult {
+impl Eval<Image, EvalResult> for GeometryDefect {
+    fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new(&self.dbg, "eval");
-        match self.ctx.eval(()) {
+        match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let mut result: Vec<GeometryDefectType> = Vec::new();
                 let initial_points = ContextRead::<EdgeDetectionCtx>::read(&ctx);

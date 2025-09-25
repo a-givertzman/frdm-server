@@ -1,3 +1,4 @@
+extern crate frdm_tools;
 mod algorithm;
 mod conf;
 mod domain;
@@ -8,12 +9,9 @@ mod test;
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
-    domain::Eval,
-    infrostructure::camera::{Camera, CameraConf},
-    conf::{Conf, FastScanConf, FineScanConf},
     algorithm::{
-        DetectingContoursCv, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold,
-    }
+        AutoBrightnessAndContrast, AutoGamma, Cropping, DetectingContoursCv, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold
+    }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -30,6 +28,41 @@ fn main() {
         log::warn!("{}.stream | Create Window Error: {}", dbg, err);
     }
     opencv::highgui::wait_key(1).unwrap();
+    let conf = Conf {
+        contours: DetectingContoursConf::default(),
+        edge_detection: EdgeDetectionConf::default(),
+        fast_scan: FastScanConf {
+            geometry_defect_threshold: Threshold::min(),
+        },
+        fine_scan: FineScanConf {},
+    };
+    let scan_rope = GeometryDefect::new(
+        conf.fast_scan.geometry_defect_threshold,
+        *Box::new(Mad::new()),
+        EdgeDetection::new(
+            conf.edge_detection.otsu_tune,
+            conf.edge_detection.threshold,
+            DetectingContoursCv::new(
+                conf.contours.clone(),
+                AutoBrightnessAndContrast::new(
+                    conf.contours.brightness_contrast.hist_clip_left,
+                    conf.contours.brightness_contrast.hist_clip_right,
+                    AutoGamma::new(
+                        conf.contours.gamma.factor,
+                        Cropping::new(
+                            conf.contours.cropping.x,
+                            conf.contours.cropping.width,
+                            conf.contours.cropping.y,
+                            conf.contours.cropping.height,
+                            Initial::new(
+                                InitialCtx::new(),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    );
     for frame in recv {
         log::trace!("{} | Frame width : {:?}", dbg, frame.width);
         log::trace!("{} | Frame height: {:?}", dbg, frame.height);
@@ -38,24 +71,7 @@ fn main() {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };
         opencv::highgui::wait_key(1).unwrap();
-        let conf = Conf {
-            fast_scan: FastScanConf {
-                geometry_defect_threshold: Threshold::min(),
-            },
-            fine_scan: FineScanConf {},
-        };
-        let result = GeometryDefect::new(
-            conf.fast_scan.geometry_defect_threshold,
-            *Box::new(Mad::new()),
-            EdgeDetection::new(
-                DetectingContoursCv::new(
-                    Initial::new(
-                        InitialCtx::new(frame),
-                    ),
-                ),
-            ),
-        )
-        .eval(());
+        let result = scan_rope.eval(frame);
         _ = result;
     }
     handle.join().unwrap()
