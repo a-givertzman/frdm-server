@@ -54,6 +54,10 @@ fn eval() {
                 brightness-contrast:
                     hist-clip-left: 1.5     # optional histogram clipping from right, default = 0.0 %
                     hist-clip-right: 1.5    # optional histogram clipping from right, default = 0.0 %
+                temporal-filter:
+                    amplify_factor: 1.0     # factor amplifies the highlighting the oftenly changing pixels
+                    reduce_factor: 1.0      # factor amplifies the hiding the lower changing pixels
+                    threshold: 1.0
                 gausian:
                     blur-size:
                         width: 7
@@ -79,7 +83,7 @@ fn eval() {
     );
     let conf = Conf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
-    let scan_rope = 
+    let temporal_filter = 
         // EdgeDetection::new(
         //     conf.edge_detection.otsu_tune,
         //     conf.edge_detection.threshold,
@@ -108,25 +112,17 @@ fn eval() {
                 );
         //     ),
         // );
-    let winp = "Otsu";
-    let wgamma = "Gamma";
-    let wbright = "Bright";
-    let wcontours = "Contours";
-    let wedges = "Edges";
     let wcropped = "Cropped";
-    if let Err(err) = opencv::highgui::named_window(winp, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
-    }
+    let wgamma = "Gamma";
+    let wbright = "Brightness & Contrast";
+    let w_temp_filter = "Temporal Filter";
     if let Err(err) = opencv::highgui::named_window(wgamma, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
     if let Err(err) = opencv::highgui::named_window(wbright, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
-    if let Err(err) = opencv::highgui::named_window(wcontours, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
-    }
-    if let Err(err) = opencv::highgui::named_window(wedges, opencv::highgui::WINDOW_NORMAL) {
+    if let Err(err) = opencv::highgui::named_window(w_temp_filter, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
     }
     if let Err(err) = opencv::highgui::named_window(wcropped, opencv::highgui::WINDOW_NORMAL) {
@@ -144,68 +140,42 @@ fn eval() {
     {
         match path.extension() {
             Some(ext) if ext == "jpg" || ext == "png" || ext == "jpeg" => {
-                let frame_mat = imgcodecs::imread(
-                    path.to_str().unwrap(),
-                imgcodecs::IMREAD_COLOR,
-                ).unwrap();
-                let inp = frame_mat.clone();
+                let frame = Image::load(path.to_str().unwrap()).unwrap();
                 let mut rotated = Mat::default();
-                core::rotate(&inp, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
-                let src_frame = Image::with(rotated);
-                log::warn!("{dbg}.eval | src_frame size: {} x {}", src_frame.width, src_frame.height);
-                let test = src_frame.clone();
-                let time = Instant::now();
-                let ctx = scan_rope.eval(src_frame).unwrap();
-                log::warn!("{dbg}.eval | Elapsed: {:?}", time.elapsed());
+                core::rotate(&frame.mat, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
+                let src = Image::with(rotated);
+                log::debug!("{dbg}.eval | src frame: {} x {}", src.width, src.height);
+                // let test = src.clone();
+                let t = Instant::now();
+                let ctx = temporal_filter.eval(src).unwrap();
+                log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let crop: &CroppingCtx = ctx.read();    
                 let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &DetectingContoursCvCtx = ctx.read();
-                let edges: &EdgeDetectionCtx = ctx.read();
-                let mut res = crop.result.mat.clone();
-                let edges_cont = contours.result.mat.clone();
-                let upper = edges.result.get(Side::Upper);
-                let lower = edges.result.get(Side::Lower);
-                for dot in upper {
-                    if dot.x >= 0 && dot.y >= 0 {
-                        let x = dot.x as i32;
-                        let y = dot.y as i32;
-                        *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
-                    }
-                }
-                for dot in lower {
-                    if dot.x >= 0 && dot.y >= 0 {
-                        let x = dot.x as i32;
-                        let y = dot.y as i32;
-                        *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
-                    }
-                }
-                
-                let mut ada = Mat::default();
-                imgproc::adaptive_threshold(&contours.result.mat, &mut ada, 255.0, imgproc::ADAPTIVE_THRESH_MEAN_C, imgproc::THRESH_BINARY, 201, -20.0).unwrap();
-
-                let mut hist = Mat::default();
-                let hist_size = 256 as i32;
-                // opencv::imgproc::calc_hist(
-                //             &contours.result.mat,
-                //             &Vector::from_slice(&[0]),
-                //             &Mat::default(),
-                //             &mut hist,
-                //             &Vector::from_slice(&[hist_size]),
-                //             &Vector::from_slice(&[0.0 ,255.0]),
-                //             false,
-                //         ).unwrap();
-                // let mut transposed = Mat::default();
-                // core::transpose(&inp, &mut transposed).unwrap();
-
-
-                // highgui::imshow(winp, &rotated).unwrap();
+                // let edges: &EdgeDetectionCtx = ctx.read();
+                // let mut res = crop.result.mat.clone();
+                // let edges_cont = contours.result.mat.clone();
+                // let upper = edges.result.get(Side::Upper);
+                // let lower = edges.result.get(Side::Lower);
+                // for dot in upper {
+                //     if dot.x >= 0 && dot.y >= 0 {
+                //         let x = dot.x as i32;
+                //         let y = dot.y as i32;
+                //         *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
+                //     }
+                // }
+                // for dot in lower {
+                //     if dot.x >= 0 && dot.y >= 0 {
+                //         let x = dot.x as i32;
+                //         let y = dot.y as i32;
+                //         *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
+                //     }
+                // }
                 highgui::imshow(wcropped, &crop.result.mat).unwrap();
-                highgui::imshow(wgamma, &ada).unwrap();
+                highgui::imshow(wgamma, &gamma.result.mat).unwrap();
                 highgui::imshow(wbright, &bright.result.mat).unwrap();
-                highgui::imshow(wcontours, &contours.result.mat).unwrap();
-                highgui::imshow(wedges, &res).unwrap();
-                // highgui::imshow(winp, &otsu).unwrap();
+                highgui::imshow(w_temp_filter, &contours.result.mat).unwrap();
                 highgui::wait_key(0).unwrap();
                 highgui::destroy_all_windows().unwrap();
             },
