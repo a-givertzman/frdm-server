@@ -1,7 +1,7 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, AutoGammaCtx, Context, ContextWrite, DetectingContoursCvCtx, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrastCtx, AutoGammaCtx, Context, ContextWrite, EvalResult, Initial, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
-use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
+use opencv::{core::{self, Mat, MatTraitConst, ROTATE_90_CLOCKWISE}, highgui};
 use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, Cropping, CroppingCtx, DetectingContoursCv, EdgeDetection, TemporalFilter
+        ContextRead, CroppingCtx, Gray, GrayCtx, ResultCtx, TemporalFilter
     }, 
     conf::Conf,
 };
@@ -55,8 +55,8 @@ fn eval() {
                     hist-clip-left: 1.5     # optional histogram clipping from right, default = 0.0 %
                     hist-clip-right: 1.5    # optional histogram clipping from right, default = 0.0 %
                 temporal-filter:
-                    amplify_factor: 1.0     # factor amplifies the highlighting the oftenly changing pixels
-                    reduce_factor: 1.0      # factor amplifies the hiding the lower changing pixels
+                    amplify-factor: 0.0    # factor amplifies the highlighting the oftenly changing pixels
+                    reduce-factor: 50.0      # factor amplifies the hiding the lower changing pixels
                     threshold: 1.0
                 gausian:
                     blur-size:
@@ -74,7 +74,7 @@ fn eval() {
                     gamma: 0.0
             edge-detection:
                 otsu-tune: 1.0      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                threshold: 50       # 0...255, used if otsu-tune is not specified
+                # threshold: 50       # 0...255, used if otsu-tune is not specified
             fast-scan:
                 geometry-defect-threshold: 1.2      # 1.1..1.3, absolute threshold to detect the geometry deffects
             fine-scan:
@@ -93,43 +93,50 @@ fn eval() {
                     conf.contours.temporal_filter.amplify_factor,
                     conf.contours.temporal_filter.reduce_factor,
                     conf.contours.temporal_filter.threshold,
-                    AutoBrightnessAndContrast::new(
-                        conf.contours.brightness_contrast.hist_clip_left,
-                        conf.contours.brightness_contrast.hist_clip_right,
-                        AutoGamma::new(
-                            conf.contours.gamma.factor,
-                            Cropping::new(
-                                conf.contours.cropping.x,
-                                conf.contours.cropping.width,
-                                conf.contours.cropping.y,
-                                conf.contours.cropping.height,
+                    "assets/algorithm/temporal-filter/cache/",
+                    Gray::new(
+                        // AutoBrightnessAndContrast::new(
+                        //     conf.contours.brightness_contrast.hist_clip_left,
+                        //     conf.contours.brightness_contrast.hist_clip_right,
+                            // AutoGamma::new(
+                            //     conf.contours.gamma.factor,
+                                // Cropping::new(
+                                //     conf.contours.cropping.x,
+                                //     conf.contours.cropping.width,
+                                //     conf.contours.cropping.y,
+                                //     conf.contours.cropping.height,
+                                // ),
                                 Initial::new(
                                     InitialCtx::new(),
                                 ),
-                            ),
-                        ),
+                            // ),
+                        // ),
                     ),
                 );
         //     ),
         // );
+    let wgray = "Gray";
     let wcropped = "Cropped";
     let wgamma = "Gamma";
     let wbright = "Brightness & Contrast";
     let w_temp_filter = "Temporal Filter";
+    if let Err(err) = opencv::highgui::named_window(wgray, opencv::highgui::WINDOW_NORMAL) {
+        log::warn!("{dbg} | Create Window Error: {}", err);
+    }
     if let Err(err) = opencv::highgui::named_window(wgamma, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
+        log::warn!("{dbg} | Create Window Error: {}", err);
     }
     if let Err(err) = opencv::highgui::named_window(wbright, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
+        log::warn!("{dbg} | Create Window Error: {}", err);
     }
     if let Err(err) = opencv::highgui::named_window(w_temp_filter, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
+        log::warn!("{dbg} | Create Window Error: {}", err);
     }
     if let Err(err) = opencv::highgui::named_window(wcropped, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{}.stream | Create Window Error: {}", "dbg", err);
+        log::warn!("{dbg} | Create Window Error: {}", err);
     }
 
-    let image_dir = "src/test/unit/algorithm/detecting_contours/testing_files";
+    let image_dir = "src/test/unit/algorithm/temporal_filter/frames";
     // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
 
     for path in std::fs::read_dir(image_dir).unwrap().into_iter()
@@ -149,10 +156,11 @@ fn eval() {
                 let t = Instant::now();
                 let ctx = temporal_filter.eval(src).unwrap();
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
+                let gray: &GrayCtx = ctx.read();    
                 let crop: &CroppingCtx = ctx.read();    
                 let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
-                let contours: &DetectingContoursCvCtx = ctx.read();
+                let result: &ResultCtx = ctx.read();
                 // let edges: &EdgeDetectionCtx = ctx.read();
                 // let mut res = crop.result.mat.clone();
                 // let edges_cont = contours.result.mat.clone();
@@ -172,19 +180,17 @@ fn eval() {
                 //         *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
                 //     }
                 // }
-                highgui::imshow(wcropped, &crop.result.mat).unwrap();
-                highgui::imshow(wgamma, &gamma.result.mat).unwrap();
-                highgui::imshow(wbright, &bright.result.mat).unwrap();
-                highgui::imshow(w_temp_filter, &contours.result.mat).unwrap();
+                if !gray.frame.mat.empty() { highgui::imshow(wgray, &gray.frame.mat).unwrap() };
+                if !gamma.result.mat.empty() { highgui::imshow(wgamma, &gamma.result.mat).unwrap() };
+                if !bright.result.mat.empty() { highgui::imshow(wbright, &bright.result.mat).unwrap() };
+                if !crop.result.mat.empty() { highgui::imshow(wgray, &crop.result.mat).unwrap() };
+                if !result.frame.mat.empty() { highgui::imshow(w_temp_filter, &result.frame.mat).unwrap() };
                 highgui::wait_key(0).unwrap();
-                highgui::destroy_all_windows().unwrap();
             },
             _ => continue,
         }
-
-
-
     }
+    highgui::destroy_all_windows().unwrap();
     test_duration.exit();
 }
 ///

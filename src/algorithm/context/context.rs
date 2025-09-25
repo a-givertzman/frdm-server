@@ -5,6 +5,7 @@ use crate::{
         width_emissions::WidthEmissionsCtx,
         CroppingCtx,
         DetectingContoursCvCtx,
+        GrayCtx,
         EdgeDetectionCtx,
         InitialCtx,
         ResultCtx,
@@ -29,6 +30,8 @@ pub struct Context {
     pub(super) auto_gamma: AutoGammaCtx,
     /// Image with corrected brightness and contrast
     pub(super) auto_brightness_and_contrast: AutoBrightnessAndContrastCtx,
+    /// Gray scale image
+    pub(super) gray: GrayCtx,
     /// points of rope perimeter
     pub(super) edge_detection: EdgeDetectionCtx,
     /// points that deviate in width from the threshold
@@ -54,6 +57,7 @@ impl Context {
             cropping: CroppingCtx::default(),
             auto_gamma: AutoGammaCtx::default(),
             auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),
+            gray: GrayCtx::default(),
             edge_detection: EdgeDetectionCtx::default(),
             width_emissions: WidthEmissionsCtx::default(),
             geometry_defect: GeometryDefectCtx::default(),

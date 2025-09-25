@@ -7,8 +7,8 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 /// ### Example:
 /// ```yaml
 /// temporal-filter:
-///     amplify_factor: 1.0     # factor amplifies the highlighting the oftenly changing pixels, default 1.0
-///     reduce_factor: 1.0      # factor amplifies the hiding the lower changing pixels, default 1.0
+///     amplify_factor: 10.0     # factor amplifies the highlighting the oftenly changing pixels, default 10.0
+///     reduce_factor: 10.0      # factor amplifies the hiding the lower changing pixels, default 10.0
 ///     threshold: 1.0          # ..., default ...
 /// ```
 #[derive(Debug, Clone, PartialEq)]
@@ -50,8 +50,8 @@ impl TemporalFilterConf {
 impl Default for TemporalFilterConf {
     fn default() -> Self {
         Self {
-            amplify_factor: 1.0,
-            reduce_factor: 1.0,
+            amplify_factor: 10.0,
+            reduce_factor: 10.0,
             threshold: 1.0,
         }
     }
