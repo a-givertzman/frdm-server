@@ -66,8 +66,8 @@ impl Filter for FilterHighPass<u8> {
                 };
                 // log::debug!("FilterHighPass<u8>.add | rate: {:?}", self.rate);
                 let value_ = match self.rate > 0 {
-                    true => (value as f32) - 0.01 * (self.rate as f32) * self.amplify_factor,
-                    false => (value as f32) - 0.01 * (self.rate as f32) * self.reduce_factor,
+                    true => (value as f32) + 0.01 * (self.rate as f32) * self.amplify_factor,
+                    false => (value as f32) + 0.01 * (self.rate as f32) * self.reduce_factor,
                 };
                 // if (value as f64) != value_ {
                 //     log::debug!("FilterHighPass<u8>.add | rate: {:.3}  |  value: {} => {:.3}", self.rate, value, value_);

@@ -45,35 +45,35 @@ fn eval() {
         serde_yaml::from_str(&format!(r#"
             contours:
                 cropping:
-                    x: 250           # new left edge
-                    width: 964     # new image width
-                    y: 50           # new top edge
-                    height: 1100    # new image height
+                    x: 230           # new left edge
+                    width: 1410     # new image width
+                    y: 300           # new top edge
+                    height: 1000    # new image height
                 gamma:
-                    factor: 99.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                    factor: 100.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 brightness-contrast:
-                    hist-clip-left: 1.5     # optional histogram clipping from right, default = 0.0 %
-                    hist-clip-right: 1.5    # optional histogram clipping from right, default = 0.0 %
+                    hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
+                    hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
                 temporal-filter:
                     amplify-factor: 00.0     # factor amplifies the highlighting the oftenly changing pixels
-                    reduce-factor: 36.0      # factor amplifies the hiding the lower changing pixels
+                    reduce-factor: 24.0      # factor amplifies the hiding the lower changing pixels
                     threshold: 64.0
                 gausian:
                     blur-size:
-                        width: 7
-                        height: 7
+                        width: 11
+                        height: 3
                     sigma-x: 0.0
                     sigma-y: 0.0
                 sobel:
-                    kernel-size: 3
-                    scale: 1.0
+                    kernel-size: 1
+                    scale: 5.0
                     delta: 0.0
                 overlay:
-                    src1-weight: 0.5
-                    src2-weight: 0.5
+                    src1-weight: 1.0
+                    src2-weight: 1.0
                     gamma: 0.0
             edge-detection:
-                otsu-tune: 1.0      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                otsu-tune: 0.8      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 # threshold: 50       # 0...255, used if otsu-tune is not specified
             fast-scan:
                 geometry-defect-threshold: 1.2      # 1.1..1.3, absolute threshold to detect the geometry deffects
@@ -116,7 +116,7 @@ fn eval() {
             ),
         );
     let wgray = "Gray";
-    let wcropped = "Cropped";
+    let wcrop = "Cropped";
     let wgamma = "Gamma";
     let wbright = "Brightness & Contrast";
     let w_temp_filter = "Temporal Filter";
@@ -132,7 +132,7 @@ fn eval() {
     if let Err(err) = opencv::highgui::named_window(w_temp_filter, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{dbg} | Create Window Error: {}", err);
     }
-    if let Err(err) = opencv::highgui::named_window(wcropped, opencv::highgui::WINDOW_NORMAL) {
+    if let Err(err) = opencv::highgui::named_window(wcrop, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{dbg} | Create Window Error: {}", err);
     }
 
@@ -148,13 +148,13 @@ fn eval() {
         match path.extension() {
             Some(ext) if ext == "jpg" || ext == "png" || ext == "jpeg" => {
                 let frame = Image::load(path.to_str().unwrap()).unwrap();
-                let mut rotated = Mat::default();
-                core::rotate(&frame.mat, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
-                let src = Image::with(rotated);
-                log::debug!("{dbg}.eval | src frame: {} x {}", src.width, src.height);
+                // let mut rotated = Mat::default();
+                // core::rotate(&frame.mat, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
+                // let src = Image::with(rotated);
+                log::debug!("{dbg}.eval | src frame: {} x {}", frame.width, frame.height);
                 // let test = src.clone();
                 let t = Instant::now();
-                let ctx = temporal_filter.eval(src).unwrap();
+                let ctx = temporal_filter.eval(frame).unwrap();
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let gray: &GrayCtx = ctx.read();    
                 let crop: &CroppingCtx = ctx.read();    
@@ -169,22 +169,14 @@ fn eval() {
                 let lower = edges.result.get(Side::Lower);
                 for dot in upper {
                     *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 0, 255]);
-                    // if dot.x >= 0 && dot.y >= 0 {
-                    //     let x = dot.x as i32;
-                    //     let y = dot.y as i32;
-                    // }
                 }
                 for dot in lower {
                     *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
-                    // if dot.x >= 0 && dot.y >= 0 {
-                    //     let x = dot.x as i32;
-                    //     let y = dot.y as i32;
-                    // }
                 }
                 if !gray.frame.mat.empty() { highgui::imshow(wgray, &gray.frame.mat).unwrap() };
                 if !gamma.result.mat.empty() { highgui::imshow(wgamma, &gamma.result.mat).unwrap() };
                 if !bright.result.mat.empty() { highgui::imshow(wbright, &bright.result.mat).unwrap() };
-                if !crop.empty() { highgui::imshow(wgray, &crop).unwrap() };
+                if !crop.empty() { highgui::imshow(wcrop, &crop).unwrap() };
                 if !result.frame.mat.empty() { highgui::imshow(w_temp_filter, &result.frame.mat).unwrap() };
                 highgui::wait_key(0).unwrap();
             },
