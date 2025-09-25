@@ -52,12 +52,12 @@ impl Eval<Image, EvalResult> for DetectingContoursCv {
                 let t = Instant::now();
                 let result: &ResultCtx = ctx.read();
                 let frame = &result.frame;
-                let mut gray = core::Mat::default();
-                match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
-                    Ok(_) => {
+                // let mut gray = core::Mat::default();
+                // match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
+                    // Ok(_) => {
                         let mut blurred = core::Mat::default();
                         let kernel_size = core::Size::new(self.conf.gausian.blur_w, self.conf.gausian.blur_h);
-                        match imgproc::gaussian_blur(&gray, &mut blurred, kernel_size, self.conf.gausian.sigma_x, self.conf.gausian.sigma_y, core::BORDER_DEFAULT) {
+                        match imgproc::gaussian_blur(&frame.mat, &mut blurred, kernel_size, self.conf.gausian.sigma_x, self.conf.gausian.sigma_y, core::BORDER_DEFAULT) {
                             Ok(_) => {
                                 let mut sobelx = core::Mat::default();
                                 let mut sobely = core::Mat::default();
@@ -120,9 +120,9 @@ impl Eval<Image, EvalResult> for DetectingContoursCv {
                             }
                             Err(err) => Err(error.pass(err.to_string())),
                         }
-                    }
-                    Err(err) => Err(error.pass(err.to_string())),
-                }
+                    // }
+                    // Err(err) => Err(error.pass(err.to_string())),
+                // }
             }
             Err(err) => Err(error.pass(err)),
         }

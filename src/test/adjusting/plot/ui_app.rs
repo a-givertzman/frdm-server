@@ -7,7 +7,7 @@ use std::{str::FromStr, sync::{Arc, Once}, time::{Duration, Instant}};
 use egui::{
     Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions, TopBottomPanel 
 };
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, AutoGammaCtx, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, AutoGammaCtx, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, TemporalFilterConf, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
 
 ///
 /// 
@@ -494,6 +494,7 @@ impl eframe::App for UiApp {
                             hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_double() as f32,
                             hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_double() as f32,
                         },
+                        temporal_filter: TemporalFilterConf::default(),
                         gausian: GausianConf {
                             blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
                             blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as i32,

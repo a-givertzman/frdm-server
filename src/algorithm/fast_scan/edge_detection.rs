@@ -3,7 +3,7 @@ use opencv::{core::{Mat, MatTraitConst, MatTraitConstManual}, imgproc};
 use sal_core::error::Error;
 use crate::{
     algorithm::{ContextRead, ContextWrite, EvalResult, InitialPoints, ResultCtx},
-    domain::{Dot, Eval, Filter, Image, FilterLowPass},
+    domain::{Dot, Eval, Filter, FilterSmooth, Image},
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
@@ -47,8 +47,8 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let cols = frame.mat.cols();
                 let mut upper_edge = Vec::with_capacity(cols as usize);
                 let mut lower_edge = Vec::with_capacity(cols as usize);
-                let mut filter_smooth_upper = FilterLowPass::<6, _>::new(None, 1.0);
-                let mut filter_smooth_lower = FilterLowPass::<6, _>::new(None, 1.0);
+                let mut filter_smooth_upper = FilterSmooth::new(None, 1.0);
+                let mut filter_smooth_lower = FilterSmooth::new(None, 1.0);
                 let mut upper;
                 let mut lower;
                 let mat = frame.mat.data_bytes().unwrap();

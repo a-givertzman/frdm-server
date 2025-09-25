@@ -4,7 +4,7 @@ use crate::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
         CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx,
-        ResultCtx,
+        GrayCtx, ResultCtx,
     },
     domain::Error,
 };
@@ -133,5 +133,18 @@ impl ContextWrite<ResultCtx> for Context {
 impl ContextRead<ResultCtx> for Context {
     fn read(&self) -> &ResultCtx {
         &self.result
+    }
+}
+//
+//
+impl ContextWrite<GrayCtx> for Context {
+    fn write(mut self, value: GrayCtx) -> Result<Self, Error> {
+        self.gray = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<GrayCtx> for Context {
+    fn read(&self) -> &GrayCtx {
+        &self.gray
     }
 }
