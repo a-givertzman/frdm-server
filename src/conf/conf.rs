@@ -18,6 +18,10 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 ///     brightness-contrast:
 ///         hist-clip-left: 1.0     # optional histogram clipping from right, default = 0.0 %
 ///         hist-clip-right: 1.0    # optional histogram clipping from right, default = 0.0 %
+///     temporal-filter:
+///         amplify_factor: 1.0     # factor amplifies the highlighting the oftenly changing pixels
+///         reduce_factor: 1.0      # factor amplifies the hiding the lower changing pixels
+///         threshold: 1.0
 ///     gausian:
 ///         blur-size:              # blur radius
 ///             width: 3

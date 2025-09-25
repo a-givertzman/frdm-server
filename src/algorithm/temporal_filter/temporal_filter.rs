@@ -8,9 +8,9 @@ use crate::{
 ///
 /// Temporal Filter | Highlighting / Hiding pixels depending on those changing speed
 pub struct TemporalFilter {
-    amplify_factor: Option<f64>,
-    reduce_factor: Option<f64>,
-    threshold: Option<u8>,
+    amplify_factor: f64,
+    reduce_factor: f64,
+    threshold: f64,
     filters: RefCell<Vec<Box<dyn Filter<Item = u8>>>>,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
@@ -19,7 +19,7 @@ pub struct TemporalFilter {
 impl TemporalFilter {
     ///
     /// Returns [TemporalFilter] new instance
-    pub fn new(amplify_factor: Option<f64>, reduce_factor: Option<f64>, threshold: Option<u8>, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(amplify_factor: f64, reduce_factor: f64, threshold: f64, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self {
             amplify_factor,
             reduce_factor,
