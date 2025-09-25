@@ -31,22 +31,23 @@ impl TemporalFilter {
             ctx: Box::new(ctx),
         }
     }
-    ///
-    /// Wraps specified `f` into the `Box`
-    fn boxed_filter<'a, T>(f: impl Filter<Item = T> + 'a) -> Box<dyn Filter<Item = T> + 'a> {
-        Box::new(f)
-    }
+    // ///
+    // /// Wraps specified `f` into the `Box`
+    // fn boxed_filter<'a, T>(f: impl Filter<Item = T> + 'a) -> Box<dyn Filter<Item = T> + 'a> {
+    //     Box::new(f)
+    // }
     ///
     /// Loads filters initial rates from the cache
     fn load_cache(&self) -> Option<Vec<FilterHighPass::<u8>>> {
+        let path = Path::new(&self.cache_path).join("rates.json");
         let f = OpenOptions::new()
             .read(true)
-            .open(&self.cache_path);
+            .open(&path);
         match f {
             Ok(f) => {
                 match serde_json::from_reader(f) {
                     Ok(rates) => {
-                        let rates: Vec<f64> = rates;
+                        let rates: Vec<i8> = rates;
                         Some(rates.into_iter().map(|rate| {
                             FilterHighPass::<u8>::new(None, Some(rate), self.amplify_factor, self.reduce_factor, self.threshold)
                         }).collect())
@@ -58,7 +59,7 @@ impl TemporalFilter {
                 }
             }
             Err(err) => {
-                log::warn!("TemporalFilter.load_cache | Can't read rates from cache '{}': {:?}", self.cache_path, err);
+                log::warn!("TemporalFilter.load_cache | Can't read rates from cache '{}': {:?}", path.display(), err);
                 None
             }
         }
@@ -66,14 +67,15 @@ impl TemporalFilter {
     ///
     /// Stores filters initial rates from the cache
     fn store_cache(&self) {
-        let path = Path::new(&self.cache_path);
-        let path_exists = match path.is_dir() {
+        let dir = Path::new(&self.cache_path);
+        let path = dir.join("rates.json");
+        let path_exists = match dir.is_dir() {
             true => true,
             false => {
-                match std::fs::create_dir_all(path) {
+                match std::fs::create_dir_all(&dir) {
                     Ok(_) => true,
                     Err(err) => {
-                        log::warn!("TemporalFilter.load_cache | Can't create cache folder'{}', error: {:?}", self.cache_path, err);
+                        log::warn!("TemporalFilter.load_cache | Can't create cache folder'{}', error: {:?}", dir.display(), err);
                         false
                     },
                 }
@@ -82,17 +84,18 @@ impl TemporalFilter {
         if path_exists {
             let f = OpenOptions::new()
                 .write(true)
+                .create(true)
                 .truncate(true)
-                .open(path);
+                .open(&path);
             match f {
                 Ok(f) => {
-                    let rates: Vec<f64> = self.filters.borrow().iter().map(|f| f.rate()).collect();
+                    let rates: Vec<i8> = self.filters.borrow().iter().map(|f| f.rate()).collect();
                     if let Err(err) = serde_json::to_writer(f, &rates) {
                         log::warn!("TemporalFilter.load_cache | Can't serialize rates[{}] {:?}..., error: {:?}", rates.len(), &rates[..4], err);
                     }
                 }
                 Err(err) => {
-                    log::warn!("TemporalFilter.load_cache | Can't open file '{}' to write rates, error: {:?}", self.cache_path, err);
+                    log::warn!("TemporalFilter.load_cache | Can't open file '{}' to write rates, error: {:?}", path.display(), err);
                 }
             }
         }
@@ -114,14 +117,14 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                 let pixels = (width * height * frame.mat.channels()) as i32;
                 log::debug!("TemporalFilter.eval | pixels: {:?}", pixels);
                 if self.filters.borrow().is_empty() {
-                    match self.load_cache() {
-                        Some(filters) => *self.filters.borrow_mut() = filters,
-                        None => {
-                            *self.filters.borrow_mut() = (0..pixels).map(|_| {
-                                FilterHighPass::<u8>::new(None, None, self.amplify_factor, self.reduce_factor, self.threshold)
-                            }).collect();
-                        }
-                    }
+                    *self.filters.borrow_mut() = (0..pixels).map(|_| {
+                        FilterHighPass::<u8>::new(None, None, self.amplify_factor, self.reduce_factor, self.threshold)
+                    }).collect();
+                    // match self.load_cache() {
+                    //     Some(filters) => *self.filters.borrow_mut() = filters,
+                    //     None => {
+                    //     }
+                    // }
                 }
                 log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
                 log::debug!("TemporalFilter.eval | mat.channels: {:?}", frame.mat.channels());
@@ -140,7 +143,8 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                         None => return Err(error.err(format!("Filters matrix format error, index [{i}] out of range {width} x {height} = {pixels}"))),
                     }
                 }
-                self.store_cache();
+                drop(filters);
+                // self.store_cache();
                 let result = ResultCtx { frame: Image::with(out) };
                 log::debug!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
