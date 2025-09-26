@@ -12,10 +12,11 @@ use crate::domain::Filter;
 pub struct FilterHighPass<T> {
     prev: Option<T>,
     /// 0.0...1.0
-    rate: i8,
+    rate: f32,
     amplify_factor: f32,
     reduce_factor: f32,
     threshold: f32,
+    percent_factor: f32,
 }
 //
 // 
@@ -23,18 +24,19 @@ impl<T: Copy> FilterHighPass<T> {
     ///
     /// Creates new FilterHighPass<const N: usize, T>
     /// - `T` - Type of the Filter Item
-    pub fn new(initial: Option<T>, rate: Option<i8>, amplify_factor: f64, reduce_factor: f64, threshold: f64) -> Self {
+    pub fn new(initial: Option<T>, amplify_factor: f64, reduce_factor: f64, threshold: f64) -> Self {
         Self {
             prev: initial,
-            rate: rate.unwrap_or(0),
+            rate: 0.0,
             amplify_factor: amplify_factor as f32,
             reduce_factor: reduce_factor as f32,
             threshold: threshold as f32,
+            percent_factor: 1.0 / 255.0,
         }
     }
     ///
     /// Returns current rate
-    pub fn rate(&self) -> i8 {
+    pub fn rate(&self) -> f32 {
         self.rate
     }
 }
@@ -47,31 +49,28 @@ impl Filter for FilterHighPass<u8> {
     fn add(&mut self, value: Self::Item) -> Option<Self::Item> {
         match self.prev {
             Some(prev) => {
-                let delta = (value - prev) as f32;
-                let delta_rel = 100.0 * delta / 255.0;
-                self.prev.replace(value);
-                let rate_pice = ((self.rate.abs() as f32) + 10.0 + 50.0 * delta_rel).round() as i8;
+                let delta = (value as f32 - prev as f32).abs();
+                let delta_rel = delta * self.percent_factor;
+                self.prev = Some(value);
                 if delta >= self.threshold {
-                    let rate = self.rate + rate_pice;
-                    self.rate = match rate > 100 {
-                        true => 100,
+                    // log::debug!("FilterHighPass<u8>.add | delta: {delta},  delta_rel {delta_rel}  =>  CHANGED");
+                    let rate = self.rate + 0.05 + 0.1 * delta_rel;
+                    self.rate = match rate > 1.0 {
+                        true => 1.0,
                         false => rate,
                     };
                 } else {
-                    let rate = self.rate - rate_pice;
-                    self.rate = match rate < -100 {
-                        true => -100,
+                    // log::debug!("FilterHighPass<u8>.add | delta: {delta},  delta_rel {delta_rel}  =>  KEEPED");
+                    let rate = self.rate - (0.05 + 0.1 * (1.0 - delta_rel));
+                    self.rate = match rate < -1.0 {
+                        true => -1.0,
                         false => rate,
                     };
                 };
-                // log::debug!("FilterHighPass<u8>.add | rate: {:?}", self.rate);
-                let value_ = match self.rate > 0 {
-                    true => (value as f32) + 0.01 * (self.rate as f32) * self.amplify_factor,
-                    false => (value as f32) + 0.01 * (self.rate as f32) * self.reduce_factor,
+                let value_ = (value as f32) + self.rate * match self.rate > 0.0 {
+                    true => self.amplify_factor,
+                    false => self.reduce_factor,
                 };
-                // if (value as f64) != value_ {
-                //     log::debug!("FilterHighPass<u8>.add | rate: {:.3}  |  value: {} => {:.3}", self.rate, value, value_);
-                // }
                 Some(match value_ > 255.0 {
                     true => 255,
                     false => match value_ < 0.0 {
@@ -81,7 +80,7 @@ impl Filter for FilterHighPass<u8> {
                 })
             }
             None => {
-                self.prev.replace(value);
+                self.prev = Some(value);
                 Some(value)
             }
         }

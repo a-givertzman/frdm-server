@@ -56,7 +56,7 @@ fn eval() {
                     hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
                 temporal-filter:
                     amplify-factor: 00.0     # factor amplifies the highlighting the oftenly changing pixels
-                    reduce-factor: 24.0      # factor amplifies the hiding the lower changing pixels
+                    reduce-factor: 64.0      # factor amplifies the hiding the lower changing pixels
                     threshold: 64.0
                 gausian:
                     blur-size:
@@ -93,7 +93,6 @@ fn eval() {
                     conf.contours.temporal_filter.amplify_factor,
                     conf.contours.temporal_filter.reduce_factor,
                     conf.contours.temporal_filter.threshold,
-                    "assets/algorithm/temporal-filter/",
                     Gray::new(
                         AutoBrightnessAndContrast::new(
                             conf.contours.brightness_contrast.hist_clip_left,
