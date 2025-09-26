@@ -55,7 +55,7 @@ fn eval() {
                     hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
                     hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
                 temporal-filter:
-                    amplify-factor: 00.0     # factor amplifies the highlighting the oftenly changing pixels
+                    amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
                     reduce-factor: 64.0      # factor amplifies the hiding the lower changing pixels
                     threshold: 64.0
                 gausian:
@@ -73,7 +73,7 @@ fn eval() {
                     src2-weight: 1.0
                     gamma: 0.0
             edge-detection:
-                otsu-tune: 0.8      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                otsu-tune: 1.30      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 # threshold: 50       # 0...255, used if otsu-tune is not specified
             fast-scan:
                 geometry-defect-threshold: 1.2      # 1.1..1.3, absolute threshold to detect the geometry deffects
@@ -166,6 +166,8 @@ fn eval() {
                 // let edges_cont = contours.result.mat.clone();
                 let upper = edges.result.get(Side::Upper);
                 let lower = edges.result.get(Side::Lower);
+                log::trace!("{dbg}.eval | upper: {:?}", upper);
+                log::trace!("{dbg}.eval | lower: {:?}", lower);
                 for dot in upper {
                     *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 0, 255]);
                 }

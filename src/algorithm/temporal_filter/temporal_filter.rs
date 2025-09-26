@@ -195,7 +195,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                         }
                     }
                 }
-                let blure_weight = 0.64;
+                // let blure_weight = 0.64;
                 // let out = self.blure(out, width, height, blure_weight)?;
                 let result = ResultCtx { frame: Image::with(out) };
                 log::debug!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());

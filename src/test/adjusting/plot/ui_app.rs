@@ -7,7 +7,7 @@ use std::{str::FromStr, sync::{Arc, Once}, time::{Duration, Instant}};
 use egui::{
     Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions, TopBottomPanel 
 };
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, AutoGammaCtx, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Initial, InitialCtx, Side, TemporalFilterConf, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, AutoGammaCtx, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, Side, TemporalFilterConf, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
 
 ///
 /// 
@@ -527,18 +527,20 @@ impl eframe::App for UiApp {
                     conf.edge_detection.threshold,
                     DetectingContoursCv::new(
                         conf.contours.clone(),
-                        AutoBrightnessAndContrast::new(
-                            conf.contours.brightness_contrast.hist_clip_left,
-                            conf.contours.brightness_contrast.hist_clip_right,
-                            AutoGamma::new(
-                                conf.contours.gamma.factor,
-                                Cropping::new(
-                                    conf.contours.cropping.x,
-                                    conf.contours.cropping.width,
-                                    conf.contours.cropping.y,
-                                    conf.contours.cropping.height,
-                                    Initial::new(
-                                        InitialCtx::new(),
+                        Gray::new(
+                            AutoBrightnessAndContrast::new(
+                                conf.contours.brightness_contrast.hist_clip_left,
+                                conf.contours.brightness_contrast.hist_clip_right,
+                                AutoGamma::new(
+                                    conf.contours.gamma.factor,
+                                    Cropping::new(
+                                        conf.contours.cropping.x,
+                                        conf.contours.cropping.width,
+                                        conf.contours.cropping.y,
+                                        conf.contours.cropping.height,
+                                        Initial::new(
+                                            InitialCtx::new(),
+                                        ),
                                     ),
                                 ),
                             ),

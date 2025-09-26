@@ -43,12 +43,13 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                     (Some(otsu_tune), None) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
                     (Some(otsu_tune), Some(_)) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
                 };
+                log::debug!("EdgeDetection.eval | threshold: {threshold}");
                 let rows = frame.mat.rows();
                 let cols = frame.mat.cols();
                 let mut upper_edge = Vec::with_capacity(cols as usize);
                 let mut lower_edge = Vec::with_capacity(cols as usize);
-                let mut filter_smooth_upper = FilterSmooth::new(None, 1.0);
-                let mut filter_smooth_lower = FilterSmooth::new(None, 1.0);
+                let mut filter_smooth_upper = FilterSmooth::new(None, 24.0);
+                let mut filter_smooth_lower = FilterSmooth::new(None, 24.0);
                 let mut upper;
                 let mut lower;
                 let mat = frame.mat.data_bytes().unwrap();

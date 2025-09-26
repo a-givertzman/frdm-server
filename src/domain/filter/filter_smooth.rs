@@ -30,7 +30,7 @@ impl Filter for FilterSmooth<i32> {
     fn add(&mut self, value: Self::Item) -> Option<Self::Item> {
         match self.prev {
             Some(prev) => {
-                let value = ((value as f64) + self.factor * ((prev as f64).powi(2) - (value as f64).powi(2))).powf(0.5).round() as i32;
+                let value = (prev as f64 + ((value as f64) - (prev as f64)) / self.factor).round() as i32;
                 self.prev.replace(value);
                 Some(value)
             }
