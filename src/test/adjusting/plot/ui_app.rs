@@ -512,8 +512,8 @@ impl eframe::App for UiApp {
                         },
                     },
                     edge_detection: EdgeDetectionConf {
-                        otsu_tune: (otsu_tune == 0.0).then(|| otsu_tune),
-                        threshold: (threshold == 0).then(|| threshold) ,
+                        otsu_tune: (otsu_tune != 0.0).then(|| otsu_tune),
+                        threshold: (threshold != 0).then(|| threshold) ,
                     },
                     fast_scan: FastScanConf {
                         geometry_defect_threshold: Threshold(self.params.get("FastScan.Threshold").unwrap().1.as_double()),
