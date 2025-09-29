@@ -13,6 +13,7 @@ impl<T: Copy> FilterSmooth<T> {
     ///
     /// Creates new FilterSmooth<const N: usize, T>
     /// - `T` - Type of the Filter Item
+    /// - `factor` - Smoothing of edge line factor. The higher the factor the smoother the line, can't be 0
     pub fn new(initial: Option<T>, factor: f64) -> Self {
         Self {
             prev: initial,

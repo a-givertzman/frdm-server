@@ -3,7 +3,7 @@ use opencv::{core::{Mat, MatTraitConst, MatTraitConstManual}, imgproc};
 use sal_core::error::Error;
 use crate::{
     algorithm::{ContextRead, ContextWrite, EvalResult, InitialPoints, ResultCtx},
-    domain::{Dot, Eval, Filter, FilterSmooth, Image},
+    domain::{Dot, Eval, Filter, FilterSmooth, FilterEmpty, Image},
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
@@ -12,6 +12,7 @@ use super::edge_detection_ctx::EdgeDetectionCtx;
 pub struct EdgeDetection {
     otsu_tune: Option<f64>,
     threshold: Option<u8>,
+    smooth: Option<f64>,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 //
@@ -19,10 +20,11 @@ pub struct EdgeDetection {
 impl EdgeDetection {
     ///
     /// Returns [EdgeDetection] new instance
-    pub fn new(otsu_tune: Option<f64>, threshold: Option<u8>, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(otsu_tune: Option<f64>, threshold: Option<u8>, smooth: Option<f64>, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self {
             otsu_tune,
             threshold,
+            smooth,
             ctx: Box::new(ctx),
         }
     }
@@ -48,8 +50,14 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let cols = frame.mat.cols();
                 let mut upper_edge = Vec::with_capacity(cols as usize);
                 let mut lower_edge = Vec::with_capacity(cols as usize);
-                let mut filter_smooth_upper = FilterSmooth::new(None, 24.0);
-                let mut filter_smooth_lower = FilterSmooth::new(None, 24.0);
+                let mut filter_smooth_upper: Box<dyn Filter<Item = i32>> = match self.smooth {
+                    Some(smooth) => Box::new(FilterSmooth::new(None, smooth)),
+                    None => Box::new(FilterEmpty::new(None)),
+                };
+                let mut filter_smooth_lower: Box<dyn Filter<Item = i32>> = match self.smooth {
+                    Some(smooth) => Box::new(FilterSmooth::new(None, smooth)),
+                    None => Box::new(FilterEmpty::new(None)),
+                };
                 let mut upper;
                 let mut lower;
                 let mat = frame.mat.data_bytes().unwrap();

@@ -9,6 +9,7 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 /// edge-detection:
 ///     otsu-tune: 1.0      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0, if not specified, `threshold` will be used
 ///     threshold: 1        # 0...255, if not specified otsu auto threshold will be used, if nothing specified, otsu threshold will be used with otsu-tune = 1
+///     smooth: 16          # Smoothing of edge line factor. The higher the factor the smoother the line.
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct EdgeDetectionConf {
@@ -20,6 +21,8 @@ pub struct EdgeDetectionConf {
     pub otsu_tune: Option<f64>,
     /// Manual threshold, no Otsu auto threshold used, 0...255
     pub threshold: Option<u8>,
+    /// Smoothing of edge line factor. The higher the factor the smoother the line. Can't be <= 0
+    pub smooth: Option<f64>,
 }
 //
 // 
@@ -43,9 +46,20 @@ impl EdgeDetectionConf {
             (Some(otsu_tune), None) => Some(otsu_tune),
             (Some(_), Some(_)) => panic!("{dbg}.new |  'otsu-tune' and 'threshold' - both specified, use on of them, otsu auto threshol with 'otsu-tune' or static 'threshold'"),
         };
+        let smooth = conf.get("smooth");
+        let smooth = match smooth {
+            Some(smooth) => if smooth <= 0.0 {
+                None
+            } else {
+                Some(smooth)
+            }
+            None => None,
+        };
+        log::trace!("{dbg}.new | smooth: {:#?}", smooth);
         Self {
             otsu_tune,
             threshold,
+            smooth,
         }
     }
 }
@@ -56,6 +70,7 @@ impl Default for EdgeDetectionConf {
         Self {
             otsu_tune: Some(1.0),
             threshold: None,
+            smooth: None,
         }
     }
 }

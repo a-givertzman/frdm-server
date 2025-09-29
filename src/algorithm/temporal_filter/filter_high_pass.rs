@@ -14,7 +14,9 @@ pub struct FilterHighPass<T> {
     /// 0.0...1.0
     rate: f32,
     amplify_factor: f32,
+    grow_speed: f32,
     reduce_factor: f32,
+    down_speed: f32,
     threshold: f32,
     percent_factor: f32,
 }
@@ -24,12 +26,14 @@ impl<T: Copy> FilterHighPass<T> {
     ///
     /// Creates new FilterHighPass<const N: usize, T>
     /// - `T` - Type of the Filter Item
-    pub fn new(initial: Option<T>, amplify_factor: f64, reduce_factor: f64, threshold: f64) -> Self {
+    pub fn new(initial: Option<T>, amplify_factor: f64, grow_speed: f64, reduce_factor: f64, down_speed: f64, threshold: f64) -> Self {
         Self {
             prev: initial,
             rate: 0.0,
             amplify_factor: amplify_factor as f32,
+            grow_speed: grow_speed as f32,
             reduce_factor: reduce_factor as f32,
+            down_speed: down_speed as f32,
             threshold: threshold as f32,
             percent_factor: 1.0 / 255.0,
         }
@@ -54,14 +58,16 @@ impl Filter for FilterHighPass<u8> {
                 self.prev = Some(value);
                 if delta >= self.threshold {
                     // log::debug!("FilterHighPass<u8>.add | delta: {delta},  delta_rel {delta_rel}  =>  CHANGED");
-                    let rate = self.rate + 0.05 + 0.1 * delta_rel;
+                    // let rate = self.rate + 0.05 + 0.1 * delta_rel;
+                    let rate = self.rate + (1.0 - self.rate) * delta_rel * self.grow_speed;
                     self.rate = match rate > 1.0 {
                         true => 1.0,
                         false => rate,
                     };
                 } else {
                     // log::debug!("FilterHighPass<u8>.add | delta: {delta},  delta_rel {delta_rel}  =>  KEEPED");
-                    let rate = self.rate - (0.05 + 0.1 * (1.0 - delta_rel));
+                    // let rate = self.rate - (0.05 + 0.1 * (1.0 - delta_rel));
+                    let rate = self.rate - (self.rate - 1.0) * delta_rel * self.down_speed;
                     self.rate = match rate < -1.0 {
                         true => -1.0,
                         false => rate,

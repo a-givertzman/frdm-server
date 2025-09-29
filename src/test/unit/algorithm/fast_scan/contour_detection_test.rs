@@ -83,6 +83,7 @@ fn eval() {
         EdgeDetection::new(
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
+            conf.edge_detection.smooth,
             DetectingContoursCv::new(
                 conf.contours.clone(),
                 AutoBrightnessAndContrast::new(

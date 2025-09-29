@@ -19,7 +19,9 @@ use crate::{algorithm::{CroppingConf, TemporalFilterConf}, conf::{BrightnessCont
 ///     hist-clip-right: 1.0     # optional histogram clipping, default = 0.0 %
 /// temporal-filter:
 ///     amplify_factor: 1.0     # factor amplifies the highlighting the oftenly changing pixels
+///     grow-speed: 0.1         # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
 ///     reduce_factor: 1.0      # factor amplifies the hiding the lower changing pixels
+///     down-speed: 0.5         # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
 ///     threshold: 1.0
 /// gausian:
 ///     blur-size:            # blur radius

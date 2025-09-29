@@ -59,7 +59,9 @@ fn eval() {
     let mut filter = FilterHighPass::new(
         Some(0),
         0.0,
+        1.0,
         64.0,
+        1.0,
         32.0,
     );
     for (step, value, out, rate) in test_data {

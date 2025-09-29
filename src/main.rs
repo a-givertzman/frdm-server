@@ -10,7 +10,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, Cropping, DetectingContoursCv, EdgeDetection, GeometryDefect, Initial, InitialCtx, Mad, Threshold
+        AutoBrightnessAndContrast, AutoGamma, Cropping, DetectingContoursCv, EdgeDetection, GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter, Threshold
     }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -42,24 +42,34 @@ fn main() {
         EdgeDetection::new(
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
+            conf.edge_detection.smooth,
             DetectingContoursCv::new(
                 conf.contours.clone(),
-                AutoBrightnessAndContrast::new(
-                    conf.contours.brightness_contrast.hist_clip_left,
-                    conf.contours.brightness_contrast.hist_clip_right,
-                    AutoGamma::new(
-                        conf.contours.gamma.factor,
-                        Cropping::new(
-                            conf.contours.cropping.x,
-                            conf.contours.cropping.width,
-                            conf.contours.cropping.y,
-                            conf.contours.cropping.height,
-                            Initial::new(
-                                InitialCtx::new(),
+                TemporalFilter::new(
+                    conf.contours.temporal_filter.amplify_factor,
+                    conf.contours.temporal_filter.grow_speed,
+                    conf.contours.temporal_filter.reduce_factor,
+                    conf.contours.temporal_filter.down_speed,
+                    conf.contours.temporal_filter.threshold,
+                    Gray::new(
+                        AutoBrightnessAndContrast::new(
+                            conf.contours.brightness_contrast.hist_clip_left,
+                            conf.contours.brightness_contrast.hist_clip_right,
+                            AutoGamma::new(
+                                conf.contours.gamma.factor,
+                                Cropping::new(
+                                    conf.contours.cropping.x,
+                                    conf.contours.cropping.width,
+                                    conf.contours.cropping.y,
+                                    conf.contours.cropping.height,
+                                    Initial::new(
+                                        InitialCtx::new(),
+                                    ),
+                                ),
                             ),
                         ),
                     ),
-                ),
+                )
             ),
         ),
     );

@@ -9,7 +9,9 @@ use crate::{
 /// Temporal Filter | Highlighting / Hiding pixels depending on those changing speed
 pub struct TemporalFilter {
     amplify_factor: f64,
+    grow_speed: f64,
     reduce_factor: f64,
+    down_speed: f64,
     threshold: f64,
     filters: RefCell<Vec<FilterHighPass::<u8>>>,
     ctx: Box<dyn Eval<Image, EvalResult>>,
@@ -20,10 +22,12 @@ impl TemporalFilter {
     ///
     /// Returns [TemporalFilter] new instance
     /// - `cache` - path to the cache folder
-    pub fn new(amplify_factor: f64, reduce_factor: f64, threshold: f64, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(amplify_factor: f64, grow_speed: f64, reduce_factor: f64, down_speed: f64, threshold: f64, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
         Self {
             amplify_factor,
+            grow_speed,
             reduce_factor,
+            down_speed,
             threshold,
             filters: RefCell::new(vec![]),
             ctx: Box::new(ctx),
@@ -165,7 +169,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                 let t = Instant::now();
                 let result: &ResultCtx = ctx.read();
                 let frame = &result.frame;
-                let input = frame.mat.data_bytes().unwrap();
+                // let input = frame.mat.data_bytes().unwrap();
                 let mut out = frame.mat.clone();
                 let height = frame.mat.rows() as usize;
                 let width = frame.mat.cols() as usize;
@@ -173,7 +177,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                 log::debug!("TemporalFilter.eval | pixels: {:?}", pixels);
                 if self.filters.borrow().is_empty() {
                     *self.filters.borrow_mut() = (0..pixels).map(|_| {
-                        FilterHighPass::<u8>::new(None, self.amplify_factor, self.reduce_factor, self.threshold)
+                        FilterHighPass::<u8>::new(None, self.amplify_factor, self.grow_speed, self.reduce_factor, self.down_speed, self.threshold)
                     }).collect();
                 }
                 log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
@@ -181,7 +185,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                 {
                     let mut filters = self.filters.borrow_mut();
                     for i in 0..pixels {
-                        let pixel = input.get(i).unwrap();
+                        let pixel = frame.mat.at(i as i32).unwrap();
                         match filters.get_mut(i as usize) {
                             Some(filter) => {
                                 if let Some(value) = filter.add(*pixel) {
