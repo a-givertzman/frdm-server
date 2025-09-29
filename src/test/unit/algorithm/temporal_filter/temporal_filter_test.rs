@@ -57,7 +57,7 @@ fn eval() {
                 temporal-filter:
                     amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
                     grow-speed: 0.02          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-                    reduce-factor: 64.0      # factor amplifies the hiding the lower changing pixels
+                    reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
                     down-speed: 2.4          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
                     threshold: 64.0
                 gausian:
@@ -75,9 +75,9 @@ fn eval() {
                     src2-weight: 1.0
                     gamma: 0.0
             edge-detection:
-                otsu-tune: 1.30      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                otsu-tune: 1.20       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 # threshold: 50       # 0...255, used if otsu-tune is not specified
-                smooth: 8          # Smoothing of edge line factor. The higher the factor the smoother the line.
+                smooth: 8             # Smoothing of edge line factor. The higher the factor the smoother the line.
             fast-scan:
                 geometry-defect-threshold: 1.0      # 1.1..1.3, absolute threshold to detect the geometry deffects
             fine-scan:
