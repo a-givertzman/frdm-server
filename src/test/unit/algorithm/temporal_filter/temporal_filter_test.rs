@@ -55,10 +55,10 @@ fn eval() {
                     hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
                     hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
                 temporal-filter:
-                    amplify-factor: 24.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 0.1          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-                    reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 0.5          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
+                    amplify-factor: 48.0     # factor amplifies the highlighting the oftenly changing pixels
+                    grow-speed: 0.3          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
+                    reduce-factor: 128.0      # factor amplifies the hiding the lower changing pixels
+                    down-speed: 0.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
                     threshold: 48.0
                 gausian:
                     blur-size:
@@ -75,9 +75,9 @@ fn eval() {
                     src2-weight: 1.0
                     gamma: 0.0
             edge-detection:
-                otsu-tune: 1.40      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                otsu-tune: 1.50      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 # threshold: 50       # 0...255, used if otsu-tune is not specified
-                smooth: 16          # Smoothing of edge line factor. The higher the factor the smoother the line.
+                smooth: 8          # Smoothing of edge line factor. The higher the factor the smoother the line.
             fast-scan:
                 geometry-defect-threshold: 1.0      # 1.1..1.3, absolute threshold to detect the geometry deffects
             fine-scan:
