@@ -5,9 +5,16 @@ use sal_sync::collections::FxIndexMap;
 use testing::entities::test_value::Value;
 use std::{str::FromStr, sync::{Arc, Once}, time::{Duration, Instant}};
 use egui::{
-    Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions, TopBottomPanel 
+    Color32, ColorImage, FontFamily, FontId, RichText, TextStyle, TextureHandle, TextureOptions,
 };
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoGamma, AutoGammaCtx, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, Side, TemporalFilter, TemporalFilterConf, Threshold}, conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf}, domain::{Dot, Eval, Image}};
+use crate::{
+    algorithm::{
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx,
+        EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, Side, TemporalFilterConf, Threshold,
+    },
+    conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf},
+    domain::{Dot, Eval, Image},
+};
 
 ///
 /// 
@@ -112,11 +119,11 @@ impl UiApp {
                 Param::new("Contours.overlay.src2_weight",                  ParamVal::FRange(0.0..100.0),   Value::Double(0.5)),
                 Param::new("Contours.overlay.gamma",                        ParamVal::FRange(0.0..100.0),   Value::Double(0.0)),
 
-                Param::new("Contours.temporal-filter.amplify-factor",       ParamVal::FRange(0.0..255.0),   Value::Double(12.0)),
-                Param::new("Contours.temporal-filter.grow-speed",           ParamVal::FRange(0.0..255.0),   Value::Double(1.0)),
-                Param::new("Contours.temporal-filter.reduce-factor",        ParamVal::FRange(0.0..255.0),   Value::Double(64.0)),
-                Param::new("Contours.temporal-filter.down-speed",           ParamVal::FRange(0.0..255.0),   Value::Double(1.0)),
-                Param::new("Contours.temporal-filter.threshold",            ParamVal::FRange(0.0..255.0),   Value::Double(64.0)),
+                // Param::new("Contours.temporal-filter.amplify-factor",       ParamVal::FRange(0.0..255.0),   Value::Double(12.0)),
+                // Param::new("Contours.temporal-filter.grow-speed",           ParamVal::FRange(0.0..255.0),   Value::Double(1.0)),
+                // Param::new("Contours.temporal-filter.reduce-factor",        ParamVal::FRange(0.0..255.0),   Value::Double(64.0)),
+                // Param::new("Contours.temporal-filter.down-speed",           ParamVal::FRange(0.0..255.0),   Value::Double(1.0)),
+                // Param::new("Contours.temporal-filter.threshold",            ParamVal::FRange(0.0..255.0),   Value::Double(64.0)),
 
                 Param::new("EdgeDetection.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(0.0)),
                 Param::new("EdgeDetection.Threshold",                       ParamVal::IRange(0..255),       Value::Int(0)),
@@ -501,13 +508,13 @@ impl eframe::App for UiApp {
                             hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_double() as f32,
                             hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_double() as f32,
                         },
-                        temporal_filter: TemporalFilterConf {
-                            amplify_factor: self.params.get("Contours.temporal-filter.amplify-factor").unwrap().1.as_double(),
-                            grow_speed: self.params.get("Contours.temporal-filter.grow-speed").unwrap().1.as_double(),
-                            reduce_factor: self.params.get("Contours.temporal-filter.reduce-factor").unwrap().1.as_double(),
-                            down_speed: self.params.get("Contours.temporal-filter.down-speed").unwrap().1.as_double(),
-                            threshold: self.params.get("Contours.temporal-filter.threshold").unwrap().1.as_double(),
-                        },
+                        temporal_filter: TemporalFilterConf::default(),
+                        //     amplify_factor: self.params.get("Contours.temporal-filter.amplify-factor").unwrap().1.as_double(),
+                        //     grow_speed: self.params.get("Contours.temporal-filter.grow-speed").unwrap().1.as_double(),
+                        //     reduce_factor: self.params.get("Contours.temporal-filter.reduce-factor").unwrap().1.as_double(),
+                        //     down_speed: self.params.get("Contours.temporal-filter.down-speed").unwrap().1.as_double(),
+                        //     threshold: self.params.get("Contours.temporal-filter.threshold").unwrap().1.as_double(),
+                        // },
                         gausian: GausianConf {
                             blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
                             blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as i32,
@@ -542,26 +549,19 @@ impl eframe::App for UiApp {
                     conf.edge_detection.smooth,
                     DetectingContoursCv::new(
                         conf.contours.clone(),
-                        TemporalFilter::new(
-                            conf.contours.temporal_filter.amplify_factor,
-                            conf.contours.temporal_filter.grow_speed,
-                            conf.contours.temporal_filter.reduce_factor,
-                            conf.contours.temporal_filter.down_speed,
-                            conf.contours.temporal_filter.threshold,
-                            Gray::new(
-                                AutoBrightnessAndContrast::new(
-                                    conf.contours.brightness_contrast.hist_clip_left,
-                                    conf.contours.brightness_contrast.hist_clip_right,
-                                    AutoGamma::new(
-                                        conf.contours.gamma.factor,
-                                        Cropping::new(
-                                            conf.contours.cropping.x,
-                                            conf.contours.cropping.width,
-                                            conf.contours.cropping.y,
-                                            conf.contours.cropping.height,
-                                            Initial::new(
-                                                InitialCtx::new(),
-                                            ),
+                        Gray::new(
+                            AutoBrightnessAndContrast::new(
+                                conf.contours.brightness_contrast.hist_clip_left,
+                                conf.contours.brightness_contrast.hist_clip_right,
+                                AutoGamma::new(
+                                    conf.contours.gamma.factor,
+                                    Cropping::new(
+                                        conf.contours.cropping.x,
+                                        conf.contours.cropping.width,
+                                        conf.contours.cropping.y,
+                                        conf.contours.cropping.height,
+                                        Initial::new(
+                                            InitialCtx::new(),
                                         ),
                                     ),
                                 ),
