@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, Cropping, DetectingContoursCv, EdgeDetection, CroppingCtx
+        ContextRead, Cropping, CroppingCtx, DetectingContoursCv, EdgeDetection, Gray
     }, 
     conf::Conf,
 };
@@ -71,6 +71,7 @@ fn eval() {
             edge-detection:
                 otsu-tune: 1.0      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 threshold: 50       # 0...255, used if otsu-tune is not specified
+                smooth: 1.0         # Smoothing of edge line factor. The higher the factor the smoother the line
             fast-scan:
                 geometry-defect-threshold: 1.2      # 1.1..1.3, absolute threshold to detect the geometry deffects
             fine-scan:
@@ -83,25 +84,28 @@ fn eval() {
         EdgeDetection::new(
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
+            conf.edge_detection.smooth,
             DetectingContoursCv::new(
                 conf.contours.clone(),
-                AutoBrightnessAndContrast::new(
-                    conf.contours.brightness_contrast.hist_clip_left,
-                    conf.contours.brightness_contrast.hist_clip_right,
-                    AutoGamma::new(
-                        conf.contours.gamma.factor,
-                        Cropping::new(
-                            conf.contours.cropping.x,
-                            conf.contours.cropping.width,
-                            conf.contours.cropping.y,
-                            conf.contours.cropping.height,
-                            Initial::new(
-                                InitialCtx::new(),
+                Gray::new(
+                    AutoBrightnessAndContrast::new(
+                        conf.contours.brightness_contrast.hist_clip_left,
+                        conf.contours.brightness_contrast.hist_clip_right,
+                        AutoGamma::new(
+                            conf.contours.gamma.factor,
+                            Cropping::new(
+                                conf.contours.cropping.x,
+                                conf.contours.cropping.width,
+                                conf.contours.cropping.y,
+                                conf.contours.cropping.height,
+                                Initial::new(
+                                    InitialCtx::new(),
+                                ),
                             ),
                         ),
                     ),
                 ),
-            )
+            ),
         );
     let winp = "Otsu";
     let wgamma = "Gamma";

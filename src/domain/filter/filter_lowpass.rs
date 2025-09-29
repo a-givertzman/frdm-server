@@ -6,7 +6,6 @@ use super::filter::Filter;
 #[derive(Debug, Clone)]
 pub struct FilterLowPass<const N: usize, T> {
     buffer: CircularBuffer<N, T>,
-    factor: f64,
 }
 //
 // 
@@ -14,7 +13,7 @@ impl<T: Copy, const N: usize> FilterLowPass<N, T> {
     ///
     /// Creates new FilterLowPass<const N: usize, T>
     /// - `T` - Type of the Filter Item
-    pub fn new(initial: Option<T>, factor: f64) -> Self {
+    pub fn new(initial: Option<T>) -> Self {
         let mut buffer = CircularBuffer::<N, T>::new();
         initial.map(|initial| {
             buffer.push_back(initial);
@@ -22,7 +21,6 @@ impl<T: Copy, const N: usize> FilterLowPass<N, T> {
         });
         Self {
             buffer,
-            factor,
         }
     }
 }

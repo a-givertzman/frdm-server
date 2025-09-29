@@ -9,7 +9,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, DetectingContoursCv, DetectingContoursCvCtx, Initial, InitialCtx, Threshold
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, DetectingContoursCv, DetectingContoursCvCtx, Gray, Initial, InitialCtx, TemporalFilter, Threshold
     }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -86,7 +86,7 @@ fn main() {
     let mut counter = 0;
     let mut frame_counter = 0;
     let conf_temp = CameraConf::read(&dbg, path);
-    let mut exposure = conf_temp.exposure.time;
+    let exposure = conf_temp.exposure.time;
     if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{}.stream | Create Window Error: {}", dbg, err);
     }
@@ -111,22 +111,31 @@ fn main() {
         };
         let contours_result = DetectingContoursCv::new(
             DetectingContoursConf::default(),
-                AutoBrightnessAndContrast::new(
-                    conf.contours.brightness_contrast.hist_clip_left,
-                    conf.contours.brightness_contrast.hist_clip_right,
-                    AutoGamma::new(
-                        conf.contours.gamma.factor,
-                        Cropping::new(
-                            conf.contours.cropping.x,
-                            conf.contours.cropping.width,
-                            conf.contours.cropping.y,
-                            conf.contours.cropping.height,
-                            Initial::new(
-                                InitialCtx::new(),
+            TemporalFilter::new(
+                conf.contours.temporal_filter.amplify_factor,
+                conf.contours.temporal_filter.grow_speed,
+                conf.contours.temporal_filter.reduce_factor,
+                conf.contours.temporal_filter.down_speed,
+                conf.contours.temporal_filter.threshold,
+                Gray::new(
+                    AutoBrightnessAndContrast::new(
+                        conf.contours.brightness_contrast.hist_clip_left,
+                        conf.contours.brightness_contrast.hist_clip_right,
+                        AutoGamma::new(
+                            conf.contours.gamma.factor,
+                            Cropping::new(
+                                conf.contours.cropping.x,
+                                conf.contours.cropping.width,
+                                conf.contours.cropping.y,
+                                conf.contours.cropping.height,
+                                Initial::new(
+                                    InitialCtx::new(),
+                                ),
                             ),
                         ),
                     ),
                 ),
+            ),
         ).eval(frame.clone()).unwrap();
         let contours_ctx = ContextRead::<DetectingContoursCvCtx>::read(&contours_result);
         if let Err(e) = opencv::highgui::imshow(window2, &contours_ctx.result.mat) {

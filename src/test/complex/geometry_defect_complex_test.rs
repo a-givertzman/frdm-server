@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrastCtx, Context, ContextWrite, EvalResult, InitialCtx}, domain::{Eval, Image}};
+use crate::{algorithm::{Context, ContextWrite, EvalResult, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::Duration};
 use opencv::imgcodecs;
 use testing::stuff::max_test_duration::TestDuration;
@@ -71,6 +71,7 @@ fn eval() {
         EdgeDetection::new(
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
+            conf.edge_detection.smooth,
             DetectingContoursCv::new(
                 conf.contours,
                 FakePassImg::new(),

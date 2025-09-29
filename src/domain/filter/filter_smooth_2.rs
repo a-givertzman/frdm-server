@@ -2,16 +2,16 @@ use super::filter::Filter;
 ///
 /// 
 #[derive(Debug, Clone)]
-pub struct FilterSmooth<T> {
+pub struct FilterSmooth2<T> {
     prev: Option<T>,
     factor: f64,
     factor_inv: f64,
 }
 //
 // 
-impl<T: Copy> FilterSmooth<T> {
+impl<T: Copy> FilterSmooth2<T> {
     ///
-    /// Creates new FilterSmooth<const N: usize, T>
+    /// Creates new FilterSmooth2<const N: usize, T>
     /// - `T` - Type of the Filter Item
     /// - `factor` - Smoothing of edge line factor. The higher the factor the smoother the line, can't be 0
     pub fn new(initial: Option<T>, factor: f64) -> Self {
@@ -24,7 +24,7 @@ impl<T: Copy> FilterSmooth<T> {
 }
 //
 //
-impl Filter for FilterSmooth<i32> {
+impl Filter for FilterSmooth2<i32> {
     type Item = i32;
     //
     //

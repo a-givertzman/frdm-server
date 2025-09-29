@@ -18,6 +18,12 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 ///     brightness-contrast:
 ///         hist-clip-left: 1.0     # optional histogram clipping from right, default = 0.0 %
 ///         hist-clip-right: 1.0    # optional histogram clipping from right, default = 0.0 %
+///     temporal-filter:
+///         amplify_factor: 1.0     # factor amplifies the highlighting the oftenly changing pixels
+///         grow-speed: 0.1         # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
+///         reduce_factor: 1.0      # factor amplifies the hiding the lower changing pixels
+///         down-speed: 0.5         # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
+///         threshold: 1.0
 ///     gausian:
 ///         blur-size:              # blur radius
 ///             width: 3
@@ -35,6 +41,7 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 /// edge-detection:
 ///     otsu-tune: 1.0      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0, if not specified, `threshold` will be used
 ///     threshold: 1        # 0...255, if not specified otsu auto threshold will be used, if nothing specified, otsu threshold will be used with otsu-tune = 1
+///     smooth: 16          # Smoothing of edge line factor. The higher the factor the smoother the line.
 /// fast-scan:
 ///     geometry-defect-threshold: 1.2      # 1.1...1.3
 /// fine-scan:

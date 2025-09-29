@@ -1,6 +1,6 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::{conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, SobelConf}, algorithm::CroppingConf};
+use crate::{algorithm::{CroppingConf, TemporalFilterConf}, conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, SobelConf}};
 
 ///
 /// ## Configuration for `Contour dectection` algorithm
@@ -17,6 +17,12 @@ use crate::{conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, 
 /// brightness-contrast:
 ///     hist-clip-left: 1.0      # optional histogram clipping, default = 0.0 %
 ///     hist-clip-right: 1.0     # optional histogram clipping, default = 0.0 %
+/// temporal-filter:
+///     amplify_factor: 1.0     # factor amplifies the highlighting the oftenly changing pixels
+///     grow-speed: 0.1         # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
+///     reduce_factor: 1.0      # factor amplifies the hiding the lower changing pixels
+///     down-speed: 0.5         # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
+///     threshold: 1.0
 /// gausian:
 ///     blur-size:            # blur radius
 ///         width: 3
@@ -40,6 +46,8 @@ pub struct DetectingContoursConf {
     pub gamma: GammaConf,
     /// Configuration for `Brightness and contrast auto correction`
     pub brightness_contrast: BrightnessContrastConf,
+    /// Configuration for `Temporal Filter`
+    pub temporal_filter: TemporalFilterConf,
     /// Configuration for `Gaussian filter`
     pub gausian: GausianConf,
     /// Configuration for `Sobel operator`
@@ -68,6 +76,9 @@ impl DetectingContoursConf {
         let brightness_contrast = conf.get("brightness-contrast").expect(&format!("{dbg}.new | 'brightness-contrast' - not found or wrong configuration"));
         let brightness_contrast = BrightnessContrastConf::new(&name, brightness_contrast);
         log::trace!("{dbg}.new | brightness-contrast: {:#?}", brightness_contrast);
+        let temporal_filter = conf.get("temporal-filter").expect(&format!("{dbg}.new | 'temporal-filter' - not found or wrong configuration"));
+        let temporal_filter = TemporalFilterConf::new(&name, temporal_filter);
+        log::trace!("{dbg}.new | temporal-filter: {:#?}", temporal_filter);
         let gausian = conf.get("gausian").expect(&format!("{dbg}.new | 'gausian' - not found or wrong configuration"));
         let gausian = GausianConf::new(&name, gausian);
         log::trace!("{dbg}.new | gausian: {:#?}", gausian);
@@ -81,6 +92,7 @@ impl DetectingContoursConf {
             cropping,
             gamma,
             brightness_contrast,
+            temporal_filter,
             gausian,
             sobel,
             overlay,
@@ -95,6 +107,7 @@ impl Default for DetectingContoursConf {
             cropping: CroppingConf::default(),
             gamma: GammaConf::default(),
             brightness_contrast: BrightnessContrastConf::default(),
+            temporal_filter: TemporalFilterConf::default(),
             gausian: GausianConf::default(),
             sobel: SobelConf::default(),
             overlay: OverlayConf::default(),
