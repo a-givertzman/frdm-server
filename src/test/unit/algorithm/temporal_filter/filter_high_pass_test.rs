@@ -56,9 +56,9 @@ fn eval_reduce() {
     let mut filter = FilterHighPass::new(
         Some(0),
         0.0,
-        0.2,
+        0.02,
         64.0,
-        0.5,
+        2.2,
         128.0,
     );
     for (step, value, out, rate) in test_data {

@@ -102,7 +102,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                 let t = Instant::now();
                 let result: &ResultCtx = ctx.read();
                 let frame = &result.frame;
-                // let input = frame.mat.data_bytes().unwrap();
+                let input = frame.mat.data_bytes().unwrap();
                 let mut out = frame.mat.clone();
                 let height = frame.mat.rows() as usize;
                 let width = frame.mat.cols() as usize;
@@ -118,7 +118,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                 {
                     let mut filters = self.filters.borrow_mut();
                     for i in 0..pixels {
-                        let pixel = frame.mat.at(i as i32).unwrap();
+                        let pixel = input.get(i).unwrap();
                         match filters.get_mut(i as usize) {
                             Some(filter) => {
                                 if let Some(value) = filter.add(*pixel) {

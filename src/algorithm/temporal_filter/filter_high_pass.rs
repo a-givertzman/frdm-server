@@ -59,7 +59,8 @@ impl Filter for FilterHighPass<u8> {
                 if delta >= self.threshold {
                     // log::debug!("FilterHighPass<u8>.add | delta: {delta},  delta_rel {delta_rel}  =>  CHANGED");
                     // let rate = self.rate + 0.05 + 0.1 * delta_rel;
-                    let rate = self.rate + (1.0 - self.rate) * delta_rel * self.grow_speed;
+                    // let rate = self.rate + (1.0 - self.rate) * delta_rel * self.grow_speed;
+                    let rate = self.rate + (1.0 - self.rate) * self.grow_speed;
                     self.rate = match rate > 1.0 {
                         true => 1.0,
                         false => rate,
@@ -67,7 +68,7 @@ impl Filter for FilterHighPass<u8> {
                 } else {
                     // log::debug!("FilterHighPass<u8>.add | delta: {delta},  delta_rel {delta_rel}  =>  KEEPED");
                     // let rate = self.rate - (0.05 + 0.1 * (1.0 - delta_rel));
-                    let rate = self.rate + (-1.0 - self.rate) * (1.0 - delta_rel) * self.down_speed;
+                    let rate = self.rate + (-1.0 - self.rate) * self.down_speed;
                     self.rate = match rate < -1.0 {
                         true => -1.0,
                         false => rate,
