@@ -3,7 +3,7 @@ use opencv::{core::{Mat, MatTraitConst, MatTraitConstManual}, imgproc};
 use sal_core::error::Error;
 use crate::{
     algorithm::{ContextRead, ContextWrite, EvalResult, InitialPoints, ResultCtx},
-    domain::{Dot, Eval, Filter, FilterSmooth, FilterEmpty, Image},
+    domain::{Dot, Eval, Filter, FilterEmpty, FilterSmooth, FilterSmooth2, Image},
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
@@ -51,11 +51,11 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let mut upper_edge = Vec::with_capacity(cols as usize);
                 let mut lower_edge = Vec::with_capacity(cols as usize);
                 let mut filter_smooth_upper: Box<dyn Filter<Item = i32>> = match self.smooth {
-                    Some(smooth) => Box::new(FilterSmooth::new(None, smooth)),
+                    Some(smooth) => Box::new(FilterSmooth2::new(None, smooth)),
                     None => Box::new(FilterEmpty::new(None)),
                 };
                 let mut filter_smooth_lower: Box<dyn Filter<Item = i32>> = match self.smooth {
-                    Some(smooth) => Box::new(FilterSmooth::new(None, smooth)),
+                    Some(smooth) => Box::new(FilterSmooth2::new(None, smooth)),
                     None => Box::new(FilterEmpty::new(None)),
                 };
                 let mut upper;

@@ -33,75 +33,8 @@ impl TemporalFilter {
             ctx: Box::new(ctx),
         }
     }
-    // ///
-    // /// Wraps specified `f` into the `Box`
-    // fn boxed_filter<'a, T>(f: impl Filter<Item = T> + 'a) -> Box<dyn Filter<Item = T> + 'a> {
-    //     Box::new(f)
-    // }
-    // ///
-    // /// Loads filters initial rates from the cache
-    // fn load_cache(&self) -> Option<Vec<FilterHighPass::<u8>>> {
-    //     let path = Path::new(&self.cache_path).join("rates.json");
-    //     let f = OpenOptions::new()
-    //         .read(true)
-    //         .open(&path);
-    //     match f {
-    //         Ok(f) => {
-    //             match serde_json::from_reader(f) {
-    //                 Ok(rates) => {
-    //                     let rates: Vec<i8> = rates;
-    //                     Some(rates.into_iter().map(|rate| {
-    //                         FilterHighPass::<u8>::new(None, Some(rate), self.amplify_factor, self.reduce_factor, self.threshold)
-    //                     }).collect())
-    //                 }
-    //                 Err(err) => {
-    //                     log::warn!("TemporalFilter.load_cache | Can't parse rates from json: {:?}", err);
-    //                     None
-    //                 }
-    //             }
-    //         }
-    //         Err(err) => {
-    //             log::warn!("TemporalFilter.load_cache | Can't read rates from cache '{}': {:?}", path.display(), err);
-    //             None
-    //         }
-    //     }
-    // }
-    // ///
-    // /// Stores filters initial rates from the cache
-    // fn store_cache(&self) {
-    //     let dir = Path::new(&self.cache_path);
-    //     let path = dir.join("rates.json");
-    //     let path_exists = match dir.is_dir() {
-    //         true => true,
-    //         false => {
-    //             match std::fs::create_dir_all(&dir) {
-    //                 Ok(_) => true,
-    //                 Err(err) => {
-    //                     log::warn!("TemporalFilter.load_cache | Can't create cache folder'{}', error: {:?}", dir.display(), err);
-    //                     false
-    //                 },
-    //             }
-    //         }
-    //     };
-    //     if path_exists {
-    //         let f = OpenOptions::new()
-    //             .write(true)
-    //             .create(true)
-    //             .truncate(true)
-    //             .open(&path);
-    //         match f {
-    //             Ok(f) => {
-    //                 let rates: Vec<i8> = self.filters.borrow().iter().map(|f| f.rate()).collect();
-    //                 if let Err(err) = serde_json::to_writer(f, &rates) {
-    //                     log::warn!("TemporalFilter.load_cache | Can't serialize rates[{}] {:?}..., error: {:?}", rates.len(), &rates[..4], err);
-    //                 }
-    //             }
-    //             Err(err) => {
-    //                 log::warn!("TemporalFilter.load_cache | Can't open file '{}' to write rates, error: {:?}", path.display(), err);
-    //             }
-    //         }
-    //     }
-    // }
+    ///
+    /// 
     fn blure(&self, mut img: Mat, width: usize, height: usize, weight: f32) -> Result<Mat, Error> {
         let error = Error::new("TemporalFilter", "blure");
         let pixels = width * height * img.channels() as usize;
