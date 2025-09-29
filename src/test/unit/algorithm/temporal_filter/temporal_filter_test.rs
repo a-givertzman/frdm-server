@@ -55,10 +55,10 @@ fn eval() {
                     hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
                     hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
                 temporal-filter:
-                    amplify-factor: 32.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 0.3          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-                    reduce-factor: 92.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 0.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
+                    amplify-factor: 0.0     # factor amplifies the highlighting the oftenly changing pixels
+                    grow-speed: 0.05          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
+                    reduce-factor: 64.0      # factor amplifies the hiding the lower changing pixels
+                    down-speed: 1.0          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
                     threshold: 64.0
                 gausian:
                     blur-size:
