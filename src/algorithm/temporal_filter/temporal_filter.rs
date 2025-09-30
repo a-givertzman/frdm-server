@@ -141,32 +141,28 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                         }
                         // let blure_weight = 0.64;
                         // let out = self.blure(out, width, height, blure_weight)?;
-                        match unsafe { Mat::new_rows_cols_with_data_unsafe(
+                        let out = unsafe { Mat::new_rows_cols_with_data_unsafe(
                             height as i32,
                             width as i32,
                             opencv::core::CV_8UC1,
                             out.as_ptr() as *mut std::ffi::c_void,
                             opencv::core::Mat_AUTO_STEP,
-                        ) } {
-                            Ok(out) => {
-                                let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(3, 3), Point2i::new(-1, -1)).unwrap();
-                                let mut dst = Mat::default();
-                                opencv::imgproc::morphology_ex(
-                                    &out,
-                                    &mut dst,
-                                    opencv::imgproc::MORPH_OPEN,
-                                    &kernel,
-                                    Point2i::new(-1, -1),
-                                    1,
-                                    opencv::core::BORDER_CONSTANT,
-                                    opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
-                                ).map_err(|err| error.pass(err.to_string()))?;
-                                let result = ResultCtx { frame: Image::with(dst) };
-                                log::debug!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
-                                ctx.write(result)
-                            }
-                            Err(err) => Err(error.pass(err.to_string())),
-                        }
+                        ) }.map_err(|err| error.pass(err.to_string()))?;
+                        let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(3, 3), Point2i::new(-1, -1)).unwrap();
+                        let mut dst = Mat::default();
+                        opencv::imgproc::morphology_ex(
+                            &out,
+                            &mut dst,
+                            opencv::imgproc::MORPH_OPEN,
+                            &kernel,
+                            Point2i::new(-1, -1),
+                            1,
+                            opencv::core::BORDER_CONSTANT,
+                            opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
+                        ).map_err(|err| error.pass(err.to_string()))?;
+                        let result = ResultCtx { frame: Image::with(dst) };
+                        log::debug!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
+                        ctx.write(result)
                     }
                     Err(err) => Err(error.pass(err.to_string())),
                 }
