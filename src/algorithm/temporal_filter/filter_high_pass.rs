@@ -18,7 +18,7 @@ pub struct FilterHighPass<T> {
     reduce_factor: f32,
     down_speed: f32,
     threshold: f32,
-    percent_factor: f32,
+    // percent_factor: f32,
 }
 //
 // 
@@ -35,7 +35,7 @@ impl<T: Copy> FilterHighPass<T> {
             reduce_factor: reduce_factor as f32,
             down_speed: down_speed as f32,
             threshold: threshold as f32,
-            percent_factor: 1.0 / 255.0,
+            // percent_factor: 1.0 / 255.0,
         }
     }
     ///
@@ -54,7 +54,7 @@ impl Filter for FilterHighPass<u8> {
         match self.prev {
             Some(prev) => {
                 let delta = (value as f32 - prev as f32).abs();
-                let delta_rel = delta * self.percent_factor;
+                // let delta_rel = delta * self.percent_factor;
                 self.prev = Some(value);
                 if delta >= self.threshold {
                     // log::debug!("FilterHighPass<u8>.add | delta: {delta},  delta_rel {delta_rel}  =>  CHANGED");

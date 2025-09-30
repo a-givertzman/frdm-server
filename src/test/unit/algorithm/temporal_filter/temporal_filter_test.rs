@@ -1,7 +1,7 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrastCtx, AutoGammaCtx, Context, ContextWrite, EvalResult, Initial, InitialCtx}, domain::{Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrastCtx, AutoGammaCtx, Initial, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
-use opencv::{core::{self, Mat, MatTrait, MatTraitConst, Vec3b, ROTATE_90_CLOCKWISE}, highgui};
+use opencv::{core::{MatTrait, MatTraitConst, Vec3b}, highgui};
 use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
@@ -192,22 +192,4 @@ fn eval() {
     }
     highgui::destroy_all_windows().unwrap();
     test_duration.exit();
-}
-///
-/// Fake implements `Eval` for testing [EdgeDetection]
-struct FakePassImg {}
-impl FakePassImg{
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-//
-//
-impl Eval<Image, EvalResult> for FakePassImg {
-    fn eval(&self, frame: Image) -> EvalResult {
-        let ctx = Context::new(
-            InitialCtx::new()
-        );
-        ctx.write(AutoBrightnessAndContrastCtx { result: frame })
-    }
 }
