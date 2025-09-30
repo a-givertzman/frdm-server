@@ -1,5 +1,5 @@
 use std::{cell::RefCell, time::Instant};
-use opencv::core::{Mat, MatTraitConst, MatTraitConstManual};
+use opencv::core::{Mat, MatTraitConst, MatTraitConstManual, Point2i, Size2i};
 use sal_core::error::Error;
 use crate::{
     algorithm::{ContextRead, ContextWrite, EvalResult, ResultCtx, FilterHighPass},
@@ -149,7 +149,19 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                             opencv::core::Mat_AUTO_STEP,
                         ) } {
                             Ok(out) => {
-                                let result = ResultCtx { frame: Image::with(out) };
+                                let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(3, 3), Point2i::new(-1, -1)).unwrap();
+                                let mut dst = Mat::default();
+                                opencv::imgproc::morphology_ex(
+                                    &out,
+                                    &mut dst,
+                                    opencv::imgproc::MORPH_OPEN,
+                                    &kernel,
+                                    Point2i::new(-1, -1),
+                                    1,
+                                    opencv::core::BORDER_CONSTANT,
+                                    opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
+                                ).map_err(|err| error.pass(err.to_string()))?;
+                                let result = ResultCtx { frame: Image::with(dst) };
                                 log::debug!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
                                 ctx.write(result)
                             }
