@@ -1,5 +1,5 @@
 use std::{cell::RefCell, time::Instant};
-use opencv::core::{Mat, MatTrait, MatTraitConst, MatTraitConstManual};
+use opencv::core::{Mat, MatTrait, MatTraitConst, MatTraitConstManual, Vector};
 use sal_core::error::Error;
 use crate::{
     algorithm::{ContextRead, ContextWrite, EvalResult, ResultCtx, FilterHighPass},
@@ -14,6 +14,7 @@ pub struct TemporalFilter {
     down_speed: f64,
     threshold: f64,
     filters: RefCell<Vec<FilterHighPass::<u8>>>,
+    background: RefCell<Mat>,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 //
@@ -30,6 +31,7 @@ impl TemporalFilter {
             down_speed,
             threshold,
             filters: RefCell::new(vec![]),
+            background: RefCell::new(Mat::default()),
             ctx: Box::new(ctx),
         }
     }
@@ -112,26 +114,40 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                     *self.filters.borrow_mut() = (0..pixels).map(|_| {
                         FilterHighPass::<u8>::new(None, self.amplify_factor, self.grow_speed, self.reduce_factor, self.down_speed, self.threshold)
                     }).collect();
+                    *self.background.borrow_mut() = unsafe { Mat::new_rows_cols(height as i32, width as i32, opencv::core::CV_8UC1).unwrap() };
                 }
                 log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
                 log::debug!("TemporalFilter.eval | mat.channels: {:?}", frame.mat.channels());
                 {
                     let mut filters = self.filters.borrow_mut();
+                    let mut background = self.background.borrow_mut();
                     for i in 0..pixels {
-                        let pixel = input.get(i).unwrap();
-                        match filters.get_mut(i as usize) {
-                            Some(filter) => {
-                                if let Some(value) = filter.add(*pixel) {
-                                    match out.at_mut(i as i32) {
-                                        Ok(r) => *r = value,
-                                        Err(_) => return Err(error.err(format!("Output image format error, index [{i}] out of range {width} x {height} = {pixels}"))),
-                                    }
-                                }
-                            }
-                            None => return Err(error.err(format!("Filters matrix format error, index [{i}] out of range {width} x {height} = {pixels}"))),
+                        let pixel = background.at_mut(i as i32).unwrap();
+                        let value: &u8 = frame.mat.at(i as i32).unwrap();
+                        if let Some(filter) = filters.get_mut(i) {
+                            _ = filter.add(*value);
+                            *pixel = ((*pixel as f32 + *value as f32) * 0.5 * filter.rate() * 2.0).round() as u8;
                         }
                     }
                 }
+                opencv::core::subtract(&frame.mat, &*self.background.borrow(), &mut out, &Vector::<u8>::new(), -1).unwrap();
+                // {
+                //     let mut filters = self.filters.borrow_mut();
+                //     for i in 0..pixels {
+                //         let pixel = input.get(i).unwrap();
+                //         match filters.get_mut(i as usize) {
+                //             Some(filter) => {
+                //                 if let Some(value) = filter.add(*pixel) {
+                //                     match out.at_mut(i as i32) {
+                //                         Ok(r) => *r = value,
+                //                         Err(_) => return Err(error.err(format!("Output image format error, index [{i}] out of range {width} x {height} = {pixels}"))),
+                //                     }
+                //                 }
+                //             }
+                //             None => return Err(error.err(format!("Filters matrix format error, index [{i}] out of range {width} x {height} = {pixels}"))),
+                //         }
+                //     }
+                // }
                 // let blure_weight = 0.64;
                 // let out = self.blure(out, width, height, blure_weight)?;
                 let result = ResultCtx { frame: Image::with(out) };

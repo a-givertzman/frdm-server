@@ -75,7 +75,7 @@ fn eval() {
                     src2-weight: 1.0
                     gamma: 0.0
             edge-detection:
-                otsu-tune: 1.20       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                otsu-tune: 1.40       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 # threshold: 50       # 0...255, used if otsu-tune is not specified
                 smooth: 8             # Smoothing of edge line factor. The higher the factor the smoother the line.
             fast-scan:
