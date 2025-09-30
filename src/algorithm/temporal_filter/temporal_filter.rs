@@ -126,7 +126,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                         let value: &u8 = frame.mat.at(i as i32).unwrap();
                         if let Some(filter) = filters.get_mut(i) {
                             _ = filter.add(*value);
-                            *pixel = ((*pixel as f32 + *value as f32) * 0.5 * filter.rate() * 2.0).round() as u8;
+                            *pixel = ((*pixel as f32 + *value as f32) * 0.5 * filter.rate() * 6.0).round() as u8;
                         }
                     }
                 }
