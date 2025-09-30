@@ -121,7 +121,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                 {
                     let mut filters = self.filters.borrow_mut();
                     for i in 0..pixels {
-                        let value: &u8 = frame.mat.at(i as i32).unwrap();
+                        let value: &u8 = input.get(i).unwrap();
                         if let Some(filter) = filters.get_mut(i) {
                             _ = filter.add(*value);
                             match filter.rate() > 0.0 {
