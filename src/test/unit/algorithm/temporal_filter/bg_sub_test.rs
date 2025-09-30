@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::{algorithm::{AutoBrightnessAndContrastCtx, AutoGammaCtx, Context, ContextWrite, EvalResult, Initial, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
-use opencv::{core::{self, Mat, MatTrait, MatTraitConst, Vec3b, ROTATE_90_CLOCKWISE}, highgui};
+use opencv::{core::{self, Mat, MatTrait, MatTraitConst, Vec3b, ROTATE_90_CLOCKWISE}, highgui, video::BackgroundSubtractorTrait};
 use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
@@ -56,9 +56,9 @@ fn eval() {
                     hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
                 temporal-filter:
                     amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 0.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
+                    grow-speed: 0.02          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
                     reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 0.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
+                    down-speed: 2.4          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
                     threshold: 64.0
                 gausian:
                     blur-size:
@@ -85,20 +85,19 @@ fn eval() {
         "#)).unwrap(),
     );
     let conf = Conf::new(&dbg, conf);
-    // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let temporal_filter = 
-        EdgeDetection::new(
-            conf.edge_detection.otsu_tune,
-            conf.edge_detection.threshold,
-            conf.edge_detection.smooth,
-            DetectingContoursCv::new(
-                conf.contours.clone(),
-                TemporalFilter::new(
-                    conf.contours.temporal_filter.amplify_factor,
-                    conf.contours.temporal_filter.grow_speed,
-                    conf.contours.temporal_filter.reduce_factor,
-                    conf.contours.temporal_filter.down_speed,
-                    conf.contours.temporal_filter.threshold,
+    //     EdgeDetection::new(
+    //         conf.edge_detection.otsu_tune,
+    //         conf.edge_detection.threshold,
+    //         conf.edge_detection.smooth,
+    //         DetectingContoursCv::new(
+    //             conf.contours.clone(),
+    //             TemporalFilter::new(
+    //                 conf.contours.temporal_filter.amplify_factor,
+    //                 conf.contours.temporal_filter.grow_speed,
+    //                 conf.contours.temporal_filter.reduce_factor,
+    //                 conf.contours.temporal_filter.down_speed,
+    //                 conf.contours.temporal_filter.threshold,
                     Gray::new(
                         AutoBrightnessAndContrast::new(
                             conf.contours.brightness_contrast.hist_clip_left,
@@ -116,28 +115,16 @@ fn eval() {
                                 ),
                             ),
                         ),
-                    ),
-                ),
-            ),
-        );
+                    );
+    //             ),
+    //         ),
+    //     );
     let wgray = "Gray";
-    let wcrop = "Cropped";
-    let wgamma = "Gamma";
-    let wbright = "Brightness & Contrast";
-    let w_temp_filter = "Temporal Filter";
+    let wfgmask = "Fg Mask";
     if let Err(err) = opencv::highgui::named_window(wgray, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{dbg} | Create Window Error: {}", err);
     }
-    if let Err(err) = opencv::highgui::named_window(wgamma, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{dbg} | Create Window Error: {}", err);
-    }
-    if let Err(err) = opencv::highgui::named_window(wbright, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{dbg} | Create Window Error: {}", err);
-    }
-    if let Err(err) = opencv::highgui::named_window(w_temp_filter, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{dbg} | Create Window Error: {}", err);
-    }
-    if let Err(err) = opencv::highgui::named_window(wcrop, opencv::highgui::WINDOW_NORMAL) {
+    if let Err(err) = opencv::highgui::named_window(wfgmask, opencv::highgui::WINDOW_NORMAL) {
         log::warn!("{dbg} | Create Window Error: {}", err);
     }
 
@@ -149,6 +136,7 @@ fn eval() {
             let path = e.unwrap().path();
             path.is_file().then(|| path)
         })
+        .skip(22)
     {
         match path.extension() {
             Some(ext) if ext == "jpg" || ext == "png" || ext == "jpeg" => {
@@ -160,31 +148,53 @@ fn eval() {
                 // let test = src.clone();
                 let t = Instant::now();
                 let ctx = temporal_filter.eval(frame).unwrap();
+                // let mut bg_sub = opencv::bgsegm::create_background_subtractor_gsoc(
+                //     opencv::bgsegm::LSBP_CAMERA_MOTION_COMPENSATION_NONE,
+                //     20,
+                //     0.3,
+                //     0.01,
+                //     5,
+                //     0.01,
+                //     0.0022,
+                //     0.1,
+                //     0.1,
+                //     0.0004,
+                //     0.0008,
+                // ).unwrap();
+                // let mut bg_sub = opencv::bgsegm::create_background_subtractor_cnt(
+                //     18,
+                //     true,
+                //     18 * 60,
+                //     true,
+                // ).unwrap();
+                // let mut bg_sub = opencv::bgsegm::create_background_subtractor_gmg(
+                //     10,
+                //     0.4,
+                // ).unwrap();
+                let mut bg_sub = opencv::bgsegm::create_background_subtractor_lsbp(
+                    opencv::bgsegm::LSBP_CAMERA_MOTION_COMPENSATION_NONE,
+                    20,
+                    16,
+                    2.0,
+                    32.0,
+                    1.0,
+                    0.05,
+                    10.0,
+                    0.005,
+                    0.0004,
+                    0.0008,
+                    8,
+                    2,
+                ).unwrap();
+
+                // let mut bg_sub = opencv::video::create_background_subtractor_knn(500, 400.0, false).unwrap();
+                // let mut bg_sub = opencv::video::create_background_subtractor_mog2(10, 16.0, false).unwrap();
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let gray: &GrayCtx = ctx.read();    
-                let crop: &CroppingCtx = ctx.read();    
-                let mut crop = crop.result.mat.clone();
-                let gamma: &AutoGammaCtx = ctx.read();
-                let bright: &AutoBrightnessAndContrastCtx = ctx.read();
-                let result: &ResultCtx = ctx.read();
-                let edges: &EdgeDetectionCtx = ctx.read();
-                // let mut res = crop.result.mat.clone();
-                // let edges_cont = contours.result.mat.clone();
-                let upper = edges.result.get(Side::Upper);
-                let lower = edges.result.get(Side::Lower);
-                log::trace!("{dbg}.eval | upper: {:?}", upper);
-                log::trace!("{dbg}.eval | lower: {:?}", lower);
-                for dot in upper {
-                    *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 0, 255]);
-                }
-                for dot in lower {
-                    *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
-                }
+                let mut fgmask = Mat::default();
+                bg_sub.apply(&gray.frame.mat, &mut fgmask, 0.8).unwrap();
                 if !gray.frame.mat.empty() { highgui::imshow(wgray, &gray.frame.mat).unwrap() };
-                if !gamma.result.mat.empty() { highgui::imshow(wgamma, &gamma.result.mat).unwrap() };
-                if !bright.result.mat.empty() { highgui::imshow(wbright, &bright.result.mat).unwrap() };
-                if !crop.empty() { highgui::imshow(wcrop, &crop).unwrap() };
-                if !result.frame.mat.empty() { highgui::imshow(w_temp_filter, &result.frame.mat).unwrap() };
+                if !fgmask.empty() { highgui::imshow(wfgmask, &fgmask).unwrap() };
                 highgui::wait_key(0).unwrap();
             },
             _ => continue,

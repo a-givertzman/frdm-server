@@ -120,17 +120,34 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                 log::debug!("TemporalFilter.eval | mat.channels: {:?}", frame.mat.channels());
                 {
                     let mut filters = self.filters.borrow_mut();
-                    let mut background = self.background.borrow_mut();
                     for i in 0..pixels {
-                        let pixel = background.at_mut(i as i32).unwrap();
                         let value: &u8 = frame.mat.at(i as i32).unwrap();
                         if let Some(filter) = filters.get_mut(i) {
                             _ = filter.add(*value);
-                            *pixel = ((*pixel as f32 + *value as f32) * 0.5 * filter.rate() * 6.0).round() as u8;
+                            match filter.rate() > 0.0 {
+                                true => {
+                                    *out.at_mut(i as i32).unwrap() = 255 as u8;
+                                }
+                                false => {
+                                    *out.at_mut(i as i32).unwrap() = 0 as u8;
+                                }
+                            }
                         }
                     }
                 }
-                opencv::core::subtract(&frame.mat, &*self.background.borrow(), &mut out, &Vector::<u8>::new(), -1).unwrap();
+                // {
+                //     let mut filters = self.filters.borrow_mut();
+                //     let mut background = self.background.borrow_mut();
+                //     for i in 0..pixels {
+                //         let pixel = background.at_mut(i as i32).unwrap();
+                //         let value: &u8 = frame.mat.at(i as i32).unwrap();
+                //         if let Some(filter) = filters.get_mut(i) {
+                //             _ = filter.add(*value);
+                //             *pixel = ((*pixel as f32 + *value as f32) * 0.5 * filter.rate() * 6.0).round() as u8;
+                //         }
+                //     }
+                // }
+                // opencv::core::subtract(&frame.mat, &*self.background.borrow(), &mut out, &Vector::<u8>::new(), -1).unwrap();
                 // {
                 //     let mut filters = self.filters.borrow_mut();
                 //     for i in 0..pixels {
