@@ -20,8 +20,8 @@ pub struct GausianConf {
     /// The larger the kernel size, the greater the blur.
     /// 
     /// Default: Size( width: 3, height: 3)
-    pub blur_w: i32,
-    pub blur_h: i32,
+    pub blur_w: usize,
+    pub blur_h: usize,
     /// Standard deviation in X direction
     /// The higher the value, the more pixels are used to count each pixel and the smoother blur will be
     /// If the value is 0.0, it is calculated based on kernel_size
@@ -60,8 +60,8 @@ impl GausianConf {
         let sigma_y = conf.get("sigma-y").unwrap_or(0.0);
         log::trace!("{dbg}.new | sigma_y: {:?}", sigma_y);
         Self {
-            blur_w: blur_w as i32,
-            blur_h: blur_h as i32,
+            blur_w: blur_w as usize,
+            blur_h: blur_h as usize,
             sigma_x,
             sigma_y,
         }

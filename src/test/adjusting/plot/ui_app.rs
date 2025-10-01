@@ -520,8 +520,8 @@ impl eframe::App for UiApp {
                         //     threshold: self.params.get("Contours.temporal-filter.threshold").unwrap().1.as_double(),
                         // },
                         gausian: GausianConf {
-                            blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as i32,
-                            blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as i32,
+                            blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as usize,
+                            blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as usize,
                             sigma_x: self.params.get("Contours.gausian.sigma_x").unwrap().1.as_double(),
                             sigma_y: self.params.get("Contours.gausian.sigma_y").unwrap().1.as_double(),
                         },

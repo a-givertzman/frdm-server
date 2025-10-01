@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, DetectingContoursCv, EdgeDetection, EdgeDetectionCtx, EvalResult, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter
+        AutoBrightnessAndContrast, AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, DetectingContoursCv, EdgeDetection, EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter
     }, 
     conf::Conf, domain::Error,
 };
@@ -56,9 +56,9 @@ fn eval() {
                     hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
                 temporal-filter:
                     amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 0.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
+                    grow-speed: 2.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
                     reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 0.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
+                    down-speed: 2.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
                     threshold: 64.0
                 gausian:
                     blur-size:
@@ -75,12 +75,12 @@ fn eval() {
                     src2-weight: 1.0
                     gamma: 0.0
             edge-detection:
-                otsu-tune: 1.40       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                # threshold: 50       # 0...255, used if otsu-tune is not specified
+                # otsu-tune: 0.90       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                threshold: 128       # 0...255, used if otsu-tune is not specified
                 smooth: 8             # Smoothing of edge line factor. The higher the factor the smoother the line.
             rope-dimensions:
                 rope-width: 380               # Standart rope width, px
-                width-tolerance: 15.0         # Tolerance for rope width, %
+                width-tolerance: 25.0         # Tolerance for rope width, %
                 square-tolerance: 100.0       # Tolerance for rope square, %
             fast-scan:
                 geometry-defect-threshold: 1.0      # 1.1..1.3, absolute threshold to detect the geometry deffects
@@ -95,34 +95,40 @@ fn eval() {
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
-            DetectingContoursCv::new(
-                conf.contours.clone(),
+            // DetectingContoursCv::new(
+            //     conf.contours.clone(),
                 TemporalFilter::new(
                     conf.contours.temporal_filter.amplify_factor,
                     conf.contours.temporal_filter.grow_speed,
                     conf.contours.temporal_filter.reduce_factor,
                     conf.contours.temporal_filter.down_speed,
                     conf.contours.temporal_filter.threshold,
-                    Gray::new(
-                        AutoBrightnessAndContrast::new(
-                            conf.contours.brightness_contrast.hist_clip_left,
-                            conf.contours.brightness_contrast.hist_clip_right,
-                            AutoGamma::new(
-                                conf.contours.gamma.factor,
-                                Cropping::new(
-                                    conf.contours.cropping.x,
-                                    conf.contours.cropping.width,
-                                    conf.contours.cropping.y,
-                                    conf.contours.cropping.height,
-                                    Initial::new(
-                                        InitialCtx::new(),
+                    GaussianBlur::new(
+                        conf.contours.gausian.blur_w,
+                        conf.contours.gausian.blur_h,
+                        conf.contours.gausian.sigma_x,
+                        conf.contours.gausian.sigma_y,
+                        Gray::new(
+                            AutoBrightnessAndContrast::new(
+                                conf.contours.brightness_contrast.hist_clip_left,
+                                conf.contours.brightness_contrast.hist_clip_right,
+                                AutoGamma::new(
+                                    conf.contours.gamma.factor,
+                                    Cropping::new(
+                                        conf.contours.cropping.x,
+                                        conf.contours.cropping.width,
+                                        conf.contours.cropping.y,
+                                        conf.contours.cropping.height,
+                                        Initial::new(
+                                            InitialCtx::new(),
+                                        ),
                                     ),
                                 ),
                             ),
                         ),
                     ),
                 ),
-            ),
+            // ),
         );
     let wgray = "Gray";
     let wcrop = "Cropped";

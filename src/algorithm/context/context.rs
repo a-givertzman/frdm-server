@@ -2,8 +2,8 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, RopeDimensionsCtx, GrayCtx,
-        InitialCtx, ResultCtx
+        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, GrayCtx, GaussianBlurCtx,
+        InitialCtx, ResultCtx, RopeDimensionsCtx,
     },
 };
 use super::testing_ctx::TestingCtx;
@@ -27,6 +27,8 @@ pub struct Context {
     pub(super) auto_brightness_and_contrast: AutoBrightnessAndContrastCtx,
     /// Gray scale image
     pub(super) gray: GrayCtx,
+    /// Gaussian blur result image
+    pub(super) gaussian_blur: GaussianBlurCtx,
     /// points of rope perimeter
     pub(super) edge_detection: EdgeDetectionCtx,
     /// Rope calculated dimensions
@@ -55,6 +57,7 @@ impl Context {
             auto_gamma: AutoGammaCtx::default(),
             auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),
             gray: GrayCtx::default(),
+            gaussian_blur: GaussianBlurCtx::default(),
             edge_detection: EdgeDetectionCtx::default(),
             rope_dimensions: RopeDimensionsCtx::default(),
             width_emissions: WidthEmissionsCtx::default(),

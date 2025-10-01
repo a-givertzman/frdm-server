@@ -35,64 +35,6 @@ impl TemporalFilter {
             ctx: Box::new(ctx),
         }
     }
-    // ///
-    // /// 
-    // fn blure(&self, mut img: Mat, width: usize, height: usize, weight: f32) -> Result<Mat, Error> {
-    //     let error = Error::new("TemporalFilter", "blure");
-    //     let pixels = width * height * img.channels() as usize;
-    //     let input = img.data_bytes().unwrap().to_owned();
-    //     let filters = self.filters.borrow();
-    //     for i in 0..pixels {
-    //         let y = (i as f32 / width as f32).trunc() as usize;
-    //         let x = i - y * width;
-    //         match filters.get(i as usize) {
-    //             Some(filter) => {
-    //                 if filter.rate() < 0.0 {
-    //                     let pixel = *(input.get(i).unwrap()) as f32;
-    //                     let pixel_tl = match x > 0 && y > 0 {
-    //                         true => (*(input.get(i - width - 1).unwrap()) as f32) * weight,
-    //                         false => pixel * weight,
-    //                     };
-    //                     let pixel_tp = match y > 0 {
-    //                         true => (*(input.get(i - width).unwrap()) as f32) * weight,
-    //                         false => pixel * weight,
-    //                     };
-    //                     let pixel_tr = match x < (width - 1) && y > 0 {
-    //                         true => (*(input.get(i - width + 1).unwrap()) as f32) * weight,
-    //                         false => pixel * weight,
-    //                     };
-    //                     let pixel_bl = match x > 0 && y < (height - 1) {
-    //                         true => (*(input.get(width + i - 1).unwrap()) as f32) * weight,
-    //                         false => pixel * weight,
-    //                     };
-    //                     let pixel_bm = match y < (height - 1) {
-    //                         true => (*(input.get(width + i).unwrap()) as f32) * weight,
-    //                         false => pixel * weight,
-    //                     };
-    //                     let pixel_br = match x < (width - 1) && y < (height - 1) {
-    //                         true => (*(input.get(width + i + 1).unwrap()) as f32) * weight,
-    //                         false => pixel * weight,
-    //                     };
-    //                     let pixel_lt = match x > 0 {
-    //                         true => (*(input.get(i - 1).unwrap()) as f32) * weight,
-    //                         false => pixel * weight,
-    //                     };
-    //                     let pixel_rt = match x < (width - 1) {
-    //                         true => (*(input.get(i + 1).unwrap()) as f32) * weight,
-    //                         false => pixel * weight,
-    //                     };
-    //                     let average = (pixel + pixel_tl + pixel_tp + pixel_tr + pixel_rt + pixel_br + pixel_bm + pixel_bl + pixel_lt) / (1.0 + 8.0 * weight);
-    //                     match img.at_mut(i as i32) {
-    //                         Ok(r) => *r = average.round() as u8,
-    //                         Err(_) => return Err(error.err(format!("Output image format error, index [{i}] out of range {width} x {height} = {pixels}"))),
-    //                     }
-    //                 }
-    //             }
-    //             None => return Err(error.err(format!("Filters matrix format error, index [{i}] out of range {width} x {height} = {pixels}"))),
-    //         }
-    //     }
-    //     Ok(img)
-    // }
 }
 //
 //
@@ -139,8 +81,6 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                                 }
                             }
                         }
-                        // let blure_weight = 0.64;
-                        // let out = self.blure(out, width, height, blure_weight)?;
                         let out = unsafe { Mat::new_rows_cols_with_data_unsafe(
                             height as i32,
                             width as i32,
@@ -148,7 +88,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                             out.as_ptr() as *mut std::ffi::c_void,
                             opencv::core::Mat_AUTO_STEP,
                         ) }.map_err(|err| error.pass(err.to_string()))?;
-                        let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(3, 3), Point2i::new(-1, -1)).unwrap();
+                        let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
                         let mut dst = Mat::default();
                         opencv::imgproc::morphology_ex(
                             &out,

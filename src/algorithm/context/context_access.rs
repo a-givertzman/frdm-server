@@ -3,8 +3,8 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, RopeDimensionsCtx, GrayCtx,
-        InitialCtx, ResultCtx
+        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, GrayCtx, GaussianBlurCtx,
+        InitialCtx, ResultCtx, RopeDimensionsCtx,
     },
     domain::Error,
 };
@@ -146,6 +146,19 @@ impl ContextWrite<GrayCtx> for Context {
 impl ContextRead<GrayCtx> for Context {
     fn read(&self) -> &GrayCtx {
         &self.gray
+    }
+}
+//
+//
+impl ContextWrite<GaussianBlurCtx> for Context {
+    fn write(mut self, value: GaussianBlurCtx) -> Result<Self, Error> {
+        self.gaussian_blur = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<GaussianBlurCtx> for Context {
+    fn read(&self) -> &GaussianBlurCtx {
+        &self.gaussian_blur
     }
 }
 //
