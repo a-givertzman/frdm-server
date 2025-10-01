@@ -53,13 +53,15 @@ impl Eval<Image, EvalResult> for RopeDimensions {
                 let rope_width = (upper_average - lower_average).abs();
                 log::debug!("RopeDimensions.eval | Average rope_width: {:?} px", rope_width);
                 log::debug!("RopeDimensions.eval | Rope square: {:?} px", rope_square);
-                let rope_width_error = 100.0 - rope_width * 100.0 / self.rope_width;
+                let rope_width_error = (100.0 - rope_width * 100.0 / self.rope_width).abs();
+                log::debug!("RopeDimensions.eval | Rope width error: {:?} % of {}", rope_width_error, self.width_tolerance);
                 if rope_width_error >= self.width_tolerance {
-                    return Err(error.err(format!("Rope width error: {rope_width_error}%, {rope_width} of {}", self.rope_width)));
+                    return Err(error.err(format!("Rope width error: {:.3}%, {rope_width} of {}", rope_width_error, self.rope_width)));
                 }
-                let rope_square_error = 100.0 - rope_square * 100.0 / (self.rope_width * upper_points.len() as f64);
+                let rope_square_error = (100.0 - rope_square * 100.0 / (self.rope_width * upper_points.len() as f64)).abs();
+                log::debug!("RopeDimensions.eval | Rope square error: {:?} % of {}", rope_square_error, self.square_tolerance);
                 if rope_square_error >= self.square_tolerance {
-                    return Err(error.err(format!("Rope square error: {rope_square_error}%, {rope_square} of {}", self.rope_width * upper_points.len() as f64)));
+                    return Err(error.err(format!("Rope square error: {:.3}%, {rope_square} of {}", rope_square_error, self.rope_width * upper_points.len() as f64)));
                 }
                 log::debug!("RopeDimensions.eval | Elapsed: {:?}", t.elapsed());
                 let result = RopeDimensionsCtx {
