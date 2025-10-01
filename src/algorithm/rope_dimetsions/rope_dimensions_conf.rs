@@ -51,7 +51,7 @@ impl Default for RopeDimensionsConf {
     fn default() -> Self {
         Self {
             rope_width: 35,
-            width_tolerance: 5.0,
+            width_tolerance: 10.0,
             square_tolerance: 10.0,
         }
     }

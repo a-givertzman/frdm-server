@@ -9,8 +9,7 @@ use egui::{
 };
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx,
-        EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, Side, TemporalFilterConf, Threshold,
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
     },
     conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf},
     domain::{Dot, Eval, Image},
@@ -128,6 +127,11 @@ impl UiApp {
                 Param::new("EdgeDetection.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(0.0)),
                 Param::new("EdgeDetection.Threshold",                       ParamVal::IRange(0..255),       Value::Int(0)),
                 Param::new("EdgeDetection.Smooth",                          ParamVal::FRange(0.0..255.0),   Value::Double(12.0)),
+
+                Param::new("RopeDimensions.rope-width",                     ParamVal::IRange(1..10000),     Value::Int(100)),
+                Param::new("RopeDimensions.width-tolerance",                ParamVal::FRange(0.0..100.0),   Value::Double(10.0)),
+                Param::new("RopeDimensions.square-tolerance",               ParamVal::FRange(0.0..100.0),   Value::Double(10.0)),
+
                 Param::new("FastScan.Threshold",                            ParamVal::FRange(0.0..100.0),   Value::Double(1.2)),
             ],
             params: FxIndexMap::default(),
@@ -536,6 +540,11 @@ impl eframe::App for UiApp {
                         otsu_tune: (otsu_tune == 0.0).then(|| otsu_tune),
                         threshold: (threshold == 0).then(|| threshold) ,
                         smooth: Some(self.params.get("EdgeDetection.Smooth").unwrap().1.as_double()),
+                    },
+                    rope_dimensions: RopeDimensionsConf {
+                        rope_width: self.params.get("RopeDimensions.rope-width").unwrap().1.as_int() as usize,
+                        width_tolerance: self.params.get("RopeDimensions.width-tolerance").unwrap().1.as_double(),
+                        square_tolerance: self.params.get("RopeDimensions.square-tolerance").unwrap().1.as_double(),
                     },
                     fast_scan: FastScanConf {
                         geometry_defect_threshold: Threshold(self.params.get("FastScan.Threshold").unwrap().1.as_double()),

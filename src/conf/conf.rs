@@ -1,6 +1,6 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf};
+use crate::{conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, algorithm::RopeDimensionsConf};
 
 ///
 /// The application configuration
@@ -55,6 +55,7 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 pub struct Conf {
     pub contours: DetectingContoursConf,
     pub edge_detection: EdgeDetectionConf,
+    pub rope_dimensions: RopeDimensionsConf,
     pub fast_scan: FastScanConf,
     pub fine_scan: FineScanConf,
 }
@@ -75,6 +76,9 @@ impl Conf {
         let edge_detection = conf.get("edge-detection").expect(&format!("{dbg}.new | 'edge-detection' - not found or wrong configuration"));
         let edge_detection = EdgeDetectionConf::new(&name, edge_detection);
         log::trace!("{dbg}.new | edge-detection: {:#?}", edge_detection);
+        let rope_dimensions = conf.get("rope-dimensions").expect(&format!("{dbg}.new | 'rope-dimensions' - not found or wrong configuration"));
+        let rope_dimensions = RopeDimensionsConf::new(&name, rope_dimensions);
+        log::trace!("{dbg}.new | rope-dimensions: {:#?}", rope_dimensions);
         let fast_scan = conf.get("fast-scan").expect(&format!("{dbg}.new | 'fast-scan' - not found or wrong configuration"));
         let fast_scan = FastScanConf::new(&name, fast_scan);
         log::trace!("{dbg}.new | fast-scan: {:#?}", fast_scan);
@@ -84,6 +88,7 @@ impl Conf {
         Self {
             contours: detecting_contours,
             edge_detection,
+            rope_dimensions,
             fast_scan,
             fine_scan,
         }

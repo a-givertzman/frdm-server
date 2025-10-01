@@ -11,14 +11,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, 
-        DetectingContoursCv, 
-        EdgeDetection, 
-        GeometryDefect, 
-        GeometryDefectCtx, 
-        Mad, 
-        Threshold,
-        ResultCtx,
+        ContextRead, DetectingContoursCv, EdgeDetection, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, Threshold
     }, 
     conf::{
         Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf
@@ -60,6 +53,7 @@ fn eval() {
     let conf = Conf {
         contours: DetectingContoursConf::default(),
         edge_detection: EdgeDetectionConf::default(),
+        rope_dimensions: RopeDimensionsConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),
         },

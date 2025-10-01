@@ -10,7 +10,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, Cropping, DetectingContoursCv, EdgeDetection, GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter, Threshold
+        AutoBrightnessAndContrast, AutoGamma, Cropping, DetectingContoursCv, EdgeDetection, GeometryDefect, Gray, Initial, InitialCtx, Mad, RopeDimensionsConf, TemporalFilter, Threshold
     }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -31,6 +31,7 @@ fn main() {
     let conf = Conf {
         contours: DetectingContoursConf::default(),
         edge_detection: EdgeDetectionConf::default(),
+        rope_dimensions: RopeDimensionsConf::default(),
         fast_scan: FastScanConf {
             geometry_defect_threshold: Threshold::min(),
         },
