@@ -3,8 +3,8 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, InitialCtx,
-        GrayCtx, ResultCtx,
+        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, RopeDimensionsCtx, GrayCtx,
+        InitialCtx, ResultCtx
     },
     domain::Error,
 };
@@ -146,5 +146,18 @@ impl ContextWrite<GrayCtx> for Context {
 impl ContextRead<GrayCtx> for Context {
     fn read(&self) -> &GrayCtx {
         &self.gray
+    }
+}
+//
+//
+impl ContextWrite<RopeDimensionsCtx> for Context {
+    fn write(mut self, value: RopeDimensionsCtx) -> Result<Self, Error> {
+        self.rope_dimensions = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<RopeDimensionsCtx> for Context {
+    fn read(&self) -> &RopeDimensionsCtx {
+        &self.rope_dimensions
     }
 }

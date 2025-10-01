@@ -2,71 +2,57 @@ use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 
 ///
-/// ## Configuration for `Cropping` operator
+/// ## Configuration for `RopeDimensions` verification
 /// 
 /// ### Example:
 /// ```yaml
-/// temporal-filter:
-///     amplify_factor: 10.0     # factor amplifies the highlighting the oftenly changing pixels, default 10.0
-///     grow-speed: 0.1          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-///     reduce_factor: 10.0      # factor amplifies the hiding the lower changing pixels, default 10.0
-///     down-speed: 0.5          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
-///     threshold: 1.0           # Threshold to detect yhe pixel whas changed or not in the each next frame, default 1
+/// rope-dimensions:
+///     rope-width: 35              # Standart rope width, px
+///     width-tolerance: 5.0        # Tolerance for rope width, %
+///     square-tolerance: 10.0      # Tolerance for rope square, %
 /// ```
 #[derive(Debug, Clone, PartialEq)]
-pub struct TemporalFilterConf {
-    /// Factor amplifies the highlighting the oftenly changing pixels
-    pub amplify_factor: f64,
-    /// Speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-    pub grow_speed: f64,
-    /// Factor amplifies the hiding the lower changing pixels
-    pub reduce_factor: f64,
-    /// Speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
-    pub down_speed: f64,
-    /// Threshold to detect yhe pixel whas changed or not in the each next frame
-    pub threshold: f64,
+pub struct RopeDimensionsConf {
+    /// Standart rope width, px
+    pub rope_width: usize,
+    /// Tolerance for rope width, %
+    pub width_tolerance: f64,
+    /// Tolerance for rope square, %
+    pub square_tolerance: f64,
 }
 //
 // 
-impl TemporalFilterConf {
+impl RopeDimensionsConf {
     ///
-    /// Returns [TemporalFilterConf] built from `ConfTree`:
+    /// Returns [RopeDimensionsConf] built from `ConfTree`:
     pub fn new(parent: impl Into<String>, conf: ConfTree) -> Self {
         let parent = parent.into();
-        let me = "TemporalFilterConf";
+        let me = "RopeDimensionsConf";
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::trace!("{}.new | name: {:?}", dbg, name);
-        let amplify_factor = conf.get("amplify-factor").unwrap_or(1.0);
-        log::trace!("{dbg}.new | amplify-factor: {:?}", amplify_factor);
-        let grow_speed = conf.get("grow-speed").unwrap_or(1.0);
-        log::trace!("{dbg}.new | grow-speed: {:?}", grow_speed);
-        let reduce_factor = conf.get("reduce-factor").unwrap_or(1.0);
-        log::trace!("{dbg}.new | reduce-factor: {:?}", reduce_factor);
-        let down_speed = conf.get("down-speed").unwrap_or(1.0);
-        log::trace!("{dbg}.new | down-speed: {:?}", down_speed);
-        let threshold = conf.get("threshold").unwrap_or(1.0);
-        log::trace!("{dbg}.new | threshold: {:?}", threshold);
+        let rope_width: u64 = conf.get("rope-width").expect(&format!("{dbg}.new | 'rope-width' - not found or wrong configuration"));
+        log::trace!("{dbg}.new | rope-width: {:?}", rope_width);
+        let width_tolerance = conf.get("width-tolerance").expect(&format!("{dbg}.new | 'width-tolerance' - not found or wrong configuration"));
+        log::trace!("{dbg}.new | width-tolerance: {:?}", width_tolerance);
+        let square_tolerance = conf.get("square-tolerance").expect(&format!("{dbg}.new | 'square-tolerance' - not found or wrong configuration"));
+        log::trace!("{dbg}.new | square-tolerance: {:?}", square_tolerance);
         Self {
-            amplify_factor,
-            grow_speed,
-            reduce_factor,
-            down_speed,
-            threshold,
+            rope_width: rope_width as usize,
+            width_tolerance,
+            square_tolerance,
         }
     }
 }
 //
 //
-impl Default for TemporalFilterConf {
+impl Default for RopeDimensionsConf {
     fn default() -> Self {
         Self {
-            amplify_factor: 10.0,
-            grow_speed: 1.0,
-            reduce_factor: 10.0,
-            down_speed: 1.0,
-            threshold: 1.0,
+            rope_width: 35,
+            width_tolerance: 5.0,
+            square_tolerance: 10.0,
         }
     }
 }

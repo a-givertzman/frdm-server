@@ -1,14 +1,9 @@
 use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
-        geometry_defect::GeometryDefectCtx,
-        width_emissions::WidthEmissionsCtx,
-        CroppingCtx,
-        DetectingContoursCvCtx,
-        GrayCtx,
-        EdgeDetectionCtx,
-        InitialCtx,
-        ResultCtx,
+        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
+        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, RopeDimensionsCtx, GrayCtx,
+        InitialCtx, ResultCtx
     },
 };
 use super::testing_ctx::TestingCtx;
@@ -34,6 +29,8 @@ pub struct Context {
     pub(super) gray: GrayCtx,
     /// points of rope perimeter
     pub(super) edge_detection: EdgeDetectionCtx,
+    /// Rope calculated dimensions
+    pub(super) rope_dimensions: RopeDimensionsCtx,
     /// points that deviate in width from the threshold
     pub(super) width_emissions: WidthEmissionsCtx,
     /// result of detecting [GeometryDefect's](design/theory/geometry_rope_defects.md)
@@ -59,6 +56,7 @@ impl Context {
             auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),
             gray: GrayCtx::default(),
             edge_detection: EdgeDetectionCtx::default(),
+            rope_dimensions: RopeDimensionsCtx::default(),
             width_emissions: WidthEmissionsCtx::default(),
             geometry_defect: GeometryDefectCtx::default(),
             testing: None,

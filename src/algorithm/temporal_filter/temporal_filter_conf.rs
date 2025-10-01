@@ -7,9 +7,9 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 /// ### Example:
 /// ```yaml
 /// temporal-filter:
-///     amplify_factor: 10.0     # factor amplifies the highlighting the oftenly changing pixels, default 10.0
+///     amplify-factor: 10.0     # factor amplifies the highlighting the oftenly changing pixels, default 10.0
 ///     grow-speed: 0.1          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-///     reduce_factor: 10.0      # factor amplifies the hiding the lower changing pixels, default 10.0
+///     reduce-factor: 10.0      # factor amplifies the hiding the lower changing pixels, default 10.0
 ///     down-speed: 0.5          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
 ///     threshold: 1.0           # Threshold to detect yhe pixel whas changed or not in the each next frame, default 1
 /// ```

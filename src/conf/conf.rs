@@ -42,6 +42,10 @@ use crate::conf::{DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineSc
 ///     otsu-tune: 1.0      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0, if not specified, `threshold` will be used
 ///     threshold: 1        # 0...255, if not specified otsu auto threshold will be used, if nothing specified, otsu threshold will be used with otsu-tune = 1
 ///     smooth: 16          # Smoothing of edge line factor. The higher the factor the smoother the line.
+/// rope-dimensions:
+///     rope-width: 35              # Standart rope width, px
+///     width-tolerance: 5.0        # Tolerance for rope width, %
+///     square-tolerance: 10.0      # Tolerance for rope square, %
 /// fast-scan:
 ///     geometry-defect-threshold: 1.2      # 1.1...1.3
 /// fine-scan:
