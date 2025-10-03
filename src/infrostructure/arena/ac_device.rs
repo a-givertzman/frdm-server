@@ -1,6 +1,6 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, time::Instant};
 use sal_core::error::Error;
-use sal_sync::services::entity::Name;
+use sal_sync::{kernel::state::ChangeNotify, services::entity::Name};
 use crate::{infrostructure::{
     arena::{
         acBuffer, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceStartStream, acDeviceStopStream, AcAccessMode
@@ -21,7 +21,14 @@ use super::{
 const UP: &str = "\x1b[1A";
 /// Clear line
 const CLEARLN: &str = "\x1b[2K";
-
+///
+///
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+enum NotifyState {
+    Read,
+    Suspend,
+    Offline,
+}
 ///
 /// Represents a Arena SDK device, used to configure and stream a device.
 pub struct AcDevice {
@@ -32,6 +39,7 @@ pub struct AcDevice {
     conf: CameraConf,
     // Maximum time to wait for an image buffer
     image_timeout: u64,
+    suspend: Arc<AtomicBool>,
     exit: Arc<AtomicBool>,
 }
 //
@@ -45,6 +53,7 @@ impl AcDevice {
         system: acSystem,
         index: usize,
         conf: CameraConf,
+        suspend: Option<Arc<AtomicBool>>,
         exit: Option<Arc<AtomicBool>>,
     ) -> Self {
         let name = Name::new(parent.into(), format!("AcDevice({index})"));
@@ -55,6 +64,7 @@ impl AcDevice {
             system,
             conf,
             image_timeout: 3000,
+            suspend: suspend.unwrap_or(Arc::new(AtomicBool::new(false))),
             exit: exit.unwrap_or(Arc::new(AtomicBool::new(false))),
         }
     }
@@ -247,20 +257,39 @@ impl AcDevice {
     //     }
     // }
     ///
+    /// Suspending receiving frames from camera
+    pub fn suspend(&self) {
+        self.suspend.store(true, Ordering::Release);
+    }
+    ///
+    /// Resuming receiving frames from camera
+    pub fn resume(&self) {
+        self.suspend.store(false, Ordering::Release);
+    }
+    ///
     /// Image acquisition
-    /// (1) sets acquisition mode
-    /// (2) sets buffer handling mode
-    /// (3) set transport stream protocol to TCP
-    /// (4) starts the stream
-    /// (5) gets a number of images
-    /// (6) prints information from images
-    /// (7) requeues buffers
-    /// (8) stops the stream
+    /// 1. sets acquisition mode
+    /// 2. sets buffer handling mode
+    /// 3. set transport stream protocol to TCP
+    /// 4. starts the stream
+    /// 5. gets a number of images
+    /// 6. prints information from images
+    /// 7. requeues buffers
+    /// 8. stops the stream
     fn read(&self, on_event: impl Fn(Image)) -> Result<(), Error> {
         let dbg = self.name.join();
         let error = Error::new(&dbg, "read");
         let exit = self.exit.clone();
         log::debug!("{}.read | Get node map...", dbg);
+        let mut notify = ChangeNotify::new(
+            &dbg,
+            NotifyState::Offline,
+            vec![
+                (NotifyState::Suspend,  Box::new(|_: ()| log::info!("{dbg}.read | Suspended"))),
+                (NotifyState::Read, Box::new(|_: ()| log::info!("{dbg}.read | Receiving frames..."))),
+                (NotifyState::Offline, Box::new(|_: ()| log::info!("{dbg}.read | Dissconnected"))),
+            ],
+        );
         match self.node() {
             Ok(node_map) => {
                 log::debug!("{}.read | Get node map - Ok", dbg);
@@ -316,30 +345,36 @@ impl AcDevice {
                                                     log::debug!("{}.read | Retriving images...", dbg);
                                                     let mut fps = Fps::new();
                                                     loop {
-                                                        log::trace!("{}.read | Read image...", dbg);
-                                                        println!("");
-                                                        match self.get_buffer() {
-                                                            Ok(mut buffer) => {
-                                                                match buffer.image() {
-                                                                    Ok(img) => {
-                                                                        fps.add();
-                                                                        log::debug!(
-                                                                            "{}.read | {}x{}, {:.2} MB, {} FPS{UP}{CLEARLN}{UP}\r",
-                                                                            dbg, 
-                                                                            img.width, img.height, 
-                                                                            (img.bytes as f64) / 1048576.0,
-                                                                            fps,
-                                                                        );
-                                                                        (on_event)(img)
+                                                        notify.add(NotifyState::Read, ());
+                                                        match self.suspend.load(Ordering::Acquire) {
+                                                            true => notify.add(NotifyState::Suspend, ()),
+                                                            false => {
+                                                                log::trace!("{}.read | Read image...", dbg);
+                                                                notify.add(NotifyState::Read, ());
+                                                                match self.get_buffer() {
+                                                                    Ok(mut buffer) => {
+                                                                        match buffer.image() {
+                                                                            Ok(img) => {
+                                                                                fps.add();
+                                                                                log::debug!(
+                                                                                    "{}.read | {}x{}, {:.2} MB, {} FPS{UP}{CLEARLN}{UP}\r",
+                                                                                    dbg, 
+                                                                                    img.width, img.height, 
+                                                                                    (img.bytes as f64) / 1048576.0,
+                                                                                    fps,
+                                                                                );
+                                                                                (on_event)(img)
+                                                                            }
+                                                                            Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
+                                                                        }
                                                                     }
-                                                                    Err(err) => log::warn!("{}.read | Error: {}", dbg, err),
-                                                                }
+                                                                    Err(err) => {
+                                                                        log::warn!("{}.read | Error: {}", dbg, err);
+                                                                        break;
+                                                                    }
+                                                                };
                                                             }
-                                                            Err(err) => {
-                                                                log::warn!("{}.read | Error: {}", dbg, err);
-                                                                break;
-                                                            }
-                                                        };
+                                                        }
                                                         if exit.load(Ordering::SeqCst) {
                                                             break;
                                                         }

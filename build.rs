@@ -2,11 +2,14 @@
 fn main() {
     // Add current Arena SDK path(s) to the system env (for current session only)
     // to make it avalible for system lib loader
+    println!(r"cargo:rustc-link-search=/usr/lib/arena-sdk/lib64");
     println!(r"cargo:rustc-link-search=src/infrostructure/arena/ArenaSDK_Linux_x64/lib64");
-    println!(r"cargo:rustc-link-search=src/infrostructure/arena/ArenaSDK_Linux_x64/GenICam/library/lib/Linux64_x64");
-    println!(r"cargo:rustc-link-search=src/infrostructure/arena/ArenaSDK_Linux_x64/ffmpeg");
+    println!(r"cargo:rustc-link-arg=-Wl,--allow-shlib-undefined");
+    // println!(r"cargo:rustc-link-search=src/infrostructure/arena/ArenaSDK_Linux_x64/GenICam/library/lib/Linux64_x64");
+    // println!(r"cargo:rustc-link-search=src/infrostructure/arena/ArenaSDK_Linux_x64/ffmpeg");
     // Deppending on the OS...
     if cfg!(target_os = "linux") {
+        // println!(r"cargo:rustc-link-search=/usr/lib/arena-sdk/lib64");
         // println!("cargo:rustc-env=LD_LIBRARY_PATH=/your/custom/path/");
         // println!("cargo:rustc-env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/your/custom/path/");
     } else if cfg!(target_os = "macos") {

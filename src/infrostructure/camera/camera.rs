@@ -1,7 +1,7 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::JoinHandle, time::Duration};
 use opencv::videoio::VideoCaptureTrait;
 use sal_core::{dbg::Dbg, error::Error};
-use sal_sync::services::entity::Name;
+use sal_sync::services::entity::{Name, Object};
 use crate::{domain::{channel_unbounded, Receiver, Sender, Image}, infrostructure::arena::{AcDevice, AcSystem}};
 use super::camera_conf::CameraConf;
 ///
@@ -14,6 +14,7 @@ pub struct Camera {
     conf: CameraConf,
     send: Sender<Image>,
     recv: Option<Receiver<Image>>,
+    suspend: Arc<AtomicBool>,
     exit: Arc<AtomicBool>,
 }
 //
@@ -33,6 +34,7 @@ impl Camera {
             conf,
             send,
             recv: Some(recv),
+            suspend: Arc::new(AtomicBool::new(false)),
             exit: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -54,6 +56,7 @@ impl Camera {
         let dbg = self.dbg.clone();
         let conf = self.conf.clone();
         let send = self.send.clone();
+        let suspend = self.suspend.clone();
         let exit = self.exit.clone();
         let handle = std::thread::spawn(move || {
             log::info!("{}.read | Start", dbg);
@@ -78,14 +81,14 @@ impl Camera {
                                         log::trace!("{}.read | Device {} IP: {}", dbg, dev, device_ip);
                                         let device_firmware = ac_system.device_firmware(dev).unwrap();
                                         log::trace!("{}.read | Device {} Firmware: {}", dbg, dev, device_firmware);
-                                        log::info!(
+                                        log::debug!(
                                             "{}.read | Device {}: {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
                                             dbg, dev, device_vendor, device_model, device_serial, device_mac, device_ip, device_firmware);
                                     }
                                     match &conf.index {
                                         Some(index) => {
                                             if devices >= index + 1 {
-                                                let mut device = AcDevice::new(&dbg, ac_system.system, *index, conf.clone(), Some(exit.clone()));
+                                                let mut device = AcDevice::new(&dbg, ac_system.system, *index, conf.clone(), Some(exit.clone()), Some(suspend.clone()));
                                                 let result = device.listen(|frame| {
                                                     if let Err(err) = send.send(frame) {
                                                         log::warn!("{}.read | Send Error: {}", dbg, err);
@@ -125,8 +128,9 @@ impl Camera {
         Ok(handle)
     }
     ///
-    /// Receive frames from IP camera
-    pub fn from_file(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
+    /// Receive frames from video file
+    #[allow(unused)]
+    pub fn from_video(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
         match opencv::videoio::VideoCapture::from_file(&path.into(), opencv::videoio::CAP_ANY) {
             Ok(mut video) => {
                 let mut frames = vec![];
@@ -140,13 +144,63 @@ impl Camera {
                 }
                 Ok(CameraIntoIterator { frames })
             }
-            Err(err) => Err(Error::new(&self.dbg, "from_file").err(err.to_string())),
+            Err(err) => Err(Error::new(&self.dbg, "from_video").err(err.to_string())),
         }
     }
     ///
+    /// Receive frames from path containing image files
+    #[allow(unused)]
+    pub fn from_images(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
+        let mut frames = vec![];
+        match std::fs::read_dir(path.into()) {
+            Ok(paths) => {
+                for path in paths {
+                    match path {
+                        Ok(path) => {
+                            if path.path().is_file() {
+                                let path = path.path();
+                                let path = path.to_str().ok_or(Error::new(&self.dbg, "from_images").err(format!("Error in path {}", path.display())))?;
+                                match Image::load(path) {
+                                    Ok(img) => {
+                                        log::debug!("{}.from_images | Read: {}", self.dbg, path);
+                                        frames.push(img);
+                                    }
+                                    Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
+                                }
+                            }
+                        }
+                        Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
+                    }
+                }
+            }
+            Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
+        }
+        Ok(CameraIntoIterator { frames })
+    }
+    ///
+    /// Suspending receiving frames from camera
+    pub fn suspend(&self) {
+        self.suspend.store(true, Ordering::Release);
+        log::debug!("{}.suspend | Suspension mode: ON", self.dbg);
+    }
+    ///
+    /// Resuming receiving frames from camera
+    pub fn resume(&self) {
+        log::debug!("{}.resume | Suspension mode: OFF", self.dbg);
+        self.suspend.store(false, Ordering::Release);
+    }
+    ///
     /// Sends `Exit` signal to stop reading.
+    #[allow(unused)]
     pub fn exit(&self) {
         self.exit.store(true, Ordering::SeqCst);
+    }
+}
+//
+//
+impl Object for Camera {
+    fn name(&self) -> Name {
+        self.name.clone()
     }
 }
 ///
@@ -158,6 +212,7 @@ pub struct CameraIntoIterator {
 //
 //
 impl CameraIntoIterator {
+    #[allow(unused)]
     pub fn push_frame(&mut self, frame: Image) {
         self.frames.push(frame);
     }

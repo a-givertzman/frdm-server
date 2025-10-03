@@ -1,4 +1,5 @@
-use opencv::core::MatTraitConst;
+use opencv::{boxed_ref::BoxedRef, core::{Mat, MatTraitConst, MatTraitConstManual}};
+use sal_core::error::Error;
 
 ///
 /// Contains a image with metadata
@@ -20,6 +21,7 @@ impl Image {
     /// - `mat` - The matrix of image
     /// - `timestamp` - Timstemp of image
     /// - `bytes` - Length of image payload in bytes
+    #[allow(unused)]
     pub fn new(
         width: usize,
         height: usize,
@@ -30,7 +32,7 @@ impl Image {
             width,
             height,
             timestamp,
-            bytes: mat.elem_size1(),
+            bytes: mat.total() * mat.elem_size1(),
             mat,
         }
     }
@@ -40,25 +42,143 @@ impl Image {
     /// 
     /// Use `Image::new` instead
     pub fn with(mat: opencv::core::Mat) -> Self {
+        let bytes = mat.total() * mat.elem_size1();
         Self {
-            width: 0,
-            height: 0,
+            width: mat.cols() as usize,
+            height: mat.rows() as usize,
             timestamp: 0,
             mat,
-            bytes: 0,
+            bytes,
         }
+    }
+    ///
+    /// ## Saves an image to a specified file.
+    /// 
+    /// The image format is chosen based on the filename extension (see cv::imread for the list of extensions).
+    /// 
+    /// In general, only 8-bit single-channel or 3-channel (with 'BGR' channel order) images can be saved using this function, with these exceptions:
+    /// 
+    /// - With OpenEXR encoder, only 32-bit float (CV_32F) images can be saved.
+    ///     - 8-bit unsigned (CV_8U) images are not supported.
+    /// - With Radiance HDR encoder, non 64-bit float (CV_64F) images can be saved.
+    ///     - All images will be converted to 32-bit float (CV_32F).
+    /// - With JPEG 2000 encoder, 8-bit unsigned (CV_8U) and 16-bit unsigned (CV_16U) images can be saved.
+    /// - With JPEG XL encoder, 8-bit unsigned (CV_8U), 16-bit unsigned (CV_16U) and 32-bit float(CV_32F) images can be saved.
+    ///     - JPEG XL images with an alpha channel can be saved using this function. To do this, create 8-bit (or 16-bit, 32-bit float) 4-channel image BGRA, where the alpha channel goes last. Fully transparent pixels should have alpha set to 0, fully opaque pixels should have alpha set to 255/65535/1.0.
+    /// - With PAM encoder, 8-bit unsigned (CV_8U) and 16-bit unsigned (CV_16U) images can be saved.
+    /// - With PNG encoder, 8-bit unsigned (CV_8U) and 16-bit unsigned (CV_16U) images can be saved.
+    ///     - PNG images with an alpha channel can be saved using this function. To do this, create 8-bit (or 16-bit) 4-channel image BGRA, where the alpha channel goes last. Fully transparent pixels should have alpha set to 0, fully opaque pixels should have alpha set to 255/65535 (see the code sample below).
+    /// - With PGM/PPM encoder, 8-bit unsigned (CV_8U) and 16-bit unsigned (CV_16U) images can be saved.
+    /// - With TIFF encoder, 8-bit unsigned (CV_8U), 8-bit signed (CV_8S), 16-bit unsigned (CV_16U), 16-bit signed (CV_16S), 32-bit signed (CV_32S), 32-bit float (CV_32F) and 64-bit float (CV_64F) images can be saved.
+    ///     - Multiple images (vector of Mat) can be saved in TIFF format (see the code sample below).
+    ///     - 32-bit float 3-channel (CV_32FC3) TIFF images will be saved using the LogLuv high dynamic range encoding (4 bytes per pixel)
+    /// 
+    /// If the image format is not supported, the image will be converted to 8-bit unsigned (CV_8U) and saved that way.
+    /// 
+    /// If the format, depth or channel order is different, use Mat::convertTo and cv::cvtColor to convert it before saving. Or, use the universal FileStorage I/O functions to save the image to XML or YAML format.
+    /// 
+    /// The sample below shows how to create a BGRA image, how to set custom compression parameters and save it to a PNG file. It also demonstrates how to save multiple images in a TIFF file: @include snippets/imgcodecs_imwrite.cpp
+    /// 
+    /// ### Parameters
+    /// 
+    /// filename: Name of the file.
+    /// img: (Mat or vector of Mat) Image or Images to be saved.
+    /// params: Format-specific parameters encoded as pairs (paramId_1, paramValue_1, paramId_2, paramValue_2, ... .) see cv::ImwriteFlags
+    #[allow(unused)]
+    pub fn save(&self, path: impl Into<String>) -> Result<(), Error> {
+        let error = Error::new("Image", "save");
+        let path = path.into();
+        let params = opencv::core::Vector::new();
+        opencv::imgcodecs::imwrite(&path, &self.mat, &params)
+            .map(|_| ())
+            .map_err(|err| error.pass_with(format!("Errorsaving image into '{path}'"), err.to_string()))
+    }
+    /// ## Loads an image from a file.
+    /// 
+    /// @anchor imread
+    /// 
+    /// The imread function loads an image from the specified file and returns OpenCV matrix. If the image cannot be read (because of a missing file, improper permissions, or unsupported/invalid format), the function returns an empty matrix.
+    /// 
+    /// Currently, the following file formats are supported:
+    /// 
+    /// - Windows bitmaps - *.bmp, *.dib (always supported)
+    /// - GIF files - *.gif (always supported)
+    /// - JPEG files - *.jpeg, *.jpg, *.jpe (see the Note section)
+    /// - JPEG 2000 files - *.jp2 (see the Note section)
+    /// - Portable Network Graphics - *.png (see the Note section)
+    /// - WebP - *.webp (see the Note section)
+    /// - AVIF - *.avif (see the Note section)
+    /// - Portable image format - *.pbm, *.pgm, *.ppm, *.pxm, *.pnm (always supported)
+    /// - PFM files - *.pfm (see the Note section)
+    /// - Sun rasters - *.sr, *.ras (always supported)
+    /// - TIFF files - *.tiff, *.tif (see the Note section)
+    /// - OpenEXR Image files - *.exr (see the Note section)
+    /// - Radiance HDR - *.hdr, *.pic (always supported)
+    /// - Raster and Vector geospatial data supported by GDAL (see the Note section)
+    /// 
+    /// ### Note:
+    /// 
+    /// - The function determines the type of an image by its content, not by the file extension.
+    /// - In the case of color images, the decoded images will have the channels stored in B G R order.
+    /// - When using IMREAD_GRAYSCALE, the codec’s internal grayscale conversion will be used, if available. Results may differ from the output of cvtColor().
+    /// - On Microsoft Windows* and Mac OS*, the codecs shipped with OpenCV (libjpeg, libpng, libtiff, and libjasper) are used by default. So, OpenCV can always read JPEGs, PNGs, and TIFFs. On Mac OS, there is also an option to use native Mac OS image readers. However, beware that currently these native image loaders give images with different pixel values because of the color management embedded into Mac OS.
+    /// - On Linux*, BSD flavors, and other Unix-like open-source operating systems, OpenCV looks for codecs supplied with the OS. Ensure the relevant packages are installed (including development files, such as “libjpeg-dev” in Debian* and Ubuntu*) to get codec support, or turn on the OPENCV_BUILD_3RDPARTY_LIBS flag in CMake.
+    /// - If the WITH_GDAL flag is set to true in CMake and IMREAD_LOAD_GDAL is used to load the image, the GDAL driver will be used to decode the image, supporting Raster and Vector formats.
+    /// - If EXIF information is embedded in the image file, the EXIF orientation will be taken into account, and thus the image will be rotated accordingly unless the flags IMREAD_IGNORE_ORIENTATION or IMREAD_UNCHANGED are passed.
+    /// - Use the IMREAD_UNCHANGED flag to preserve the floating-point values from PFM images.
+    /// - By default, the number of pixels must be less than 2^30. This limit can be changed by setting the environment variable OPENCV_IO_MAX_IMAGE_PIXELS. See [tutorial_env_reference].
+    /// 
+    /// ### Parameters:
+    /// 
+    /// - filename: Name of the file to be loaded.
+    /// - flags: Flag that can take values of cv::ImreadModes.
+    /// 
+    /// ### C++ default parameters
+    /// 
+    /// - flags: IMREAD_COLOR_BGR
+    /// 
+    #[allow(unused)]
+    pub fn load(path: impl Into<String>) -> Result<Self, Error> {
+        let error = Error::new("Image", "load");
+        let path = path.into();
+        opencv::imgcodecs::imread(&path, opencv::imgcodecs::IMREAD_UNCHANGED)
+            .map(|mat| Image::with(mat))
+            .map_err(|err| error.pass_with(format!("Error saving image into '{path}'"), err.to_string()))
+    }
+    ///
+    /// Converts [Image] to Bytes
+    /// 
+    /// Using [bincode encode](https://docs.rs/bincode/latest/bincode/index.html)
+    #[allow(unused)]
+    pub fn to_bytes(&self) -> Result<Vec<u8>, Error> {
+        let error = Error::new("Image", "to_bytes");
+        bincode::encode_to_vec(self, bincode::config::standard())
+            .map_err(|err| error.pass_with(format!("Error encoding image"), err.to_string()))
+    }
+    ///
+    /// Returns [Image] built from `Bytes`
+    /// 
+    /// Using [bincode decode](https://docs.rs/bincode/latest/bincode/index.html)
+    #[allow(unused)]
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        let error = Error::new("Image", "from_bytes");
+        let (img, _) = bincode::decode_from_slice(bytes, bincode::config::standard())
+            .map_err(|err| error.pass_with(format!("Error decoding image"), err.to_string()))?;
+        Ok(img)
     }
 }
 //
 //
 impl Default for Image {
     fn default() -> Self {
+        let mat = opencv::core::Mat::default();
+        let bytes = mat.total() * mat.elem_size1();
         Self {
-            width: 0,
-            height: 0,
+            width: mat.cols() as usize,
+            height: mat.rows() as usize,
             timestamp: 0,
-            mat: opencv::core::Mat::default(),
-            bytes: 0,
+            mat,
+            bytes,
         }
     }
 }
@@ -69,5 +189,114 @@ impl PartialEq for Image {
     fn eq(&self, other: &Self) -> bool {
         let mut dst = self.mat.clone();
         opencv::core::compare(&self.mat, &other.mat, &mut dst, opencv::core::CmpTypes::CMP_EQ as i32).is_ok()
+    }
+}
+//
+//
+impl bincode::Encode for Image {
+    fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
+        // let error = Error::new("Image", "encode");
+        bincode::Encode::encode(&self.width, encoder)?;
+        bincode::Encode::encode(&self.height, encoder)?;
+        bincode::Encode::encode(&self.mat.channels(), encoder)?;
+        bincode::Encode::encode(&self.mat.typ(), encoder)?;
+        bincode::Encode::encode(&self.timestamp, encoder)?;
+        let mat = self.mat.data_bytes()
+            .map_err(|err| bincode::error::EncodeError::OtherString(format!("Image.encode | Get bytes of Mat error: {:?}", err)))?;
+        bincode::Encode::encode(mat, encoder)?;
+        bincode::Encode::encode(&self.bytes, encoder)?;
+        Ok(())
+    }
+}
+impl<Context> bincode::Decode<Context> for Image {
+    fn decode<D: bincode::de::Decoder<Context = Context>>(
+        decoder: &mut D,
+    ) -> core::result::Result<Self, bincode::error::DecodeError> {
+        // let error = Error::new("Image", "decode");
+        let width = bincode::Decode::decode(decoder).unwrap();
+        log::trace!("Image.decode | width: {}", width);
+        let height = bincode::Decode::decode(decoder).unwrap();
+        log::trace!("Image.decode | height: {}", height);
+        let channels: i32 = bincode::Decode::decode(decoder).unwrap();
+        log::trace!("Image.decode | channels: {}", channels);
+        let typ: i32 = bincode::Decode::decode(decoder).unwrap();
+        log::trace!("Image.decode | typ: {}", typ);
+        let timestamp = bincode::Decode::decode(decoder).unwrap();
+        let data: Vec<u8> = bincode::Decode::decode(decoder).unwrap();
+        let mat = mat_from_bytes(typ, channels, height as i32, width as i32, &data)
+            .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.decode | Mat from bytes error: {:?}", err)))?;
+        let bytes = bincode::Decode::decode(decoder).unwrap();
+        Ok(Self {
+            width,
+            height,
+            timestamp,
+            mat: mat.clone_pointee(),
+            bytes,
+        })
+    }
+}
+impl<'de, Context> bincode::BorrowDecode<'de, Context> for Image {
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
+        decoder: &mut D,
+    ) -> core::result::Result<Self, bincode::error::DecodeError> {
+        // let error = Error::new("Image", "borrow_decode");
+        let width = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        log::trace!("Image.borrow_decode | width: {}", width);
+        let height = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        log::trace!("Image.borrow_decode | height: {}", height);
+        let channels: i32 = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        log::trace!("Image.borrow_decode | channels: {}", channels);
+        let typ: i32 = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        log::trace!("Image.borrow_decode | typ: {}", typ);
+        let timestamp = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        let data: Vec<u8> = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        let mat = mat_from_bytes(typ, channels, height as i32, width as i32, &data)
+            .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.borrow_decode | Mat from bytes error: {:?}", err)))?;
+        let bytes = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        Ok(Self {
+            width,
+            height,
+            timestamp,
+            mat: mat.clone_pointee(),
+            bytes,
+        })
+    }
+}
+///
+/// Converts bytes into opencv::Mat depend on image typ, like CV_16SC3 or 16-bit signed 3-channel array, and so on.
+fn mat_from_bytes(typ: i32, channels: i32, height: i32, width: i32, data: &[u8]) -> Result<BoxedRef<Mat>, opencv::Error> {
+    match typ {
+        opencv::core::CV_8UC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_8UC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_8UC3 => {
+            log::trace!("Image.mat_from_bytes | typ: {} CV_8UC3", typ);
+            Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 3>>(height as i32, width as i32, data)
+        }
+        opencv::core::CV_8UC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_8SC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i8, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_8SC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i8, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_8SC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i8, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_8SC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i8, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_16UC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u16, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_16UC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u16, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_16UC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u16, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_16UC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u16, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_16SC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i16, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_16SC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i16, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_16SC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i16, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_16SC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i16, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_32SC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i32, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_32SC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i32, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_32SC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i32, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_32SC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<i32, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_32FC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f32, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_32FC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f32, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_32FC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f32, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_32FC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f32, 4>>(height as i32, width as i32, data),
+        opencv::core::CV_64FC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f64, 1>>(height as i32, width as i32, data),
+        opencv::core::CV_64FC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f64, 2>>(height as i32, width as i32, data),
+        opencv::core::CV_64FC3 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f64, 3>>(height as i32, width as i32, data),
+        opencv::core::CV_64FC4 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<f64, 4>>(height as i32, width as i32, data),
+        _ => Err(opencv::Error::new(opencv::core::BadOrigin, format!("Image.decode | Unsupported image format: pixel depth {typ}, channels {channels}"))),
     }
 }
