@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, Gray, GrayCtx, ResultCtx, Side, TemporalFilter
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingCtx, CvContours, EdgeDetection, EdgeDetectionCtx, Gray, GrayCtx, ResultCtx, Side, TemporalFilter
     }, 
     conf::Conf,
 };

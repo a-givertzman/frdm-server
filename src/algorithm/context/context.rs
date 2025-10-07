@@ -2,8 +2,9 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        CroppingCtx, EdgeDetectionCtx, GrayCtx, GaussianBlurCtx,
-        InitialCtx, ResultCtx, RopeDimensionsCtx, CvContoursCtx,
+        BitwiseAndCtx, CroppingCtx, CvContoursCtx, EdgeDetectionCtx, GaussianBlurCtx,
+        GrayCtx, InitialCtx, ResultCtx, RopeDimensionsCtx, TemporalFilterCtx,
+        FineContoursCtx,
     },
 };
 use super::testing_ctx::TestingCtx;
@@ -19,6 +20,8 @@ pub struct Context {
     pub(super) result: ResultCtx,
     /// Filtered and binarised image
     pub(super) cv_contours: CvContoursCtx,
+    /// Fine filtered and binarised image
+    pub(super) fine_contours: FineContoursCtx,
     /// Cropped image
     pub(super) cropping: CroppingCtx,
     /// Gamma-corrected image
@@ -29,6 +32,10 @@ pub struct Context {
     pub(super) gray: GrayCtx,
     /// Gaussian blur result image
     pub(super) gaussian_blur: GaussianBlurCtx,
+    /// BitwiseAnd result image
+    pub(super) bitwise_and: BitwiseAndCtx,
+    /// TemporalFilter result image
+    pub(super) temporal_filter: TemporalFilterCtx,
     /// points of rope perimeter
     pub(super) edge_detection: EdgeDetectionCtx,
     /// Rope calculated dimensions
@@ -53,11 +60,14 @@ impl Context {
             initial,
             result: ResultCtx::default(),
             cv_contours: CvContoursCtx::default(),
+            fine_contours: FineContoursCtx::default(),
             cropping: CroppingCtx::default(),
             auto_gamma: AutoGammaCtx::default(),
             auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),
             gray: GrayCtx::default(),
             gaussian_blur: GaussianBlurCtx::default(),
+            bitwise_and: BitwiseAndCtx::default(),
+            temporal_filter: TemporalFilterCtx::default(),
             edge_detection: EdgeDetectionCtx::default(),
             rope_dimensions: RopeDimensionsCtx::default(),
             width_emissions: WidthEmissionsCtx::default(),

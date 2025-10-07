@@ -9,8 +9,7 @@ use egui::{
 };
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, CvContours, CvContoursCtx,
-        EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold,
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, CvContours, CvContoursCtx, EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
     },
     conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf},
     domain::{Dot, Eval, Image},

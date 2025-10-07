@@ -2,7 +2,7 @@ use std::{cell::RefCell, time::Instant};
 use opencv::core::{Mat, MatTraitConst, MatTraitConstManual, Point2i, Size2i};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, ResultCtx, FilterHighPass},
+    algorithm::{ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx},
     domain::{Eval, Filter, Image},
 };
 ///
@@ -13,7 +13,7 @@ pub struct TemporalFilter {
     reduce_factor: f64,
     down_speed: f64,
     threshold: f64,
-    filters: RefCell<Vec<FilterHighPass::<u8>>>,
+    filters: RefCell<Vec<FilterIsChanged::<f32>>>,
     // background: RefCell<Mat>,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
@@ -55,7 +55,8 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                         log::debug!("TemporalFilter.eval | pixels: {:?}", pixels);
                         if self.filters.borrow().is_empty() {
                             *self.filters.borrow_mut() = (0..pixels).map(|_| {
-                                FilterHighPass::<u8>::new(None, self.amplify_factor, self.grow_speed, self.reduce_factor, self.down_speed, self.threshold)
+                                FilterIsChanged::<f32>::new(None, self.threshold)
+                                // FilterHighPass::<u8>::new(None, self.amplify_factor, self.grow_speed, self.reduce_factor, self.down_speed, self.threshold)
                             }).collect();
                             // *self.background.borrow_mut() = unsafe { Mat::new_rows_cols(height as i32, width as i32, opencv::core::CV_8UC1).unwrap() };
                         }
@@ -67,11 +68,10 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                                 match input.get(i) {
                                     Some(value) => {
                                         if let Some(filter) = filters.get_mut(i) {
-                                            filter.add(*value);
                                             match out.get_mut(i) {
-                                                Some(pixel) => *pixel = match filter.rate() > 0.0 {
-                                                    true => 255,
-                                                    false => 0,
+                                                Some(pixel) => *pixel = match filter.add(*value as f32) {
+                                                    Some(_) => 255,
+                                                    None => 0,
                                                 },
                                                 None => return Err(error.err(format!("Out image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
                                             }
@@ -100,7 +100,24 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                             opencv::core::BORDER_CONSTANT,
                             opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
                         ).map_err(|err| error.pass(err.to_string()))?;
-                        let result = ResultCtx { frame: Image::with(dst) };
+                        opencv::imgproc::morphology_ex(
+                            &dst.clone(),
+                            &mut dst,
+                            opencv::imgproc::MORPH_ERODE,
+                            &kernel,
+                            Point2i::new(-1, -1),
+                            1,
+                            opencv::core::BORDER_CONSTANT,
+                            opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
+                        ).map_err(|err| error.pass(err.to_string()))?;
+                        // let mut out = Mat::default();
+                        // // opencv::core::add_weighted(&frame.mat, 0.8, &dst, 0.2, 0.0, &mut out, -1)
+                        // opencv::core::bitwise_and(&frame.mat, &dst, &mut out, &Mat::default())
+                        //     .map_err(|err| error.pass(err.to_string()))?;
+                        let frame = Image::with(dst);
+                        let result = TemporalFilterCtx { frame: frame.clone() };
+                        let ctx = ctx.write(result)?;
+                        let result = ResultCtx { frame };
                         log::debug!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)
                     }

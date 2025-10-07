@@ -3,11 +3,10 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        CroppingCtx, EdgeDetectionCtx, GaussianBlurCtx,
-        GrayCtx, InitialCtx, ResultCtx, RopeDimensionsCtx,
-        CvContoursCtx,
-    },
-    domain::Error,
+        BitwiseAndCtx, CroppingCtx, CvContoursCtx, EdgeDetectionCtx, GaussianBlurCtx,
+        GrayCtx, InitialCtx, ResultCtx, RopeDimensionsCtx, TemporalFilterCtx,
+        FineContoursCtx,
+    }, domain::Error,
 };
 ///
 /// Provides restricted write access to the [Context] members
@@ -173,5 +172,44 @@ impl ContextWrite<RopeDimensionsCtx> for Context {
 impl ContextRead<RopeDimensionsCtx> for Context {
     fn read(&self) -> &RopeDimensionsCtx {
         &self.rope_dimensions
+    }
+}
+//
+//
+impl ContextWrite<TemporalFilterCtx> for Context {
+    fn write(mut self, value: TemporalFilterCtx) -> Result<Self, Error> {
+        self.temporal_filter = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<TemporalFilterCtx> for Context {
+    fn read(&self) -> &TemporalFilterCtx {
+        &self.temporal_filter
+    }
+}
+//
+//
+impl ContextWrite<BitwiseAndCtx> for Context {
+    fn write(mut self, value: BitwiseAndCtx) -> Result<Self, Error> {
+        self.bitwise_and = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<BitwiseAndCtx> for Context {
+    fn read(&self) -> &BitwiseAndCtx {
+        &self.bitwise_and
+    }
+}
+//
+//
+impl ContextWrite<FineContoursCtx> for Context {
+    fn write(mut self, value: FineContoursCtx) -> Result<Self, Error> {
+        self.fine_contours = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<FineContoursCtx> for Context {
+    fn read(&self) -> &FineContoursCtx {
+        &self.fine_contours
     }
 }

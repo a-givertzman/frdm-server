@@ -2,8 +2,7 @@ use std::time::Instant;
 use opencv::{core::{Mat, MatTraitConst, MatTraitConstManual}, imgproc};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, InitialPoints, ResultCtx},
-    domain::{Dot, Eval, Filter, FilterLowPass, Image},
+    algorithm::{ContextRead, ContextWrite, EvalResult, InitialPoints, ResultCtx}, domain::{Dot, Eval, Filter, FilterLowPass, FilterEmpty, FilterSmooth2, Image}
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
@@ -51,17 +50,18 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let mut upper_edge = Vec::with_capacity(cols as usize);
                 let mut lower_edge = Vec::with_capacity(cols as usize);
                 let (mut filter_smooth_upper, mut filter_smooth_lower): (Box<dyn Filter<Item = i32>>, Box<dyn Filter<Item = i32>>) = match self.smooth {
-                    Some(smooth) => match smooth {
-                        _ if (0.0..2.0).contains(&smooth) => (Box::new(FilterLowPass::<1, _>::new(None)), Box::new(FilterLowPass::<1, _>::new(None))),
-                        _ if (2.0..4.0).contains(&smooth) => (Box::new(FilterLowPass::<2, _>::new(None)), Box::new(FilterLowPass::<2, _>::new(None))),
-                        _ if (4.0..6.0).contains(&smooth) => (Box::new(FilterLowPass::<4, _>::new(None)), Box::new(FilterLowPass::<4, _>::new(None))),
-                        _ if (6.0..8.0).contains(&smooth) => (Box::new(FilterLowPass::<6, _>::new(None)), Box::new(FilterLowPass::<6, _>::new(None))),
-                        _ if (8.0..12.0).contains(&smooth) => (Box::new(FilterLowPass::<8, _>::new(None)), Box::new(FilterLowPass::<8, _>::new(None))),
-                        _ if (12.0..16.0).contains(&smooth) => (Box::new(FilterLowPass::<12, _>::new(None)), Box::new(FilterLowPass::<12, _>::new(None))),
-                        _ if (16.0..24.0).contains(&smooth) => (Box::new(FilterLowPass::<16, _>::new(None)), Box::new(FilterLowPass::<16, _>::new(None))),
-                        _ => (Box::new(FilterLowPass::<1, _>::new(None)), Box::new(FilterLowPass::<1, _>::new(None))),
-                    }
-                    None => todo!(),
+                    Some(smooth) => (Box::new(FilterSmooth2::new(None, smooth)), Box::new(FilterSmooth2::new(None, smooth))),
+                // match smooth {
+                //         _ if (0.0..2.0).contains(&smooth) => (Box::new(FilterLowPass::<1, _>::new(None)), Box::new(FilterLowPass::<1, _>::new(None))),
+                //         _ if (2.0..4.0).contains(&smooth) => (Box::new(FilterLowPass::<2, _>::new(None)), Box::new(FilterLowPass::<2, _>::new(None))),
+                //         _ if (4.0..6.0).contains(&smooth) => (Box::new(FilterLowPass::<4, _>::new(None)), Box::new(FilterLowPass::<4, _>::new(None))),
+                //         _ if (6.0..8.0).contains(&smooth) => (Box::new(FilterLowPass::<6, _>::new(None)), Box::new(FilterLowPass::<6, _>::new(None))),
+                //         _ if (8.0..12.0).contains(&smooth) => (Box::new(FilterLowPass::<8, _>::new(None)), Box::new(FilterLowPass::<8, _>::new(None))),
+                //         _ if (12.0..16.0).contains(&smooth) => (Box::new(FilterLowPass::<12, _>::new(None)), Box::new(FilterLowPass::<12, _>::new(None))),
+                //         _ if (16.0..24.0).contains(&smooth) => (Box::new(FilterLowPass::<16, _>::new(None)), Box::new(FilterLowPass::<16, _>::new(None))),
+                //         _ => (Box::new(FilterLowPass::<1, _>::new(None)), Box::new(FilterLowPass::<1, _>::new(None))),
+                    // }
+                    None => (Box::new(FilterEmpty::new(None)), Box::new(FilterEmpty::new(None))),
                 };
                 let mut upper;
                 let mut lower;

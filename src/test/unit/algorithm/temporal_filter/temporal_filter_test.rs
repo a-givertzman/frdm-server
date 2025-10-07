@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter
+        AutoBrightnessAndContrast, AutoGamma, BitwiseAnd, BitwiseAndCtx, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, CvContours, CvContoursCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
     }, 
     conf::Conf, domain::Error,
 };
@@ -50,7 +50,7 @@ fn eval() {
                     y: 300           # new top edge
                     height: 1000    # new image height
                 gamma:
-                    factor: 100.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                    factor: 120.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 brightness-contrast:
                     hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
                     hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
@@ -59,11 +59,11 @@ fn eval() {
                     grow-speed: 2.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
                     reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
                     down-speed: 2.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
-                    threshold: 64.0
+                    threshold: 12.0
                 gausian:
                     blur-size:
                         width: 11
-                        height: 3
+                        height: 11
                     sigma-x: 0.0
                     sigma-y: 0.0
                 sobel:
@@ -77,7 +77,7 @@ fn eval() {
             edge-detection:
                 # otsu-tune: 0.90       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 threshold: 128       # 0...255, used if otsu-tune is not specified
-                smooth: 8             # Smoothing of edge line factor. The higher the factor the smoother the line.
+                smooth: 36             # Smoothing of edge line factor. The higher the factor the smoother the line.
             rope-dimensions:
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 25.0         # Tolerance for rope width, %
@@ -95,8 +95,8 @@ fn eval() {
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
-            // CvContours::new(
-            //     conf.contours.clone(),
+            CvContours::new(
+                conf.contours.clone(),
                 TemporalFilter::new(
                     conf.contours.temporal_filter.amplify_factor,
                     conf.contours.temporal_filter.grow_speed,
@@ -109,9 +109,9 @@ fn eval() {
                         conf.contours.gausian.sigma_x,
                         conf.contours.gausian.sigma_y,
                         Gray::new(
-                            AutoBrightnessAndContrast::new(
-                                conf.contours.brightness_contrast.hist_clip_left,
-                                conf.contours.brightness_contrast.hist_clip_right,
+                            // AutoBrightnessAndContrast::new(
+                            //     conf.contours.brightness_contrast.hist_clip_left,
+                            //     conf.contours.brightness_contrast.hist_clip_right,
                                 AutoGamma::new(
                                     conf.contours.gamma.factor,
                                     Cropping::new(
@@ -124,33 +124,24 @@ fn eval() {
                                         ),
                                     ),
                                 ),
-                            ),
+                            // ),
                         ),
                     ),
                 ),
-            // ),
+            )
         );
-    let wgray = "Gray";
-    let wcrop = "Cropped";
-    let wgamma = "Gamma";
-    let wbright = "Brightness & Contrast";
+    let w_gray = "Gray";
+    let w_crop = "Cropped";
+    let w_gamma = "Gamma";
+    let w_bright = "Brightness & Contrast";
+    let w_contours = "Contours";
+    let w_bwand = "Bitwise And";
     let w_temp_filter = "Temporal Filter";
-    if let Err(err) = opencv::highgui::named_window(wgray, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{dbg} | Create Window Error: {}", err);
+    for window in [w_gray, w_crop, w_gamma, w_bright, w_contours, w_bwand, w_temp_filter] {
+        if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
+            log::warn!("{dbg} | Create Window Error: {}", err);
+        }
     }
-    if let Err(err) = opencv::highgui::named_window(wgamma, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{dbg} | Create Window Error: {}", err);
-    }
-    if let Err(err) = opencv::highgui::named_window(wbright, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{dbg} | Create Window Error: {}", err);
-    }
-    if let Err(err) = opencv::highgui::named_window(w_temp_filter, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{dbg} | Create Window Error: {}", err);
-    }
-    if let Err(err) = opencv::highgui::named_window(wcrop, opencv::highgui::WINDOW_NORMAL) {
-        log::warn!("{dbg} | Create Window Error: {}", err);
-    }
-
     let image_dir = "src/test/unit/algorithm/temporal_filter/frames";
     // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
 
@@ -176,8 +167,10 @@ fn eval() {
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
-                let result: &ResultCtx = ctx.read();
+                let contours: &CvContoursCtx = ctx.read();
+                let bw_and: &BitwiseAndCtx = ctx.read();
                 let edges: &EdgeDetectionCtx = ctx.read();
+                let temp_filter: &TemporalFilterCtx = ctx.read();
                 // let mut res = crop.result.mat.clone();
                 // let edges_cont = contours.result.mat.clone();
                 let upper = edges.result.get(Side::Upper);
@@ -205,11 +198,13 @@ fn eval() {
                     Err(err) => (format!("Error: {:?}", err), VecN::from_array([0.0, 0.0, 255.0, 0.0]))
                 };
                 opencv::imgproc::put_text(&mut crop, &text, Point2i::new(10, 30), 1, 2.0, text_color, 2, -1, false).unwrap();
-                if !gray.frame.mat.empty() { highgui::imshow(wgray, &gray.frame.mat).unwrap() };
-                if !gamma.result.mat.empty() { highgui::imshow(wgamma, &gamma.result.mat).unwrap() };
-                if !bright.result.mat.empty() { highgui::imshow(wbright, &bright.result.mat).unwrap() };
-                if !crop.empty() { highgui::imshow(wcrop, &crop).unwrap() };
-                if !result.frame.mat.empty() { highgui::imshow(w_temp_filter, &result.frame.mat).unwrap() };
+                if !gray.frame.mat.empty() { highgui::imshow(w_gray, &gray.frame.mat).unwrap() };
+                if !gamma.result.mat.empty() { highgui::imshow(w_gamma, &gamma.result.mat).unwrap() };
+                if !bright.result.mat.empty() { highgui::imshow(w_bright, &bright.result.mat).unwrap() };
+                if !contours.result.mat.empty() { highgui::imshow(w_contours, &contours.result.mat).unwrap() };
+                if !bw_and.frame.mat.empty() { highgui::imshow(w_bwand, &bw_and.frame.mat).unwrap() };
+                if !crop.empty() { highgui::imshow(w_crop, &crop).unwrap() };
+                if !temp_filter.frame.mat.empty() { highgui::imshow(w_temp_filter, &temp_filter.frame.mat).unwrap() };
                 highgui::wait_key(0).unwrap();
             },
             _ => continue,

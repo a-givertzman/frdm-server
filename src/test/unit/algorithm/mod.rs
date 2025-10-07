@@ -1,7 +1,8 @@
 mod cv_contours;
 mod detecting_contours;
-mod detecting_contours_cv;
+mod cv_contours;
 mod fast_scan;
+mod fine_scan;
 mod geometry_defect;
 mod temporal_filter;
 mod mad_test;

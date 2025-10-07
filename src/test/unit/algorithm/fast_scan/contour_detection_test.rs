@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, Context, ContextWrite, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, AutoGammaCtx, Context, ContextWrite, CvContoursCtx, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
 use sal_sync::services::conf::ConfTree;
@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, Cropping, CroppingCtx, CvContours, CvContoursCtx, EdgeDetection, Gray
+        ContextRead, Cropping, CroppingCtx, CvContours, EdgeDetection, Gray
     }, 
     conf::Conf,
 };

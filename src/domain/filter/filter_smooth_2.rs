@@ -31,7 +31,9 @@ impl Filter for FilterSmooth2<i32> {
     fn add(&mut self, value: Self::Item) -> Option<Self::Item> {
         match self.prev {
             Some(prev) => {
-                let value = (prev as f64 + ((value as f64) - (prev as f64)) / self.factor).round() as i32;
+                let delta = value as f64 - prev as f64;
+                let factor = (1.0 + delta.abs() / value as f64) * self.factor;
+                let value = (prev as f64 + delta / factor).round() as i32;
                 self.prev.replace(value);
                 Some(value)
             }
