@@ -9,7 +9,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, DetectingContoursCv, DetectingContoursCvCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, TemporalFilter, Threshold
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CvContours, CvContoursCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, TemporalFilter, Threshold
     }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -110,7 +110,7 @@ fn main() {
         if let Err(err) = opencv::highgui::imshow(window, &frame.mat) {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };
-        let contours_result = DetectingContoursCv::new(
+        let contours_result = CvContours::new(
             DetectingContoursConf::default(),
             TemporalFilter::new(
                 conf.contours.temporal_filter.amplify_factor,
@@ -138,7 +138,7 @@ fn main() {
                 ),
             ),
         ).eval(frame.clone()).unwrap();
-        let contours_ctx = ContextRead::<DetectingContoursCvCtx>::read(&contours_result);
+        let contours_ctx = ContextRead::<CvContoursCtx>::read(&contours_result);
         if let Err(e) = opencv::highgui::imshow(window2, &contours_ctx.result.mat) {
             log::error!("Display error: {}", e);
         }
@@ -166,7 +166,7 @@ fn main() {
         //     conf.fast_scan.geometry_defect_threshold,
         //     *Box::new(Mad::new()),
         //     EdgeDetection::new(
-        //         DetectingContoursCv::new(
+        //         CvContours::new(
         //             Initial::new(
         //                 InitialCtx::new(frame),
         //             ),

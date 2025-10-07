@@ -3,8 +3,9 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, GrayCtx, GaussianBlurCtx,
-        InitialCtx, ResultCtx, RopeDimensionsCtx,
+        CroppingCtx, EdgeDetectionCtx, GaussianBlurCtx,
+        GrayCtx, InitialCtx, ResultCtx, RopeDimensionsCtx,
+        CvContoursCtx,
     },
     domain::Error,
 };
@@ -33,15 +34,15 @@ impl ContextRead<InitialCtx> for Context {
 }
 //
 //
-impl ContextWrite<DetectingContoursCvCtx> for Context {
-    fn write(mut self, value: DetectingContoursCvCtx) -> Result<Self, Error> {
-        self.detecting_contours_cv = value;
+impl ContextWrite<CvContoursCtx> for Context {
+    fn write(mut self, value: CvContoursCtx) -> Result<Self, Error> {
+        self.cv_contours = value;
         Result::Ok(self)
     }
 }
-impl ContextRead<DetectingContoursCvCtx> for Context {
-    fn read(&self) -> &DetectingContoursCvCtx {
-        &self.detecting_contours_cv
+impl ContextRead<CvContoursCtx> for Context {
+    fn read(&self) -> &CvContoursCtx {
+        &self.cv_contours
     }
 }
 //

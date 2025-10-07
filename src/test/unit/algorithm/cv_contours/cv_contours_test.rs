@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::{algorithm::{AutoBrightnessAndContrastCtx, AutoGammaCtx, Initial, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
-use opencv::{core::{MatTrait, MatTraitConst, Point2i, Vec3b, VecN}, highgui, imgproc::{HersheyFonts, LineTypes}};
+use opencv::{core::{MatTrait, MatTraitConst, Point2i, Vec3b, VecN}, highgui};
 use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
@@ -12,7 +12,9 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, BitwiseAnd, BitwiseAndCtx, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, CvContours, CvContoursCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection,
+        EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, ResultCtx, RopeDimensions,
+        RopeDimensionsCtx, Side, CvContours, CvContoursCtx,
     }, 
     conf::Conf, domain::Error,
 };

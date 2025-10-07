@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingCtx, DetectingContoursCv, EdgeDetection, EdgeDetectionCtx, Gray, GrayCtx, ResultCtx, Side, TemporalFilter
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, Gray, GrayCtx, ResultCtx, Side, TemporalFilter
     }, 
     conf::Conf,
 };
@@ -90,7 +90,7 @@ fn eval() {
     //         conf.edge_detection.otsu_tune,
     //         conf.edge_detection.threshold,
     //         conf.edge_detection.smooth,
-    //         DetectingContoursCv::new(
+    //         CvContours::new(
     //             conf.contours.clone(),
     //             TemporalFilter::new(
     //                 conf.contours.temporal_filter.amplify_factor,

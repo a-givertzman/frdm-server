@@ -2,8 +2,8 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, GrayCtx, GaussianBlurCtx,
-        InitialCtx, ResultCtx, RopeDimensionsCtx,
+        CroppingCtx, EdgeDetectionCtx, GrayCtx, GaussianBlurCtx,
+        InitialCtx, ResultCtx, RopeDimensionsCtx, CvContoursCtx,
     },
 };
 use super::testing_ctx::TestingCtx;
@@ -18,7 +18,7 @@ pub struct Context {
     /// Common result image from current step
     pub(super) result: ResultCtx,
     /// Filtered and binarised image
-    pub(super) detecting_contours_cv: DetectingContoursCvCtx,
+    pub(super) cv_contours: CvContoursCtx,
     /// Cropped image
     pub(super) cropping: CroppingCtx,
     /// Gamma-corrected image
@@ -52,7 +52,7 @@ impl Context {
         Self {
             initial,
             result: ResultCtx::default(),
-            detecting_contours_cv: DetectingContoursCvCtx::default(),
+            cv_contours: CvContoursCtx::default(),
             cropping: CroppingCtx::default(),
             auto_gamma: AutoGammaCtx::default(),
             auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),

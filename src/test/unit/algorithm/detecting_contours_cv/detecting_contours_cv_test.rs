@@ -6,7 +6,7 @@ use sal_core::{dbg::Dbg, error::Error};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 use crate::{
-    algorithm::{AutoBrightnessAndContrastCtx, Context, ContextRead, ContextWrite, DetectingContoursCv, DetectingContoursCvCtx, EvalResult, InitialCtx}, conf::DetectingContoursConf, domain::{Eval, Image}
+    algorithm::{AutoBrightnessAndContrastCtx, Context, ContextRead, ContextWrite, CvContours, CvContoursCtx, EvalResult, InitialCtx}, conf::DetectingContoursConf, domain::{Eval, Image}
 };
 ///
 ///
@@ -48,13 +48,13 @@ fn eval() {
             imgcodecs::IMREAD_COLOR,
         ).unwrap();
         log::debug!("\n{dbg} | step {step}  Detecting contours...");
-        let ctx = DetectingContoursCv::new(
+        let ctx = CvContours::new(
             DetectingContoursConf::default(),
             FakePassImg::new()
         )
         .eval(Image::with(img)).unwrap();
         log::debug!("\n{dbg} | step {step}  Showing result...");
-        let result: &DetectingContoursCvCtx = ctx.read();
+        let result: &CvContoursCtx = ctx.read();
         highgui::named_window("detected_contours_cv", highgui::WINDOW_NORMAL).unwrap();
         highgui::imshow("contours", &result.result.mat).unwrap();
         highgui::wait_key(0).unwrap();

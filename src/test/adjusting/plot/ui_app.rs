@@ -9,7 +9,8 @@ use egui::{
 };
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, CvContours, CvContoursCtx,
+        EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold,
     },
     conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf},
     domain::{Dot, Eval, Image},
@@ -395,7 +396,7 @@ impl UiApp {
 impl eframe::App for UiApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let window_origin = "Orgin";
-        let window_contours = "DetectingContoursCv";
+        let window_contours = "CvContours";
         let window_hist = "Hist";
         let window_result = "Result";
         START.call_once(|| {
@@ -556,7 +557,7 @@ impl eframe::App for UiApp {
                     conf.edge_detection.otsu_tune,
                     conf.edge_detection.threshold,
                     conf.edge_detection.smooth,
-                    DetectingContoursCv::new(
+                    CvContours::new(
                         conf.contours.clone(),
                         Gray::new(
                             AutoBrightnessAndContrast::new(
@@ -582,7 +583,7 @@ impl eframe::App for UiApp {
                     Ok(result_ctx) => {
                         self.elapsed = Some(t.elapsed());
                         self.alg_err = None;
-                        let contours_ctx: &DetectingContoursCvCtx = result_ctx.read();
+                        let contours_ctx: &CvContoursCtx = result_ctx.read();
                         self.contour_frame = Some(contours_ctx.result.clone());
                         let edges: &EdgeDetectionCtx = result_ctx.read();
                         let upper = edges.result.get(Side::Upper);

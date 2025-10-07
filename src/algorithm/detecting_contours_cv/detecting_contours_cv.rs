@@ -4,7 +4,7 @@ use opencv::core;
 use sal_core::error::Error;
 use crate::algorithm::{
     ContextWrite, ContextRead,
-    DetectingContoursCvCtx, AutoBrightnessAndContrastCtx,
+    CvContoursCtx, AutoBrightnessAndContrastCtx,
     EvalResult, ResultCtx,
 };
 use crate::conf::DetectingContoursConf;
@@ -12,15 +12,15 @@ use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
 /// Return filtered and binarised [Image] with contours detected
-pub struct DetectingContoursCv {
+pub struct CvContours {
     conf: DetectingContoursConf,
     ctx: Box<dyn Eval<Image, EvalResult>>,
 }
 //
 //
-impl DetectingContoursCv{
+impl CvContours{
     ///
-    /// Returns [DetectingContoursCv] new instance
+    /// Returns [CvContours] new instance
     /// - `ctx` - Prevouse step returns [Image] in [Context]
     /// - `conf` - Configuration for `Contour dectection` algorithm:
     ///     - gausian:
@@ -44,9 +44,9 @@ impl DetectingContoursCv{
 }
 //
 //
-impl Eval<Image, EvalResult> for DetectingContoursCv {
+impl Eval<Image, EvalResult> for CvContours {
     fn eval(&self, frame: Image) -> EvalResult {
-        let error = Error::new("DetectingContoursCv", "eval");
+        let error = Error::new("CvContours", "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
@@ -93,10 +93,10 @@ impl Eval<Image, EvalResult> for DetectingContoursCv {
                                                                     mat: grad,
                                                                     bytes: frame.bytes,
                                                                 };
-                                                                let result = DetectingContoursCvCtx { result: frame.clone() };
+                                                                let result = CvContoursCtx { result: frame.clone() };
                                                                 let ctx = ctx.write(result)?;
                                                                 let result = ResultCtx { frame };
-                                                                log::debug!("DetectingContoursCv.eval | Elapsed: {:?}", t.elapsed());
+                                                                log::debug!("CvContours.eval | Elapsed: {:?}", t.elapsed());
                                                                 ctx.write(result)
                                                             }
                                                             Err(err) => Err(error.pass(err.to_string())),

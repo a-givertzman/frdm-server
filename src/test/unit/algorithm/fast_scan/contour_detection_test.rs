@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, AutoGammaCtx, Context, ContextWrite, DetectingContoursCvCtx, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, Context, ContextWrite, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
 use sal_sync::services::conf::ConfTree;
@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, Cropping, CroppingCtx, DetectingContoursCv, EdgeDetection, Gray
+        ContextRead, Cropping, CroppingCtx, CvContours, CvContoursCtx, EdgeDetection, Gray
     }, 
     conf::Conf,
 };
@@ -85,7 +85,7 @@ fn eval() {
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
-            DetectingContoursCv::new(
+            CvContours::new(
                 conf.contours.clone(),
                 Gray::new(
                     AutoBrightnessAndContrast::new(
@@ -152,28 +152,28 @@ fn eval() {
                 core::rotate(&inp, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 let src_frame = Image::with(rotated);
                 log::warn!("{dbg}.eval | src_frame size: {} x {}", src_frame.width, src_frame.height);
-                let test = src_frame.clone();
+                // let test = src_frame.clone();
                 let time = Instant::now();
                 let ctx = scan_rope.eval(src_frame).unwrap();
                 log::warn!("{dbg}.eval | Elapsed: {:?}", time.elapsed());
                 let crop: &CroppingCtx = ctx.read();    
-                let gamma: &AutoGammaCtx = ctx.read();
+                // let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
-                let contours: &DetectingContoursCvCtx = ctx.read();
+                let contours: &CvContoursCtx = ctx.read();
                 let edges: &EdgeDetectionCtx = ctx.read();
                 let mut res = crop.result.mat.clone();
-                let edges_cont = contours.result.mat.clone();
+                // let edges_cont = contours.result.mat.clone();
                 let upper = edges.result.get(Side::Upper);
                 let lower = edges.result.get(Side::Lower);
                 for dot in upper {
-                    if dot.x >= 0 && dot.y >= 0 {
+                    if dot.x as isize >= 0 && dot.y as isize >= 0 {
                         let x = dot.x as i32;
                         let y = dot.y as i32;
                         *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
                     }
                 }
                 for dot in lower {
-                    if dot.x >= 0 && dot.y >= 0 {
+                    if dot.x as isize >= 0 && dot.y as isize >= 0 {
                         let x = dot.x as i32;
                         let y = dot.y as i32;
                         *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
@@ -183,8 +183,8 @@ fn eval() {
                 let mut ada = Mat::default();
                 imgproc::adaptive_threshold(&contours.result.mat, &mut ada, 255.0, imgproc::ADAPTIVE_THRESH_MEAN_C, imgproc::THRESH_BINARY, 201, -20.0).unwrap();
 
-                let mut hist = Mat::default();
-                let hist_size = 256 as i32;
+                // let mut hist = Mat::default();
+                // let hist_size = 256 as i32;
                 // opencv::imgproc::calc_hist(
                 //             &contours.result.mat,
                 //             &Vector::from_slice(&[0]),
