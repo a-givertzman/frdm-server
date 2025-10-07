@@ -95,8 +95,8 @@ fn eval() {
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
-            CvContours::new(
-                conf.contours.clone(),
+            // CvContours::new(
+            //     conf.contours.clone(),
                 TemporalFilter::new(
                     conf.contours.temporal_filter.amplify_factor,
                     conf.contours.temporal_filter.grow_speed,
@@ -128,7 +128,7 @@ fn eval() {
                         ),
                     ),
                 ),
-            )
+            // ),
         );
     let w_gray = "Gray";
     let w_crop = "Cropped";

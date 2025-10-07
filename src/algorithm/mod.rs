@@ -4,7 +4,6 @@ mod context;
 mod cropping;
 mod cv_contours;
 mod detecting_contours;
-mod cv_contours;
 mod fast_scan;
 mod fine_scan;
 mod gaussian_blur;
