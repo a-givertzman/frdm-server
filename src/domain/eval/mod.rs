@@ -1,1 +1,3 @@
-pub mod eval;
+mod eval;
+
+pub use eval::*;

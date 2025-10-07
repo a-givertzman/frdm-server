@@ -1,9 +1,9 @@
 #[cfg(test)]
 
 mod arena {
-    use std::{sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, mpsc, Arc, Once}, thread, time::{Duration, Instant}};
-    use crate::infrostructure::{arena::{ac_device::AcDevice, image::Image, ac_system::AcSystem}, camera::camera_conf::CameraConf};
-    use sal_sync::services::entity::dbg_id::DbgId;
+    use std::{sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, Arc, Once}, thread, time::{Duration, Instant}};
+    use crate::{domain::{channel_unbounded, Image}, infrostructure::arena::{AcDevice, AcSystem}, CameraConf};
+    use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     ///
@@ -29,7 +29,7 @@ mod arena {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = DbgId("arena_test".into());
+        let dbg = Dbg::own("arena_test");
         let dbg_1 = dbg.clone();
         let dbg_2 = dbg.clone();
         log::debug!("\n{}", dbg);
@@ -59,7 +59,7 @@ mod arena {
         "#).unwrap();
         let conf = CameraConf::from_yaml(&dbg, &conf);
         let time = Instant::now();
-        let (send, recv) = mpsc::channel::<Image>();
+        let (send, recv) = channel_unbounded::<Image>();
         let disp_handle = std::thread::spawn(move || {
             let dbg = dbg_1;
             let window = "Retrived";
@@ -102,7 +102,7 @@ mod arena {
                                 log::info!("Device {}: {:?} | {:?} | {:?} | {:?} | {:?}", dev, device_vendor, device_model, device_serial, device_mac, device_ip);
                             }
                             let selection = 0;
-                            let mut device = AcDevice::new(&dbg, ac_system.system, selection, conf, Some(exit_1));
+                            let mut device = AcDevice::new(&dbg, ac_system.system, selection, conf, Some(exit_1), None);
                             let result = device.listen(|frame| {
                                 if let Err(err) = send.send(frame) {
                                     log::warn!("{} | Send Error; {}", dbg, err);

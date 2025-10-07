@@ -1,20 +1,20 @@
-use std::{sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc}, thread::JoinHandle, time::Duration};
-
+use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::JoinHandle, time::Duration};
 use opencv::videoio::VideoCaptureTrait;
-use sal_core::error::Error;
-use sal_sync::services::entity::{dbg_id::DbgId, name::Name};
-use crate::infrostructure::arena::{ac_device::AcDevice, ac_system::AcSystem, image::Image};
-use super::{camera_conf::CameraConf, pimage::PImage};
+use sal_core::{dbg::Dbg, error::Error};
+use sal_sync::services::entity::{Name, Object};
+use crate::{domain::{channel_unbounded, Receiver, Sender, Image}, infrostructure::arena::{AcDevice, AcSystem}};
+use super::camera_conf::CameraConf;
 ///
 /// # Description to the [Camera] class
 /// - Connecting to the IP Camra
 /// - Receive frames from the `Camera`
 pub struct Camera {
-    dbg: DbgId,
+    dbg: Dbg,
     name: Name,
     conf: CameraConf,
-    send: mpsc::Sender<Image>,
-    recv: Option<mpsc::Receiver<Image>>,
+    send: Sender<Image>,
+    recv: Option<Receiver<Image>>,
+    suspend: Arc<AtomicBool>,
     exit: Arc<AtomicBool>,
 }
 //
@@ -25,15 +25,16 @@ impl Camera {
     /// - [parent] - DbgId of parent entitie
     /// - `conf` - configuration parameters
     pub fn new(conf: CameraConf) -> Self {
-        let dbg = DbgId(conf.name.join());
+        let dbg = Dbg::new(conf.name.parent(), conf.name.me());
         log::trace!("{}.new | : ", dbg);
-        let (send, recv) = mpsc::channel();
+        let (send, recv) = channel_unbounded();
         Self {
             dbg,
             name: conf.name.clone(),
             conf,
             send,
             recv: Some(recv),
+            suspend: Arc::new(AtomicBool::new(false)),
             exit: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -41,7 +42,7 @@ impl Camera {
     /// Returns channel recv to access farmes from camera
     /// - call `read` to start reading frames from camera
     /// - call `close` to stop reading and cleen up
-    pub fn stream(&mut self) -> mpsc::Receiver<Image> {
+    pub fn stream(&mut self) -> Receiver<Image> {
         match self.recv.take() {
             Some(recv) => recv,
             None => {
@@ -55,6 +56,7 @@ impl Camera {
         let dbg = self.dbg.clone();
         let conf = self.conf.clone();
         let send = self.send.clone();
+        let suspend = self.suspend.clone();
         let exit = self.exit.clone();
         let handle = std::thread::spawn(move || {
             log::info!("{}.read | Start", dbg);
@@ -79,14 +81,14 @@ impl Camera {
                                         log::trace!("{}.read | Device {} IP: {}", dbg, dev, device_ip);
                                         let device_firmware = ac_system.device_firmware(dev).unwrap();
                                         log::trace!("{}.read | Device {} Firmware: {}", dbg, dev, device_firmware);
-                                        log::info!(
+                                        log::debug!(
                                             "{}.read | Device {}: {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
                                             dbg, dev, device_vendor, device_model, device_serial, device_mac, device_ip, device_firmware);
                                     }
                                     match &conf.index {
                                         Some(index) => {
                                             if devices >= index + 1 {
-                                                let mut device = AcDevice::new(&dbg, ac_system.system, *index, conf.clone(), Some(exit.clone()));
+                                                let mut device = AcDevice::new(&dbg, ac_system.system, *index, conf.clone(), Some(exit.clone()), Some(suspend.clone()));
                                                 let result = device.listen(|frame| {
                                                     if let Err(err) = send.send(frame) {
                                                         log::warn!("{}.read | Send Error: {}", dbg, err);
@@ -126,43 +128,95 @@ impl Camera {
         Ok(handle)
     }
     ///
-    /// Receive frames from IP camera
-    pub fn from_file(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
+    /// Receive frames from video file
+    #[allow(unused)]
+    pub fn from_video(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
         match opencv::videoio::VideoCapture::from_file(&path.into(), opencv::videoio::CAP_ANY) {
             Ok(mut video) => {
                 let mut frames = vec![];
                 let mut frame = opencv::core::Mat::default();
                 while let Ok(result) = video.read(&mut frame) {
                     if result {
-                        frames.push(PImage::new(frame.clone()));
+                        frames.push(Image::with(frame.clone()));
                     } else {
                         break;
                     }
                 }
                 Ok(CameraIntoIterator { frames })
             }
-            Err(err) => Err(Error::new(&self.dbg, "from_file").err(err.to_string())),
+            Err(err) => Err(Error::new(&self.dbg, "from_video").err(err.to_string())),
         }
     }
     ///
+    /// Receive frames from path containing image files
+    #[allow(unused)]
+    pub fn from_images(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
+        let mut frames = vec![];
+        match std::fs::read_dir(path.into()) {
+            Ok(paths) => {
+                for path in paths {
+                    match path {
+                        Ok(path) => {
+                            if path.path().is_file() {
+                                let path = path.path();
+                                let path = path.to_str().ok_or(Error::new(&self.dbg, "from_images").err(format!("Error in path {}", path.display())))?;
+                                match Image::load(path) {
+                                    Ok(img) => {
+                                        log::debug!("{}.from_images | Read: {}", self.dbg, path);
+                                        frames.push(img);
+                                    }
+                                    Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
+                                }
+                            }
+                        }
+                        Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
+                    }
+                }
+            }
+            Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
+        }
+        Ok(CameraIntoIterator { frames })
+    }
+    ///
+    /// Suspending receiving frames from camera
+    pub fn suspend(&self) {
+        self.suspend.store(true, Ordering::Release);
+        log::debug!("{}.suspend | Suspension mode: ON", self.dbg);
+    }
+    ///
+    /// Resuming receiving frames from camera
+    pub fn resume(&self) {
+        log::debug!("{}.resume | Suspension mode: OFF", self.dbg);
+        self.suspend.store(false, Ordering::Release);
+    }
+    ///
     /// Sends `Exit` signal to stop reading.
+    #[allow(unused)]
     pub fn exit(&self) {
         self.exit.store(true, Ordering::SeqCst);
+    }
+}
+//
+//
+impl Object for Camera {
+    fn name(&self) -> Name {
+        self.name.clone()
     }
 }
 ///
 /// Camera Iterator
 pub struct CameraIntoIterator {
     // camera: Camera,
-    frames: Vec<PImage>,
+    frames: Vec<Image>,
 }
 //
 //
 impl CameraIntoIterator {
-    pub fn push_frame(&mut self, frame: PImage) {
+    #[allow(unused)]
+    pub fn push_frame(&mut self, frame: Image) {
         self.frames.push(frame);
     }
-    fn pop_first(&mut self) -> Option<PImage> {
+    fn pop_first(&mut self) -> Option<Image> {
         if self.frames.is_empty() {
             None
         } else {
@@ -173,7 +227,7 @@ impl CameraIntoIterator {
 //
 //
 impl IntoIterator for Camera {
-    type Item = PImage;
+    type Item = Image;
     type IntoIter = CameraIntoIterator;
     fn into_iter(self) -> Self::IntoIter {
         CameraIntoIterator {
@@ -185,7 +239,7 @@ impl IntoIterator for Camera {
 //
 //
 impl Iterator for CameraIntoIterator {
-    type Item = PImage;
+    type Item = Image;
     fn next(&mut self) -> Option<Self::Item> {
         self.pop_first()
     }

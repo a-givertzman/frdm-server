@@ -4,7 +4,10 @@
 //! - Setup
 //! - Receive frames from
 //!
-pub mod camera_resolution;
-pub mod camera_conf;
-pub mod camera;
-pub mod pimage;
+mod camera_resolution;
+mod camera_conf;
+mod camera;
+
+pub use camera_resolution::*;
+pub use camera_conf::*;
+pub use camera::*;

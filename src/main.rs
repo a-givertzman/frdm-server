@@ -1,20 +1,23 @@
+extern crate frdm_tools;
+mod algorithm;
+mod conf;
 mod domain;
 mod infrostructure;
-mod conf;
 #[cfg(test)]
 mod test;
+//
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, Cropping, CvContours, EdgeDetection, GeometryDefect, Gray, Initial, InitialCtx, Mad, RopeDimensionsConf, TemporalFilter, Threshold
+        AutoBrightnessAndContrast, AutoGamma, Cropping, DetectingContoursCv, EdgeDetection, GeometryDefect, Gray, Initial, InitialCtx, Mad, RopeDimensionsConf, TemporalFilter, Threshold
     }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
-/// Appliacation entri point
+/// Application entry point
 fn main() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
-    let dbg = DbgId("main".into());
+    let dbg = Dbg::own("main");
     let path = "./config.yaml";
     let conf = CameraConf::read(&dbg, path);
     let mut camera = Camera::new(conf);
@@ -41,7 +44,7 @@ fn main() {
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
-            CvContours::new(
+            DetectingContoursCv::new(
                 conf.contours.clone(),
                 TemporalFilter::new(
                     conf.contours.temporal_filter.amplify_factor,
@@ -75,11 +78,12 @@ fn main() {
         log::trace!("{} | Frame width : {:?}", dbg, frame.width);
         log::trace!("{} | Frame height: {:?}", dbg, frame.height);
         log::trace!("{} | Frame timestamp: {:?}", dbg, frame.timestamp);
-
         if let Err(err) = opencv::highgui::imshow(window, &frame.mat) {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };
         opencv::highgui::wait_key(1).unwrap();
+        let result = scan_rope.eval(frame);
+        _ = result;
     }
     handle.join().unwrap()
 }

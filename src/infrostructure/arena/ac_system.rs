@@ -1,9 +1,6 @@
 use sal_core::error::Error;
-use sal_sync::services::entity::name::Name;
-
-use crate::infrostructure::arena::bindings::acSystemUpdateDevices;
-
-use super::{ac_err::AcErr, bindings::{self, acCloseSystem, acOpenSystem, acSystem, acSystemGetNumDevices}, ffi_str::FfiStr};
+use sal_sync::services::entity::Name;
+use super::{ac_err::AcErr, FfiStr, acSystem, acCloseSystem, acOpenSystem, acSystemGetNumDevices, acSystemUpdateDevices};
 
 ///
 /// Representation of the system object, the entry point into Arena SDK.

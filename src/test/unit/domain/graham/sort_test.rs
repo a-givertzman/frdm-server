@@ -2,9 +2,13 @@
 
 mod graham {
     use std::{sync::Once, time::{Duration, Instant}};
+    use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::domain::{dbg::dbgid::DbgId, eval::eval::Eval, graham::{dot::Dot, find_start::FindStartCtx, sort::Sort}};
+    use crate::{
+        algorithm::{Sort, FindStartCtx},
+        domain::{Dot, Eval},
+    };
     ///
     ///
     static INIT: Once = Once::new();
@@ -26,7 +30,7 @@ mod graham {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbg = DbgId::root("test");
+        let dbg = Dbg::own("test");
         log::debug!("\n{}", dbg);
         let test_duration = TestDuration::new(dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
@@ -49,7 +53,7 @@ mod graham {
     }
     struct MocEval { ctx: FindStartCtx }
     impl Eval<(), FindStartCtx> for MocEval {
-        fn eval(&mut self, _: ()) -> FindStartCtx {
+        fn eval(&self, _: ()) -> FindStartCtx {
             self.ctx.clone()
         }
     }

@@ -19,7 +19,6 @@ impl PImage{
 //
 // TODO: Better way to compare matrixes:
 // bool eq = std::equal(a.begin<uchar>(), a.end<uchar>(), b.begin<uchar>());
-
 impl PartialEq for PImage {
     fn eq(&self, other: &Self) -> bool {
         let mut dst = self.frame.clone();
