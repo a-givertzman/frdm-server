@@ -12,14 +12,14 @@ pub struct GaussianBlur {
     height: i32,
     sigma_x: f64,
     sigma_y: f64,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
 //
 impl GaussianBlur {
     ///
     /// Returns [GaussianBlur] new instance
-    pub fn new(width: usize, height: usize, sigma_x: f64, sigma_y: f64, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(width: usize, height: usize, sigma_x: f64, sigma_y: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self {
             width: width as i32,
             height: height as i32,

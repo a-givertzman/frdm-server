@@ -25,7 +25,7 @@ use crate::{Eval, domain::Image};
 /// Return filtered and binarised [Image] with contours detected
 pub struct FineContours {
     conf: DetectingContoursConf,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
 //
@@ -46,7 +46,7 @@ impl FineContours {
     ///         - `src1-weight` - Weight for X gradient
     ///         - `src1-weight` - Weight for Y gradient
     ///         - `gamma` - Scalar added to weighted sum
-    pub fn new(conf: DetectingContoursConf, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(conf: DetectingContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self { 
             conf,
             ctx: Box::new(ctx),

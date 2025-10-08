@@ -13,7 +13,7 @@ pub struct GeometryDefect {
     dbg: Dbg,
     threshold: Threshold,
     mad: Box<dyn Eval<Vec<usize>, MadCtx>>,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
 //
@@ -23,7 +23,7 @@ impl GeometryDefect {
     pub fn new(
         threshold: Threshold,
         mad: impl Eval<Vec<usize>, MadCtx> + 'static,
-        ctx: impl Eval<Image, EvalResult> + 'static,
+        ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static,
     ) -> Self {
         Self {
             dbg: Dbg::own("GeometryDefect"),

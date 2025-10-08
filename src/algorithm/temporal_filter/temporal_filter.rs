@@ -1,9 +1,8 @@
-use std::{cell::RefCell, time::Instant};
+use std::time::Instant;
 use opencv::core::{Mat, MatTraitConst, MatTraitConstManual, Point2i, Size2i};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx},
-    domain::{Eval, Filter, Image},
+    algorithm::{ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx}, domain::{Eval, Filter, Image, RwLock},
 };
 ///
 /// Temporal Filter | Highlighting / Hiding pixels depending on those changing speed
@@ -13,9 +12,9 @@ pub struct TemporalFilter {
     reduce_factor: f64,
     down_speed: f64,
     threshold: f64,
-    filters: RefCell<Vec<FilterIsChanged::<f32>>>,
+    filters: RwLock<Vec<FilterIsChanged::<f32>>>,
     // background: RefCell<Mat>,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
 //
@@ -23,15 +22,14 @@ impl TemporalFilter {
     ///
     /// Returns [TemporalFilter] new instance
     /// - `cache` - path to the cache folder
-    pub fn new(amplify_factor: f64, grow_speed: f64, reduce_factor: f64, down_speed: f64, threshold: f64, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(amplify_factor: f64, grow_speed: f64, reduce_factor: f64, down_speed: f64, threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self {
             amplify_factor,
             grow_speed,
             reduce_factor,
             down_speed,
             threshold,
-            filters: RefCell::new(vec![]),
-            // background: RefCell::new(Mat::default()),
+            filters: RwLock::new(vec![]),
             ctx: Box::new(ctx),
         }
     }
@@ -53,17 +51,15 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                         let pixels = width * height * frame.mat.channels() as usize;
                         let mut out = vec![0u8; pixels];
                         log::debug!("TemporalFilter.eval | pixels: {:?}", pixels);
-                        if self.filters.borrow().is_empty() {
-                            *self.filters.borrow_mut() = (0..pixels).map(|_| {
+                        if self.filters.read().is_empty() {
+                            *self.filters.write() = (0..pixels).map(|_| {
                                 FilterIsChanged::<f32>::new(None, self.threshold)
-                                // FilterHighPass::<u8>::new(None, self.amplify_factor, self.grow_speed, self.reduce_factor, self.down_speed, self.threshold)
                             }).collect();
-                            // *self.background.borrow_mut() = unsafe { Mat::new_rows_cols(height as i32, width as i32, opencv::core::CV_8UC1).unwrap() };
                         }
                         log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
                         log::debug!("TemporalFilter.eval | mat.channels: {:?}", frame.mat.channels());
                         {
-                            let mut filters = self.filters.borrow_mut();
+                            let mut filters = self.filters.write();
                             for i in 0..pixels {
                                 match input.get(i) {
                                     Some(value) => {

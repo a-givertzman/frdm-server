@@ -2,9 +2,9 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        BitwiseAndCtx, CroppingCtx, CvContoursCtx, EdgeDetectionCtx, GaussianBlurCtx,
-        GrayCtx, InitialCtx, ResultCtx, RopeDimensionsCtx, TemporalFilterCtx,
-        FineContoursCtx,
+        BitwiseAndCtx, CroppingCtx, CvContoursCtx, EdgeDetectionCtx, FineContoursCtx,
+        GaussianBlurCtx, GrayCtx, InitialCtx, ResultCtx, RopeDimensionsCtx, TemporalFilterCtx,
+        FastUnionCtx, FineUnionCtx,
     },
 };
 use super::testing_ctx::TestingCtx;
@@ -44,6 +44,10 @@ pub struct Context {
     pub(super) width_emissions: WidthEmissionsCtx,
     /// result of detecting [GeometryDefect's](design/theory/geometry_rope_defects.md)
     pub(super) geometry_defect: GeometryDefectCtx,
+    /// `FastUnion` result contour
+    pub(super) fast_union: FastUnionCtx,
+    /// `FineUnion` result contour
+    pub(super) fine_union: FineUnionCtx,
     ///
     /// Uset for testing only
     #[allow(dead_code)]
@@ -72,6 +76,8 @@ impl Context {
             rope_dimensions: RopeDimensionsCtx::default(),
             width_emissions: WidthEmissionsCtx::default(),
             geometry_defect: GeometryDefectCtx::default(),
+            fast_union: FastUnionCtx::default(),
+            fine_union: FineUnionCtx::default(),
             testing: None,
         }
     }

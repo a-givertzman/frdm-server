@@ -19,14 +19,14 @@ use crate::{Eval, domain::Image};
 pub struct AutoBrightnessAndContrast {
     clip_left: f32,
     clip_right: f32,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 impl AutoBrightnessAndContrast {
     ///
     /// Returns [AutoBrightnessAndContrast] new instance
     /// - `clip_left` - optional histogram clipping from left (dark pixels), default = 0 %
     /// - `clip_right` - optional histogram clipping from right (light pixels), default = 0 %
-    pub fn new(clip_left: f32, clip_right: f32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(clip_left: f32, clip_right: f32, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self { 
             clip_left,
             clip_right,

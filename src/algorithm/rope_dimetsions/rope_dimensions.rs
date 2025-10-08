@@ -10,7 +10,7 @@ pub struct RopeDimensions {
     rope_width: f64,
     width_tolerance: f64,
     square_tolerance: f64,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
 //
@@ -20,7 +20,7 @@ impl RopeDimensions {
     /// - `rope_width` - Standart rope width, px
     /// - `width_tolerance` - Tolerance for rope width, %
     /// - `square_tolerance` - Tolerance for rope square, %
-    pub fn new(rope_width: usize, width_tolerance: f64, square_tolerance: f64, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(rope_width: usize, width_tolerance: f64, square_tolerance: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self {
             rope_width: rope_width as f64,
             width_tolerance,

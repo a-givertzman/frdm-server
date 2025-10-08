@@ -5,7 +5,7 @@ use opencv::imgproc;
 use opencv::core;
 use sal_core::error::Error;
 use crate::algorithm::{
-    ContextWrite, ContextRead,
+    cv, ContextWrite, ContextRead,
     CvContoursCtx,
     GrayCtx, EvalResult, ResultCtx,
 };
@@ -17,7 +17,7 @@ use crate::{Eval, domain::Image};
 /// Binarization is based on the sharpness of the target segment
 pub struct CvContours {
     conf: DetectingContoursConf,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
 //
@@ -38,7 +38,7 @@ impl CvContours {
     ///         - `src1-weight` - Weight for X gradient
     ///         - `src1-weight` - Weight for Y gradient
     ///         - `gamma` - Scalar added to weighted sum
-    pub fn new(conf: DetectingContoursConf, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(conf: DetectingContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self { 
             conf,
             ctx: Box::new(ctx),
@@ -88,6 +88,27 @@ impl Eval<Image, EvalResult> for CvContours {
                 let result: &GrayCtx = ctx.read();
                 let frame = &result.frame;
                 let kernel = 13;
+                let ev = cv::GaussianBlur::new(
+                    &[kernel, kernel],
+                    cv::Morphology::new(
+                        operation,
+                        kernel,
+                        ,
+                    ),
+                );
+                cv::Morphology::dilate(
+                    kernel,
+                ),
+                cv::GaussianBlur::new(
+                    &[kernel, kernel],
+                    cv::Laplacian::new(
+                        kernel,
+                        cv::GaussianBlur::new(
+                            &[kernel, kernel],
+                            PassMat::new(),
+                        ),
+                    ),
+                ),
                 let blur = Self::gaussian_blur(&frame.mat, kernel).map_err(|err| error.pass(err))?;
                 let mut laplacian = Mat::default();
                 opencv::imgproc::laplacian(&blur, &mut laplacian, opencv::core::CV_8UC1, 5, 1.0, 0.0, opencv::core::BorderTypes::BORDER_REFLECT_101 as i32)
@@ -117,5 +138,18 @@ impl Eval<Image, EvalResult> for CvContours {
             }
             Err(err) => Err(error.pass(err)),
         }
+    }
+}
+///
+/// Closes calculation sequence, passing input `Mat`
+struct PassMat {}
+impl PassMat {
+    fn new() -> Self {
+        Self {  }
+    }
+}
+impl<'a> Eval<&'a Mat, Result<Mat, Error>> for PassMat {
+    fn eval(&self, mat: &'a Mat) -> Result<Mat, Error> {
+        Ok(mat.to_owned())
     }
 }

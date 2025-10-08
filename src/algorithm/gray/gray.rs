@@ -8,14 +8,14 @@ use crate::{
 ///
 /// Converts input frame into gray scale
 pub struct Gray {
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
 //
 impl Gray {
     ///
     /// Returns [Gray] new instance
-    pub fn new(ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self {
             ctx: Box::new(ctx),
         }

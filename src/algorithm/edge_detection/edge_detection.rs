@@ -2,7 +2,7 @@ use std::time::Instant;
 use opencv::{core::{Mat, MatTraitConst, MatTraitConstManual}, imgproc};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, InitialPoints, ResultCtx}, domain::{Dot, Eval, Filter, FilterLowPass, FilterEmpty, FilterSmooth2, Image}
+    algorithm::{ContextRead, ContextWrite, EvalResult, InitialPoints, ResultCtx}, domain::{Dot, Eval, Filter, FilterEmpty, FilterSmooth2, Image}
 };
 use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
@@ -12,14 +12,14 @@ pub struct EdgeDetection {
     otsu_tune: Option<f64>,
     threshold: Option<u8>,
     smooth: Option<f64>,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
 //
 impl EdgeDetection {
     ///
     /// Returns [EdgeDetection] new instance
-    pub fn new(otsu_tune: Option<f64>, threshold: Option<u8>, smooth: Option<f64>, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(otsu_tune: Option<f64>, threshold: Option<u8>, smooth: Option<f64>, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self {
             otsu_tune,
             threshold,

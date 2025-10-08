@@ -18,7 +18,7 @@ pub struct Cropping {
     width: i32,
     y: i32,
     height: i32,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
 //
@@ -29,7 +29,7 @@ impl Cropping {
     /// - `width` - new image width
     /// - `y` - new top edge
     /// - `height` - new image height
-    pub fn new(x: i32, width: i32, y: i32, height: i32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(x: i32, width: i32, y: i32, height: i32, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self { 
             x,
             width,

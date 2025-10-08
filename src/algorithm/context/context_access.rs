@@ -3,9 +3,9 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        BitwiseAndCtx, CroppingCtx, CvContoursCtx, EdgeDetectionCtx, GaussianBlurCtx,
-        GrayCtx, InitialCtx, ResultCtx, RopeDimensionsCtx, TemporalFilterCtx,
-        FineContoursCtx,
+        FastUnionCtx, FineUnionCtx, CroppingCtx, CvContoursCtx, EdgeDetectionCtx,
+        FineContoursCtx, GaussianBlurCtx, GrayCtx, InitialCtx, ResultCtx,
+        RopeDimensionsCtx, TemporalFilterCtx, BitwiseAndCtx,
     }, domain::Error,
 };
 ///
@@ -163,6 +163,19 @@ impl ContextRead<GaussianBlurCtx> for Context {
 }
 //
 //
+impl ContextWrite<BitwiseAndCtx> for Context {
+    fn write(mut self, value: BitwiseAndCtx) -> Result<Self, Error> {
+        self.bitwise_and = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<BitwiseAndCtx> for Context {
+    fn read(&self) -> &BitwiseAndCtx {
+        &self.bitwise_and
+    }
+}
+//
+//
 impl ContextWrite<RopeDimensionsCtx> for Context {
     fn write(mut self, value: RopeDimensionsCtx) -> Result<Self, Error> {
         self.rope_dimensions = value;
@@ -189,15 +202,28 @@ impl ContextRead<TemporalFilterCtx> for Context {
 }
 //
 //
-impl ContextWrite<BitwiseAndCtx> for Context {
-    fn write(mut self, value: BitwiseAndCtx) -> Result<Self, Error> {
-        self.bitwise_and = value;
+impl ContextWrite<FastUnionCtx> for Context {
+    fn write(mut self, value: FastUnionCtx) -> Result<Self, Error> {
+        self.fast_union = value;
         Result::Ok(self)
     }
 }
-impl ContextRead<BitwiseAndCtx> for Context {
-    fn read(&self) -> &BitwiseAndCtx {
-        &self.bitwise_and
+impl ContextRead<FastUnionCtx> for Context {
+    fn read(&self) -> &FastUnionCtx {
+        &self.fast_union
+    }
+}
+//
+//
+impl ContextWrite<FineUnionCtx> for Context {
+    fn write(mut self, value: FineUnionCtx) -> Result<Self, Error> {
+        self.fine_union = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<FineUnionCtx> for Context {
+    fn read(&self) -> &FineUnionCtx {
+        &self.fine_union
     }
 }
 //

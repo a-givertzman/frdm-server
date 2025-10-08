@@ -19,8 +19,8 @@ use super::WidthEmissionsCtx;
 pub struct WidthEmissions {
     dbg: Dbg,
     threshold: Threshold,
-    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send>,
-    ctx: Box<dyn Eval<(), EvalResult> + Send>,
+    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send + Sync>,
+    ctx: Box<dyn Eval<(), EvalResult> + Send + Sync>,
 }
 //
 //
@@ -29,8 +29,8 @@ impl WidthEmissions {
     /// New instance [WidthEmissions]
     pub fn new(
         threshold: Threshold,
-        mad: impl Eval<Vec<usize>, MadCtx> + Send + 'static,
-        ctx: impl Eval<(), EvalResult> + Send + 'static,
+        mad: impl Eval<Vec<usize>, MadCtx> + Send + Sync + 'static,
+        ctx: impl Eval<(), EvalResult> + Send + Sync + 'static,
     ) -> Self {
         Self {
             dbg: Dbg::own("WidthEmissions"),
