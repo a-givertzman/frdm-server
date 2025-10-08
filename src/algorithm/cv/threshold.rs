@@ -124,6 +124,7 @@ impl<'a> Eval<&'a Mat, Result<Mat, Error>> for Threshold<'a> {
         match self.ctx.eval(mat) {
             Ok(mat) => {
                 let mut dst = Mat::default();
+                opencv::imgproc::adaptive_threshold(src, dst, max_value, adaptive_method, threshold_type, block_size, c)
                 opencv::imgproc::threshold(&blur, &mut contour, threshold * 0.4, 255.0, opencv::imgproc::ThresholdTypes::THRESH_BINARY as i32)
                     .map_err(|err| error.pass_with("Can't do Threshold", err.to_string()))?;
 
