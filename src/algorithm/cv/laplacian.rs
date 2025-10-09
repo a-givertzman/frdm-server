@@ -3,22 +3,25 @@ use sal_core::error::Error;
 use crate::Eval;
 ///
 /// Apply `OpenCv` Laplacian to passed image
-pub struct Laplacian<'a> {
+pub struct Laplacian {
     out_depth: i32,
     kernel: i32,
     scale: f64,
     delta: f64,
     border: BorderTypes,
-    ctx: Box<dyn Eval<&'a Mat, Result<Mat, Error>>>,
+    ctx: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
 }
 //
 //
-impl<'a> Laplacian<'a> {
+impl Laplacian {
     ///
     /// Returns Structuring element `Mat` new instance
     /// - `kernel` - Aperture size `[w, h]` used to compute the second-derivative filters. See get_deriv_kernels for details. The size must be positive and odd.
+    /// - `scale` - default `1.0`
+    /// - `delta` - default `0.0`
+    /// - `border` - default `BORDER_REFLECT_101`
     #[allow(unused)]
-    pub fn new(kernel: i32, ctx: impl Eval<&'a Mat, Result<Mat, Error>> + 'static) -> Self {
+    pub fn new(kernel: i32, ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static) -> Self {
         Self {
             out_depth: opencv::core::CV_8UC1,
             kernel,
@@ -105,27 +108,32 @@ impl<'a> Laplacian<'a> {
 }
 //
 //
-impl<'a> Eval<&'a Mat, Result<Mat, Error>> for Laplacian<'a> {
-    fn eval(&self, mat: &Mat) -> Result<Mat, Error> {
-        let mut dst = Mat::default();
-        opencv::imgproc::laplacian(
-            mat,
-            &mut dst,
-            self.out_depth,
-            self.kernel,
-            self.scale,
-            self.delta,
-            self.border as i32,
-        )
-        .map_err(|err| {
-            Error::new("Laplacian", "eval")
-                .pass_with(
-                    format!(
-                        "Can't apply Laplacian with depth {}, kernel {:?}, scale {:?}, delta {:?}, border {:?}",
-                        Self::depth_name(self.out_depth), self.kernel, self.scale, self.delta, self.border),
-                    err.to_string(),
+impl Eval<Mat, Result<Mat, Error>> for Laplacian {
+    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
+        match self.ctx.eval(mat) {
+            Ok(mat) => {
+                let mut dst = Mat::default();
+                opencv::imgproc::laplacian(
+                    &mat,
+                    &mut dst,
+                    self.out_depth,
+                    self.kernel,
+                    self.scale,
+                    self.delta,
+                    self.border as i32,
                 )
-        })?;
-        Ok(dst)
+                .map_err(|err| {
+                    Error::new("Laplacian", "eval")
+                        .pass_with(
+                            format!(
+                                "Can't apply Laplacian with depth {}, kernel {:?}, scale {:?}, delta {:?}, border {:?}",
+                                Self::depth_name(self.out_depth), self.kernel, self.scale, self.delta, self.border),
+                            err.to_string(),
+                        )
+                })?;
+                Ok(dst)
+            }
+            Err(err) => Err(Error::new("Laplacian", "eval").pass(err)),
+        }
     }
 }

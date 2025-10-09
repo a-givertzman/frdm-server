@@ -13,19 +13,21 @@ pub struct GaussianBlur {
     sigma_x: f64,
     sigma_y: f64,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 //
 //
 impl GaussianBlur {
     ///
     /// Returns [GaussianBlur] new instance
-    pub fn new(width: usize, height: usize, sigma_x: f64, sigma_y: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
+    pub fn new(width: usize, height: usize, sigma_x: f64, sigma_y: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self {
             width: width as i32,
             height: height as i32,
             sigma_x,
             sigma_y,
             ctx: Box::new(ctx),
+            debug,
         }
     }
 }
@@ -44,8 +46,12 @@ impl Eval<Image, EvalResult> for GaussianBlur {
                 match imgproc::gaussian_blur(&frame.mat, &mut blurred, kernel_size, self.sigma_x, self.sigma_y, opencv::core::BORDER_DEFAULT) {
                     Ok(_) => {
                         let frame = Image::with(blurred);
-                        let blurred = GaussianBlurCtx { frame: frame.clone() };
-                        let ctx = ctx.write(blurred)?;
+                        let ctx = if self.debug {
+                            let result = GaussianBlurCtx { frame: frame.clone() };
+                            ctx.write(result).map_err(|err| error.pass(err))?
+                        } else {
+                            ctx
+                        };
                         let result = ResultCtx { frame };
                         log::debug!("GaussianBlur.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)

@@ -16,6 +16,7 @@ use crate::{Eval, domain::Image};
 pub struct AutoGamma {
     factor: f64,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 impl AutoGamma {
     ///
@@ -24,10 +25,11 @@ impl AutoGamma {
     ///     bigger the value more the effect of [AutoGamma] algorythm
     ///     - exposure 35: beatter percent - 60 %
     ///     - exposure 95: beatter percent - 95 %
-    pub fn new(factor: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
+    pub fn new(factor: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
             factor: factor,
             ctx: Box::new(ctx),
+            debug,
         }
     }
 }
@@ -64,8 +66,12 @@ impl Eval<Image, EvalResult> for AutoGamma {
                                             mat: dst,
                                             bytes: frame.bytes,
                                         };
-                                        let result = AutoGammaCtx { result: frame.clone() };
-                                        let ctx = ctx.write(result)?;
+                                        let ctx = if self.debug {
+                                            let result = AutoGammaCtx { result: frame.clone() };
+                                            ctx.write(result).map_err(|err| error.pass(err))?
+                                        } else {
+                                            ctx
+                                        };
                                         let result = ResultCtx { frame };
                                         log::debug!("AutoGamma.eval | Elapsed: {:?}", t.elapsed());
                                         ctx.write(result)

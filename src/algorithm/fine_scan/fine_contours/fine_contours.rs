@@ -1,31 +1,27 @@
 use std::collections::VecDeque;
-use std::time::Duration;
 use std::time::Instant;
 use opencv::core::Mat;
 use opencv::core::MatTraitConst;
 use opencv::core::Point;
-use opencv::core::Point2f;
 use opencv::core::Point2i;
-use opencv::core::Point2l;
-use opencv::core::Size2i;
-use opencv::core::VectorToVec;
 use opencv::imgproc;
 use opencv::core;
 use opencv::imgproc::LineTypes;
+use opencv::imgproc::ThresholdTypes;
 use sal_core::error::Error;
 use crate::algorithm::{
-    ContextWrite, ContextRead,
-    CvContoursCtx, FineContoursCtx,
-    GrayCtx, EvalResult, ResultCtx,
+    ContextWrite, ContextRead, FineContoursCtx,
+    GrayCtx, EvalResult, ResultCtx, cv,
 };
-use crate::conf::DetectingContoursConf;
+use crate::conf::CvContoursConf;
 use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
 /// Return filtered and binarised [Image] with contours detected
 pub struct FineContours {
-    conf: DetectingContoursConf,
+    conf: CvContoursConf,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 //
 //
@@ -46,10 +42,11 @@ impl FineContours {
     ///         - `src1-weight` - Weight for X gradient
     ///         - `src1-weight` - Weight for Y gradient
     ///         - `gamma` - Scalar added to weighted sum
-    pub fn new(conf: DetectingContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
+    pub fn new(conf: CvContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
             conf,
             ctx: Box::new(ctx),
+            debug,
         }
     }
     ///
@@ -193,40 +190,52 @@ impl Eval<Image, EvalResult> for FineContours {
             Ok(ctx) => {
                 let t = Instant::now();
                 // let result: &ResultCtx = ctx.read();
-                let result: &GrayCtx = ctx.read();
+                let result: &ResultCtx = ctx.read();
                 let frame = &result.frame;
-                // let mut dst = Mat::default();
-                // opencv::imgproc::sobel(&frame.mat, &mut sobelx, core::CV_8U, 1, 0, 3, 1.0, 0.0, core::BORDER_DEFAULT)
+                let thresh = cv::AutoThreshold::new(
+                    0.4,
+                    255.0,
+                    ThresholdTypes::THRESH_BINARY,
+                    cv::Morphology::open(
+                        &[5, 5],
+                        cv::GaussianBlur::new(
+                            &[13, 13],
+                            cv::Laplacian::new(
+                                5,
+                                cv::GaussianBlur::new(
+                                    &[11, 11],
+                                    PassCvMat::new(),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+                    .eval(frame.mat.clone())
+                    .map_err(|err| error.pass(err))?;
+                // imgproc::gaussian_blur(&frame.mat, &mut dst, Size2i::new(11, 11), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
                 //     .map_err(|err| error.pass(err.to_string()))?;
-                // opencv::imgproc::sobel(&frame.mat, &mut sobely, core::CV_8U, 1, 0, 3, 1.0, 0.0, core::BORDER_DEFAULT)
+                // opencv::imgproc::laplacian(&dst.clone(), &mut dst, opencv::core::CV_8UC1, 5, 1.0, 0.0, opencv::core::BorderTypes::BORDER_REFLECT_101 as i32)
                 //     .map_err(|err| error.pass(err.to_string()))?;
-                // opencv::core::add_weighted_def(&sobelx, 0.99, &sobely, 0.99, 0.0, &mut dst)
+                // imgproc::gaussian_blur(&dst.clone(), &mut dst, Size2i::new(13, 13), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
                 //     .map_err(|err| error.pass(err.to_string()))?;
-                let mut dst = Mat::default();
-                imgproc::gaussian_blur(&frame.mat, &mut dst, Size2i::new(11, 11), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
-                    .map_err(|err| error.pass(err.to_string()))?;
-                opencv::imgproc::laplacian(&dst.clone(), &mut dst, opencv::core::CV_8UC1, 5, 1.0, 0.0, opencv::core::BorderTypes::BORDER_REFLECT_101 as i32)
-                    .map_err(|err| error.pass(err.to_string()))?;
-                imgproc::gaussian_blur(&dst.clone(), &mut dst, Size2i::new(13, 13), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
-                    .map_err(|err| error.pass(err.to_string()))?;
 
-                let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, core::Size2i::new(5, 5), core::Point2i::new(-1, -1)).unwrap();
-                let mut deleted = core::Mat::default();
-                opencv::imgproc::morphology_ex(
-                    &dst,
-                    &mut deleted,
-                    opencv::imgproc::MORPH_OPEN,
-                    &kernel,
-                    core::Point2i::new(-1, -1),
-                    2,
-                    opencv::core::BORDER_CONSTANT,
-                    opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
-                ).map_err(|err| error.pass(err.to_string()))?;
-                let mut thresh = core::Mat::default();
-                let threshold = opencv::imgproc::threshold(&deleted, &mut thresh, 8.0, 255.0, opencv::imgproc::ThresholdTypes::THRESH_OTSU as i32)
-                    .map_err(|err| error.pass(err.to_string()))?;
-                opencv::imgproc::threshold(&deleted, &mut thresh, threshold * 0.4, 255.0, opencv::imgproc::ThresholdTypes::THRESH_BINARY as i32)
-                    .map_err(|err| error.pass(err.to_string()))?;
+                // let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, core::Size2i::new(5, 5), core::Point2i::new(-1, -1)).unwrap();
+                // let mut deleted = core::Mat::default();
+                // opencv::imgproc::morphology_ex(
+                //     &dst,
+                //     &mut deleted,
+                //     opencv::imgproc::MORPH_OPEN,
+                //     &kernel,
+                //     core::Point2i::new(-1, -1),
+                //     2,
+                //     opencv::core::BORDER_CONSTANT,
+                //     opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
+                // ).map_err(|err| error.pass(err.to_string()))?;
+                // let mut thresh = core::Mat::default();
+                // let threshold = opencv::imgproc::threshold(&deleted, &mut thresh, 8.0, 255.0, opencv::imgproc::ThresholdTypes::THRESH_OTSU as i32)
+                //     .map_err(|err| error.pass(err.to_string()))?;
+                // opencv::imgproc::threshold(&deleted, &mut thresh, threshold * 0.4, 255.0, opencv::imgproc::ThresholdTypes::THRESH_BINARY as i32)
+                //     .map_err(|err| error.pass(err.to_string()))?;
                 let mut contours: core::Vector<core::Vector<Point>> = core::Vector::default();
                 log::debug!("FineContours.eval | contours...");
                 imgproc::find_contours(
@@ -311,7 +320,8 @@ impl Eval<Image, EvalResult> for FineContours {
                     imgproc::convex_hull(&contour, &mut hull, true, true)
                         .map_err(|err| error.pass(err.to_string()))?;
                     imgproc::fill_poly(&mut convex, &hull, core::Vec4d::from_array([255.0, 255.0, 255.0, 255.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
-                        .map_err(|err| error.pass(err.to_string()))?;
+                        .unwrap();
+                        // .map_err(|err| error.pass(err.to_string()))?;
 
                     core::bitwise_and(&thresh, &convex, &mut contour_fill, &core::no_array())
                         .map_err(|err| error.pass(err.to_string()))?;
@@ -319,26 +329,37 @@ impl Eval<Image, EvalResult> for FineContours {
                     //     .map_err(|err| error.pass(err.to_string()))?;
                     // imgproc::fill_convex_poly(&mut thresh, contours, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0)
                     imgproc::fill_poly(&mut dst, &contour_fill, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
-                        .map_err(|err| error.pass(err.to_string()))?;
+                        .unwrap();
+                        // .map_err(|err| error.pass(err.to_string()))?;
                 }
-                // for contour in contours {
-                //     log::debug!("FineContours.eval | contour: {:?}", contour);
-                //     // imgproc::polylines(&mut thresh, &contour, true, core::Vec4d::from_array([128.0, 128.0, 128.0, 255.0]), 1, LineTypes::LINE_8 as i32, 0)
-                //     //     .map_err(|err| error.pass(err.to_string()))?;
-                //     imgproc::fill_convex_poly(&mut thresh, &contour, core::Vec4d::from_array([128.0, 128.0, 128.0, 255.0]), LineTypes::LINE_8 as i32, 0)
-                //         .map_err(|err| error.pass(err.to_string()))?;
-                // }
                 let frame = Image::with(dst);
-                let result = FineContoursCtx {
-                    convex: Image::with(convex),
-                    contour: Image::with(contour_fill),
-                    result: frame.clone() };
-                let ctx = ctx.write(result)?;
+                let ctx = if self.debug {
+                    let result = FineContoursCtx {
+                        convex: Image::with(convex),
+                        contour: Image::with(contour_fill),
+                        result: frame.clone() };
+                    ctx.write(result).map_err(|err| error.pass(err))?
+                } else {
+                    ctx
+                };
                 let result = ResultCtx { frame };
                 log::debug!("FineContours.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }
             Err(err) => Err(error.pass(err)),
         }
+    }
+}
+///
+/// Closes calculation sequence, passing input `Mat`
+struct PassCvMat {}
+impl PassCvMat {
+    fn new() -> Self {
+        Self {  }
+    }
+}
+impl Eval<Mat, Result<Mat, Error>> for PassCvMat {
+    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
+        Ok(mat)
     }
 }

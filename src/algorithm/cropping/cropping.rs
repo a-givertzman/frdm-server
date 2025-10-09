@@ -19,6 +19,7 @@ pub struct Cropping {
     y: i32,
     height: i32,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 //
 //
@@ -29,13 +30,14 @@ impl Cropping {
     /// - `width` - new image width
     /// - `y` - new top edge
     /// - `height` - new image height
-    pub fn new(x: i32, width: i32, y: i32, height: i32, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
+    pub fn new(x: i32, width: i32, y: i32, height: i32, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
             x,
             width,
             y,
             height,
             ctx: Box::new(ctx),
+            debug,
         }
     }
 }
@@ -57,8 +59,12 @@ impl Eval<Image, EvalResult> for Cropping {
                                 mat: cropped.clone_pointee(),
                                 bytes: frame.bytes,
                             };
-                            let result = CroppingCtx { result: frame.clone() };
-                            let ctx = ctx.write(result)?;
+                            let ctx = if self.debug {
+                                let result = CroppingCtx { result: frame.clone() };
+                                ctx.write(result).map_err(|err| error.pass(err))?
+                            } else {
+                                ctx
+                            };
                             let result = ResultCtx { frame };
                             ctx.write(result)
                         },

@@ -11,7 +11,7 @@ use crate::{
     algorithm::{
         AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, CvContours, CvContoursCtx, EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
     },
-    conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf},
+    conf::{BrightnessContrastConf, Conf, CvContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf},
     domain::{Dot, Eval, Image},
 };
 
@@ -20,6 +20,7 @@ use crate::{
 static START: Once = Once::new();
 ///
 /// Variant of parameter value
+#[allow(unused)]
 enum ParamVal {
     IRange(std::ops::Range<i64>),
     FRange(std::ops::Range<f64>),
@@ -48,8 +49,8 @@ pub struct UiApp {
     conf: Vec<Param>,
     params: FxIndexMap<String, (String, Value)>,
     zoom: f32,
-    start_pos: egui::Pos2,
-    end_pos: egui::Pos2,
+    // start_pos: egui::Pos2,
+    // end_pos: egui::Pos2,
     origin: Image,
     frame: Image,
     hist_frame: Option<Image>,
@@ -136,8 +137,8 @@ impl UiApp {
             ],
             params: FxIndexMap::default(),
             zoom: 1.0,
-            start_pos: egui::pos2(0.0, 0.0),
-            end_pos: egui::pos2(100.0, 100.0),
+            // start_pos: egui::pos2(0.0, 0.0),
+            // end_pos: egui::pos2(100.0, 100.0),
             origin,
             frame,
             hist_frame: None,
@@ -239,10 +240,10 @@ impl UiApp {
                     }
                     // log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
                     let texture_handle: TextureHandle = ui.ctx().load_texture(title, image(&frame), TextureOptions::LINEAR);
-                    let mut scene_rect = ctx.input(|x| {
+                    let scene_rect = ctx.input(|x| {
                         x.viewport().inner_rect.unwrap_or(egui::Rect::ZERO)
                     });
-                    let scale_factor = 1.0 / ctx.zoom_factor();
+                    // let scale_factor = 1.0 / ctx.zoom_factor();
                     let image = egui::Image::new(&texture_handle)
                         .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into());
                         // .shrink_to_fit()
@@ -498,7 +499,7 @@ impl eframe::App for UiApp {
                 let otsu_tune = self.params.get("EdgeDetection.Otsu-tune").unwrap().1.as_double();
                 let threshold = self.params.get("EdgeDetection.Threshold").unwrap().1.as_int() as u8;
                 let conf = Conf {
-                    contours: DetectingContoursConf {
+                    cv_contours: CvContoursConf {
                         cropping: CroppingConf {
                             x: cropping_x,
                             width: if cropping_x + cropping_width <= self.frame.width as i32 {cropping_width} else {self.frame.width as i32 - cropping_x},
@@ -552,30 +553,36 @@ impl eframe::App for UiApp {
                     fine_scan: FineScanConf::default(),
                 };
                 let t = Instant::now();
+                let debug = false;
                 let result_ctx = EdgeDetection::new(
                     conf.edge_detection.otsu_tune,
                     conf.edge_detection.threshold,
                     conf.edge_detection.smooth,
                     CvContours::new(
-                        conf.contours.clone(),
+                        conf.cv_contours.clone(),
                         Gray::new(
                             AutoBrightnessAndContrast::new(
-                                conf.contours.brightness_contrast.hist_clip_left,
-                                conf.contours.brightness_contrast.hist_clip_right,
+                                conf.cv_contours.brightness_contrast.hist_clip_left,
+                                conf.cv_contours.brightness_contrast.hist_clip_right,
                                 AutoGamma::new(
-                                    conf.contours.gamma.factor,
+                                    conf.cv_contours.gamma.factor,
                                     Cropping::new(
-                                        conf.contours.cropping.x,
-                                        conf.contours.cropping.width,
-                                        conf.contours.cropping.y,
-                                        conf.contours.cropping.height,
+                                        conf.cv_contours.cropping.x,
+                                        conf.cv_contours.cropping.width,
+                                        conf.cv_contours.cropping.y,
+                                        conf.cv_contours.cropping.height,
                                         Initial::new(
                                             InitialCtx::new(),
                                         ),
+                                        debug,
                                     ),
+                                    debug,
                                 ),
+                                debug,
                             ),
+                            debug,
                         ),
+                        debug,
                     ),
                 ).eval(self.frame.clone());
                 match result_ctx {
@@ -586,15 +593,15 @@ impl eframe::App for UiApp {
                         self.contour_frame = Some(contours_ctx.result.clone());
                         let edges: &EdgeDetectionCtx = result_ctx.read();
                         let upper = edges.result.get(Side::Upper);
-                        let result_img = Self::image_plot(&self.frame, upper, [0, 0, 255], &conf.contours.cropping);
+                        let result_img = Self::image_plot(&self.frame, upper, [0, 0, 255], &conf.cv_contours.cropping);
                         let lower = edges.result.get(Side::Lower);
-                        let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.contours.cropping);
+                        let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.cv_contours.cropping);
                         self.result_frame = Some(result_img);
                         // let gamma_ctx: &AutoGammaCtx = result_ctx.read();
                         self.hist_frame = Some(Self::display_hist(
                             &contours_ctx.result,
-                            conf.contours.brightness_contrast.hist_clip_left,
-                            conf.contours.brightness_contrast.hist_clip_right,
+                            conf.cv_contours.brightness_contrast.hist_clip_left,
+                            conf.cv_contours.brightness_contrast.hist_clip_right,
                         ));
                     }
                     Err(err) => {

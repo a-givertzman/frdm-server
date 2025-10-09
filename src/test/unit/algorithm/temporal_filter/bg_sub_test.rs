@@ -1,7 +1,7 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrastCtx, AutoGammaCtx, Context, ContextWrite, EvalResult, Initial, InitialCtx}, domain::{Eval, Image}};
+use crate::{algorithm::{Initial, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
-use opencv::{core::{self, Mat, MatTrait, MatTraitConst, Vec3b, ROTATE_90_CLOCKWISE}, highgui, video::BackgroundSubtractorTrait};
+use opencv::{core::{Mat, MatTraitConst}, highgui, video::BackgroundSubtractorTrait};
 use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingCtx, CvContours, EdgeDetection, EdgeDetectionCtx, Gray, GrayCtx, ResultCtx, Side, TemporalFilter
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, Gray, GrayCtx,
     }, 
     conf::Conf,
 };
@@ -37,7 +37,7 @@ fn eval() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
     init_once();
     init_each();
-    let dbg = Dbg::own("TemporalFilter-test");
+    let dbg = Dbg::own("bg-sub-test");
     log::debug!("\n{}", dbg);
     let test_duration = TestDuration::new(&dbg, Duration::from_secs(1000));
     test_duration.run().unwrap();
@@ -85,6 +85,7 @@ fn eval() {
         "#)).unwrap(),
     );
     let conf = Conf::new(&dbg, conf);
+    let debug = false;
     let temporal_filter = 
     //     EdgeDetection::new(
     //         conf.edge_detection.otsu_tune,
@@ -100,21 +101,25 @@ fn eval() {
     //                 conf.contours.temporal_filter.threshold,
                     Gray::new(
                         AutoBrightnessAndContrast::new(
-                            conf.contours.brightness_contrast.hist_clip_left,
-                            conf.contours.brightness_contrast.hist_clip_right,
+                            conf.cv_contours.brightness_contrast.hist_clip_left,
+                            conf.cv_contours.brightness_contrast.hist_clip_right,
                             AutoGamma::new(
-                                conf.contours.gamma.factor,
+                                conf.cv_contours.gamma.factor,
                                 Cropping::new(
-                                    conf.contours.cropping.x,
-                                    conf.contours.cropping.width,
-                                    conf.contours.cropping.y,
-                                    conf.contours.cropping.height,
+                                    conf.cv_contours.cropping.x,
+                                    conf.cv_contours.cropping.width,
+                                    conf.cv_contours.cropping.y,
+                                    conf.cv_contours.cropping.height,
                                     Initial::new(
                                         InitialCtx::new(),
                                     ),
+                                    debug,
                                 ),
+                                debug,
                             ),
+                            debug,
                         ),
+                        debug,
                     );
     //             ),
     //         ),
@@ -202,22 +207,4 @@ fn eval() {
     }
     highgui::destroy_all_windows().unwrap();
     test_duration.exit();
-}
-///
-/// Fake implements `Eval` for testing [EdgeDetection]
-struct FakePassImg {}
-impl FakePassImg{
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-//
-//
-impl Eval<Image, EvalResult> for FakePassImg {
-    fn eval(&self, frame: Image) -> EvalResult {
-        let ctx = Context::new(
-            InitialCtx::new()
-        );
-        ctx.write(AutoBrightnessAndContrastCtx { result: frame })
-    }
 }

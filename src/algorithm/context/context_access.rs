@@ -5,7 +5,7 @@ use crate::{
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
         FastUnionCtx, FineUnionCtx, CroppingCtx, CvContoursCtx, EdgeDetectionCtx,
         FineContoursCtx, GaussianBlurCtx, GrayCtx, InitialCtx, ResultCtx,
-        RopeDimensionsCtx, TemporalFilterCtx, BitwiseAndCtx,
+        RopeDimensionsCtx, TemporalFilterCtx,
     }, domain::Error,
 };
 ///
@@ -159,19 +159,6 @@ impl ContextWrite<GaussianBlurCtx> for Context {
 impl ContextRead<GaussianBlurCtx> for Context {
     fn read(&self) -> &GaussianBlurCtx {
         &self.gaussian_blur
-    }
-}
-//
-//
-impl ContextWrite<BitwiseAndCtx> for Context {
-    fn write(mut self, value: BitwiseAndCtx) -> Result<Self, Error> {
-        self.bitwise_and = value;
-        Result::Ok(self)
-    }
-}
-impl ContextRead<BitwiseAndCtx> for Context {
-    fn read(&self) -> &BitwiseAndCtx {
-        &self.bitwise_and
     }
 }
 //

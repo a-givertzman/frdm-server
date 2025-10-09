@@ -2,7 +2,7 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        BitwiseAndCtx, CroppingCtx, CvContoursCtx, EdgeDetectionCtx, FineContoursCtx,
+        CroppingCtx, CvContoursCtx, EdgeDetectionCtx, FineContoursCtx,
         GaussianBlurCtx, GrayCtx, InitialCtx, ResultCtx, RopeDimensionsCtx, TemporalFilterCtx,
         FastUnionCtx, FineUnionCtx,
     },
@@ -32,8 +32,6 @@ pub struct Context {
     pub(super) gray: GrayCtx,
     /// Gaussian blur result image
     pub(super) gaussian_blur: GaussianBlurCtx,
-    /// BitwiseAnd result image
-    pub(super) bitwise_and: BitwiseAndCtx,
     /// TemporalFilter result image
     pub(super) temporal_filter: TemporalFilterCtx,
     /// points of rope perimeter
@@ -70,7 +68,6 @@ impl Context {
             auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),
             gray: GrayCtx::default(),
             gaussian_blur: GaussianBlurCtx::default(),
-            bitwise_and: BitwiseAndCtx::default(),
             temporal_filter: TemporalFilterCtx::default(),
             edge_detection: EdgeDetectionCtx::default(),
             rope_dimensions: RopeDimensionsCtx::default(),

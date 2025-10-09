@@ -4,9 +4,7 @@ use opencv::imgproc;
 use sal_core::error::Error;
 use crate::algorithm::{
     ContextWrite, ContextRead,
-    AutoGammaCtx,
-    EvalResult,
-    ResultCtx,
+    EvalResult, ResultCtx,
 };
 use crate::algorithm::auto_correction::AutoBrightnessAndContrastCtx;
 use crate::{Eval, domain::Image};
@@ -20,17 +18,19 @@ pub struct AutoBrightnessAndContrast {
     clip_left: f32,
     clip_right: f32,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 impl AutoBrightnessAndContrast {
     ///
     /// Returns [AutoBrightnessAndContrast] new instance
     /// - `clip_left` - optional histogram clipping from left (dark pixels), default = 0 %
     /// - `clip_right` - optional histogram clipping from right (light pixels), default = 0 %
-    pub fn new(clip_left: f32, clip_right: f32, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
+    pub fn new(clip_left: f32, clip_right: f32, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
             clip_left,
             clip_right,
             ctx: Box::new(ctx),
+            debug,
         }
     }
 }
@@ -119,8 +119,12 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                             mat: dst,
                                             bytes: frame.bytes,
                                         };
-                                        let result = AutoBrightnessAndContrastCtx { result: frame.clone() };
-                                        let ctx = ctx.write(result)?;
+                                        let ctx = if self.debug {
+                                            let result = AutoBrightnessAndContrastCtx { result: frame.clone() };
+                                            ctx.write(result).map_err(|err| error.pass(err))?
+                                        } else {
+                                            ctx
+                                        };
                                         let result = ResultCtx { frame };
                                         log::debug!("AutoBrightnessAndContrast.eval | Elapsed: {:?}", t.elapsed());
                                         ctx.write(result)

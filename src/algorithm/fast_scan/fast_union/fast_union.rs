@@ -64,23 +64,23 @@ impl Eval<Image, EvalResult> for FastUnion {
                 let mut dst = opencv::core::Mat::default();
                 // match opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array()) {
                 // match opencv::core::add(src1_mat, src2_mat, &mut dst, &opencv::core::no_array(), -1) {
-                match opencv::core::add_weighted_def(src1_mat, 0.1, src2_mat, 1.0, 0.0, &mut dst) {
+                match opencv::core::add_weighted_def(src1_mat, 1.0, src2_mat, 1.0, 0.0, &mut dst) {
                     Ok(_) => {
-                        let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
-                        opencv::imgproc::morphology_ex(
-                            &dst.clone(),
-                            &mut dst,
-                            opencv::imgproc::MORPH_OPEN,
-                            &kernel,
-                            Point2i::new(-1, -1),
-                            1,
-                            opencv::core::BORDER_CONSTANT,
-                            opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
-                        ).map_err(|err| error.pass(err.to_string()))?;
+                        // let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
+                        // opencv::imgproc::morphology_ex(
+                        //     &dst.clone(),
+                        //     &mut dst,
+                        //     opencv::imgproc::MORPH_OPEN,
+                        //     &kernel,
+                        //     Point2i::new(-1, -1),
+                        //     1,
+                        //     opencv::core::BORDER_CONSTANT,
+                        //     opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
+                        // ).map_err(|err| error.pass(err.to_string()))?;
 
                         let frame = Image::with(dst);
-                        let bw_and = FastUnionCtx { frame: frame.clone() };
-                        let ctx = ctx1.write(bw_and)?;
+                        let union = FastUnionCtx { frame: frame.clone() };
+                        let ctx = ctx1.write(union)?;
                         let result = ResultCtx { frame };
                         log::debug!("FastUnion.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)

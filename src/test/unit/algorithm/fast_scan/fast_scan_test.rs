@@ -1,8 +1,8 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrastCtx, AutoGammaCtx, Initial, InitialCtx}, domain::{Eval, Image}};
+use crate::{algorithm::{AutoGammaCtx, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{MatTrait, MatTraitConst, Point2i, Vec3b, VecN}, highgui};
-use sal_sync::services::conf::ConfTree;
+use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
     DebugSession, 
@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FineContours, FineContoursCtx, GaussianBlur, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter
+        Context, ContextRead, ContextWrite, CroppingCtx, EdgeDetectionCtx, EvalResult, FastScan, FastUnionCtx, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side
     }, 
     conf::Conf, domain::Error,
 };
@@ -37,7 +37,7 @@ fn eval() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
     init_once();
     init_each();
-    let dbg = Dbg::own("FineContours-test");
+    let dbg = Dbg::own("FastScan-test");
     log::debug!("\n{}", dbg);
     let test_duration = TestDuration::new(&dbg, Duration::from_secs(1000));
     test_duration.run().unwrap();
@@ -50,7 +50,7 @@ fn eval() {
                     y: 300           # new top edge
                     height: 1000    # new image height
                 gamma:
-                    factor: 100.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                    factor: 120.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 brightness-contrast:
                     hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
                     hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
@@ -59,25 +59,25 @@ fn eval() {
                     grow-speed: 2.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
                     reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
                     down-speed: 2.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
-                    threshold: 64.0
+                    threshold: 12.0
                 gausian:
                     blur-size:
                         width: 11
-                        height: 3
+                        height: 11
                     sigma-x: 0.0
                     sigma-y: 0.0
                 sobel:
-                    kernel-size: 1
-                    scale: 5.0
+                    kernel-size: 3
+                    scale: 1.0
                     delta: 0.0
                 overlay:
                     src1-weight: 1.0
                     src2-weight: 1.0
                     gamma: 0.0
             edge-detection:
-                # otsu-tune: 0.90       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                threshold: 128       # 0...255, used if otsu-tune is not specified
-                smooth: 8             # Smoothing of edge line factor. The higher the factor the smoother the line.
+                otsu-tune: 1.40       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                # threshold: 128       # 0...255, used if otsu-tune is not specified
+                smooth: 36             # Smoothing of edge line factor. The higher the factor the smoother the line.
             rope-dimensions:
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 25.0         # Tolerance for rope width, %
@@ -89,46 +89,21 @@ fn eval() {
         "#)).unwrap(),
     );
     let conf = Conf::new(&dbg, conf);
-    // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
-    let debug = false;
-    let temporal_filter = 
-        EdgeDetection::new(
-            conf.edge_detection.otsu_tune,
-            conf.edge_detection.threshold,
-            conf.edge_detection.smooth,
-            FineContours::new(
-                conf.cv_contours.clone(),
-                Gray::new(
-                    AutoGamma::new(
-                        conf.cv_contours.gamma.factor,
-                        Cropping::new(
-                            conf.cv_contours.cropping.x,
-                            conf.cv_contours.cropping.width,
-                            conf.cv_contours.cropping.y,
-                            conf.cv_contours.cropping.height,
-                            Initial::new(
-                                InitialCtx::new(),
-                            ),
-                            debug,
-                        ),
-                        debug,
-                    ),
-                    debug,
-                ),
-                debug,
-            ),
-        );
-    let wgray = "Gray";
-    let wcrop = "Cropped";
-    let wgamma = "Gamma";
-    let wcontours = "Fine Contours";
-    let w_temp_filter = "Temporal Filter";
-    for window in [wgray, wcrop, wgamma, wcontours, w_temp_filter] {
+    let tp = ThreadPool::new(&dbg, Some(4));
+    let temporal_filter = FastScan::new(
+        conf.clone(),
+        tp.scheduler(),
+        false,
+    );
+    let w_gray = "Gray";
+    let w_crop = "Cropped";
+    let w_gamma = "Auto Gamma";
+    let w_contours = "Contours";
+    for window in [w_gray, w_crop, w_gamma, w_contours] {
         if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
             log::warn!("{dbg} | Create Window Error: {}", err);
         }
     }
-
     let image_dir = "src/test/unit/algorithm/temporal_filter/frames";
     // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
 
@@ -151,20 +126,27 @@ fn eval() {
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let gray: &GrayCtx = ctx.read();    
                 let crop: &CroppingCtx = ctx.read();    
-                let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
-                let contours: &FineContoursCtx = ctx.read();
-                let result: &ResultCtx = ctx.read();
+                let contours: &FastUnionCtx = ctx.read();
+                let mut crop = if crop.result.mat.empty() {
+                    let mut dst = opencv::core::Mat::default();
+                    opencv::imgproc::cvt_color(&contours.frame.mat, &mut dst, opencv::imgproc::COLOR_GRAY2BGR, 3).unwrap();
+                    dst
+                } else {
+                    crop.result.mat.clone()
+                };
                 let edges: &EdgeDetectionCtx = ctx.read();
                 let upper = edges.result.get(Side::Upper);
                 let lower = edges.result.get(Side::Lower);
                 log::trace!("{dbg}.eval | upper: {:?}", upper);
                 log::trace!("{dbg}.eval | lower: {:?}", lower);
-                for dot in &upper {
-                    *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 0, 255]);
-                }
-                for dot in &lower {
-                    *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
+                if !crop.empty() {
+                    for dot in &upper {
+                        *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 0, 255]);
+                    }
+                    for dot in &lower {
+                        *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
+                    }
                 }
                 let (text, text_color) = match RopeDimensions::new(
                     conf.rope_dimensions.rope_width,
@@ -181,11 +163,10 @@ fn eval() {
                     Err(err) => (format!("Error: {:?}", err), VecN::from_array([0.0, 0.0, 255.0, 0.0]))
                 };
                 opencv::imgproc::put_text(&mut crop, &text, Point2i::new(10, 30), 1, 2.0, text_color, 2, -1, false).unwrap();
-                if !gray.frame.mat.empty() { highgui::imshow(wgray, &gray.frame.mat).unwrap() };
-                if !gamma.result.mat.empty() { highgui::imshow(wgamma, &gamma.result.mat).unwrap() };
-                if !result.frame.mat.empty() { highgui::imshow(w_temp_filter, &result.frame.mat).unwrap() };
-                if !crop.empty() { highgui::imshow(wcrop, &crop).unwrap() };
-                if !contours.result.mat.empty() { highgui::imshow(wcontours, &contours.result.mat).unwrap() };
+                if !gray.frame.mat.empty() { highgui::imshow(w_gray, &gray.frame.mat).unwrap() };
+                if !gamma.result.mat.empty() { highgui::imshow(w_gamma, &gamma.result.mat).unwrap() };
+                if !contours.frame.mat.empty() { highgui::imshow(w_contours, &contours.frame.mat).unwrap() };
+                if !crop.empty() { highgui::imshow(w_crop, &crop).unwrap() };
                 highgui::wait_key(0).unwrap();
             },
             _ => continue,

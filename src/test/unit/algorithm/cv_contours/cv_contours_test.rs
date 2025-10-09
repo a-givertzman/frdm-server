@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrastCtx, AutoGammaCtx, Initial, InitialCtx}, domain::{Eval, Image}};
+use crate::{algorithm::{AutoGammaCtx, Initial, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{MatTrait, MatTraitConst, Point2i, Vec3b, VecN}, highgui};
 use sal_sync::services::conf::ConfTree;
@@ -13,7 +13,7 @@ use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
         AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection,
-        EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, ResultCtx, RopeDimensions,
+        EdgeDetectionCtx, EvalResult, Gray, GrayCtx, RopeDimensions,
         RopeDimensionsCtx, Side, CvContours, CvContoursCtx,
     }, 
     conf::Conf, domain::Error,
@@ -39,7 +39,7 @@ fn eval() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
     init_once();
     init_each();
-    let dbg = Dbg::own("TemporalFilter-test");
+    let dbg = Dbg::own("CvContours-test");
     log::debug!("\n{}", dbg);
     let test_duration = TestDuration::new(&dbg, Duration::from_secs(1000));
     test_duration.run().unwrap();
@@ -92,44 +92,38 @@ fn eval() {
     );
     let conf = Conf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
+    let debug = false;
     let temporal_filter = EdgeDetection::new(
         conf.edge_detection.otsu_tune,
         conf.edge_detection.threshold,
         conf.edge_detection.smooth,
         CvContours::new(
-            conf.contours.clone(),
-            GaussianBlur::new(
-                conf.contours.gausian.blur_w,
-                conf.contours.gausian.blur_h,
-                conf.contours.gausian.sigma_x,
-                conf.contours.gausian.sigma_y,
-                Gray::new(
-                    // AutoBrightnessAndContrast::new(
-                    //     conf.contours.brightness_contrast.hist_clip_left,
-                    //     conf.contours.brightness_contrast.hist_clip_right,
-                        AutoGamma::new(
-                            conf.contours.gamma.factor,
-                            Cropping::new(
-                                conf.contours.cropping.x,
-                                conf.contours.cropping.width,
-                                conf.contours.cropping.y,
-                                conf.contours.cropping.height,
-                                Initial::new(
-                                    InitialCtx::new(),
-                                ),
-                            ),
+            conf.cv_contours.clone(),
+            Gray::new(
+                AutoGamma::new(
+                    conf.cv_contours.gamma.factor,
+                    Cropping::new(
+                        conf.cv_contours.cropping.x,
+                        conf.cv_contours.cropping.width,
+                        conf.cv_contours.cropping.y,
+                        conf.cv_contours.cropping.height,
+                        Initial::new(
+                            InitialCtx::new(),
                         ),
-                    // ),
+                        debug,
+                    ),
+                    debug,
                 ),
+                debug,
             ),
+            debug,
         ),
     );
     let w_gray = "Gray";
     let w_crop = "Cropped";
-    let w_gamma = "Gamma";
-    let w_bright = "Brightness & Contrast";
+    let w_gamma = "Auto Gamma";
     let w_contours = "Contours";
-    for window in [w_gray, w_crop, w_gamma, w_bright, w_contours] {
+    for window in [w_gray, w_crop, w_gamma, w_contours] {
         if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
             log::warn!("{dbg} | Create Window Error: {}", err);
         }
@@ -158,7 +152,6 @@ fn eval() {
                 let crop: &CroppingCtx = ctx.read();    
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
-                let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &CvContoursCtx = ctx.read();
                 let edges: &EdgeDetectionCtx = ctx.read();
                 let upper = edges.result.get(Side::Upper);
@@ -188,7 +181,6 @@ fn eval() {
                 opencv::imgproc::put_text(&mut crop, &text, Point2i::new(10, 30), 1, 2.0, text_color, 2, -1, false).unwrap();
                 if !gray.frame.mat.empty() { highgui::imshow(w_gray, &gray.frame.mat).unwrap() };
                 if !gamma.result.mat.empty() { highgui::imshow(w_gamma, &gamma.result.mat).unwrap() };
-                if !bright.result.mat.empty() { highgui::imshow(w_bright, &bright.result.mat).unwrap() };
                 if !contours.result.mat.empty() { highgui::imshow(w_contours, &contours.result.mat).unwrap() };
                 if !crop.empty() { highgui::imshow(w_crop, &crop).unwrap() };
                 highgui::wait_key(0).unwrap();

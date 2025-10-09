@@ -1,23 +1,23 @@
 use std::time::Instant;
 use opencv::core::Mat;
-use opencv::core::Size2i;
-use opencv::imgproc;
-use opencv::core;
+use opencv::imgproc::ThresholdTypes;
 use sal_core::error::Error;
 use crate::algorithm::{
     cv, ContextWrite, ContextRead,
     CvContoursCtx,
-    GrayCtx, EvalResult, ResultCtx,
+    EvalResult, ResultCtx,
 };
-use crate::conf::DetectingContoursConf;
+use crate::conf::CvContoursConf;
 use crate::{Eval, domain::Image};
 ///
 /// Return filtered and binarised [Image] with contours detected
 /// 
 /// Binarization is based on the sharpness of the target segment
 pub struct CvContours {
-    conf: DetectingContoursConf,
+    conf: CvContoursConf,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>,
+    debug: bool,
 }
 //
 //
@@ -38,42 +38,42 @@ impl CvContours {
     ///         - `src1-weight` - Weight for X gradient
     ///         - `src1-weight` - Weight for Y gradient
     ///         - `gamma` - Scalar added to weighted sum
-    pub fn new(conf: DetectingContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
-        Self { 
+    pub fn new(conf: CvContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
+        let kernel = 13;
+        Self {
             conf,
             ctx: Box::new(ctx),
+            proc: Box::new(
+                cv::Morphology::dilate(
+                    &[7, 7],
+                    cv::GaussianBlur::new(
+                        &[15, 15],
+                        cv::Morphology::open(
+                            &[5, 5],
+                            cv::GaussianBlur::new(
+                                &[5, 5],
+                                cv::AutoThreshold::new(
+                                    0.4,
+                                    255.0,
+                                    ThresholdTypes::THRESH_BINARY,
+                                    cv::GaussianBlur::new(
+                                        &[kernel, kernel],
+                                        cv::Laplacian::new(
+                                            5,
+                                            cv::GaussianBlur::new(
+                                                &[kernel, kernel],
+                                                PassCvMat::new(),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    )
+                ),
+            ),
+            debug,
         }
-    }
-    /// 
-    /// Returns Structure element of specified size
-    fn structure_element(w: i32, h: i32) -> Result<Mat, Error> {
-        opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, core::Size2i::new(5, 5), core::Point2i::new(-1, -1))
-            .map_err(|err| Error::new("CvContours", "structure_element").pass_with("Can't Get Structuring Element", err.to_string()))
-    }
-    /// 
-    /// Returns Brured image
-    fn gaussian_blur(img: &Mat, kernel: i32) -> Result<Mat, Error> {
-        let mut blur = Mat::default();
-        imgproc::gaussian_blur(&img, &mut blur, Size2i::new(kernel, kernel), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
-            .map_err(|err| Error::new("CvContours", "gausian_blur").pass_with("Can't do Gausian Blur", err.to_string()))?;
-        Ok(blur)
-    }
-    /// 
-    /// Returns Morphology transformed image
-    fn morphology(img: &Mat, op: i32, kernel: i32) -> Result<Mat, Error> {
-        let error = Error::new("CvContours", "morphology");
-        let mut transformed = core::Mat::default();
-        opencv::imgproc::morphology_ex(
-            &img,
-            &mut transformed,
-            op,
-            &Self::structure_element(kernel, kernel).map_err(|err| error.pass_with("Can't do Morphology transform Open", err.to_string()))?,
-            core::Point2i::new(-1, -1),
-            2,
-            opencv::core::BORDER_CONSTANT,
-            opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass_with("Can't do Morphology transform Open", err.to_string()))?,
-        ).map_err(|err| error.pass_with("Can't do Morphology transform Open", err.to_string()))?;
-        Ok(transformed)
     }
 }
 //
@@ -84,54 +84,23 @@ impl Eval<Image, EvalResult> for CvContours {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                // let result: &ResultCtx = ctx.read();
-                let result: &GrayCtx = ctx.read();
+                let result: &ResultCtx = ctx.read();
                 let frame = &result.frame;
-                let kernel = 13;
-                let ev = cv::GaussianBlur::new(
-                    &[kernel, kernel],
-                    cv::Morphology::new(
-                        operation,
-                        kernel,
-                        ,
-                    ),
-                );
-                cv::Morphology::dilate(
-                    kernel,
-                ),
-                cv::GaussianBlur::new(
-                    &[kernel, kernel],
-                    cv::Laplacian::new(
-                        kernel,
-                        cv::GaussianBlur::new(
-                            &[kernel, kernel],
-                            PassMat::new(),
-                        ),
-                    ),
-                ),
-                let blur = Self::gaussian_blur(&frame.mat, kernel).map_err(|err| error.pass(err))?;
-                let mut laplacian = Mat::default();
-                opencv::imgproc::laplacian(&blur, &mut laplacian, opencv::core::CV_8UC1, 5, 1.0, 0.0, opencv::core::BorderTypes::BORDER_REFLECT_101 as i32)
-                    .map_err(|err| error.pass_with("Can't do Laplacian", err.to_string()))?;
-                let blur = Self::gaussian_blur(&laplacian, kernel).map_err(|err| error.pass(err))?;
-                let mut contour = Mat::default();
-                let threshold = opencv::imgproc::threshold(&blur, &mut contour, 0.0, 255.0, opencv::imgproc::ThresholdTypes::THRESH_OTSU as i32)
-                    .map_err(|err| error.pass_with("Can't do Threshold", err.to_string()))?;
-                opencv::imgproc::threshold(&blur, &mut contour, threshold * 0.4, 255.0, opencv::imgproc::ThresholdTypes::THRESH_BINARY as i32)
-                    .map_err(|err| error.pass_with("Can't do Threshold", err.to_string()))?;
-                let blur = Self::gaussian_blur(&contour, 5).map_err(|err| error.pass(err))?;
-                let open = Self::morphology(&blur, opencv::imgproc::MORPH_OPEN, 5).map_err(|err| error.pass(err))?;
-                let blur = Self::gaussian_blur(&open, 15).map_err(|err| error.pass(err))?;
-                let delete = Self::morphology(&blur, opencv::imgproc::MORPH_DILATE, 7).map_err(|err| error.pass(err))?;
+                let mat = self.proc.eval(frame.mat.clone())
+                    .map_err(|err| error.pass(err))?;
                 let frame = Image {
                     width: frame.width,
                     height: frame.height,
                     timestamp: frame.timestamp,
-                    mat: delete,
+                    mat: mat,
                     bytes: frame.bytes,
                 };
-                let result = CvContoursCtx { result: frame.clone() };
-                let ctx = ctx.write(result)?;
+                let ctx = if self.debug {
+                    let result = CvContoursCtx { result: frame.clone() };
+                    ctx.write(result)?
+                } else {
+                    ctx
+                };
                 let result = ResultCtx { frame };
                 log::debug!("CvContours.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
@@ -142,14 +111,14 @@ impl Eval<Image, EvalResult> for CvContours {
 }
 ///
 /// Closes calculation sequence, passing input `Mat`
-struct PassMat {}
-impl PassMat {
+struct PassCvMat {}
+impl PassCvMat {
     fn new() -> Self {
         Self {  }
     }
 }
-impl<'a> Eval<&'a Mat, Result<Mat, Error>> for PassMat {
-    fn eval(&self, mat: &'a Mat) -> Result<Mat, Error> {
-        Ok(mat.to_owned())
+impl Eval<Mat, Result<Mat, Error>> for PassCvMat {
+    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
+        Ok(mat)
     }
 }

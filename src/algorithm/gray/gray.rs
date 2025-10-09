@@ -9,15 +9,17 @@ use crate::{
 /// Converts input frame into gray scale
 pub struct Gray {
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 //
 //
 impl Gray {
     ///
     /// Returns [Gray] new instance
-    pub fn new(ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
+    pub fn new(ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self {
             ctx: Box::new(ctx),
+            debug,
         }
     }
 }
@@ -35,8 +37,12 @@ impl Eval<Image, EvalResult> for Gray {
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
                         let frame = Image::with(gray);
-                        let gray = GrayCtx { frame: frame.clone() };
-                        let ctx = ctx.write(gray)?;
+                        let ctx = if self.debug {
+                            let result = GrayCtx { frame: frame.clone() };
+                            ctx.write(result).map_err(|err| error.pass(err))?
+                        } else {
+                            ctx
+                        };
                         let result = ResultCtx { frame };
                         log::debug!("Gray.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)

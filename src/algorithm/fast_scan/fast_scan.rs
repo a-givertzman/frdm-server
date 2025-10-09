@@ -1,10 +1,9 @@
 use std::{sync::Arc, time::Instant};
-use opencv::core::MatTraitConst;
 use sal_core::error::Error;
 use sal_sync::thread_pool::Scheduler;
 use crate::{
     algorithm::{
-        AutoGamma, BitwiseAndCtx, ContextRead, ContextWrite, Cropping, EdgeDetection, EvalResult, FastUnion, GaussianBlur, Gray, Initial, InitialCtx, ResultCtx, TemporalFilter,
+        AutoGamma, ContextRead, Cropping, EdgeDetection, EvalResult, FastUnion, GaussianBlur, Gray, Initial, InitialCtx, ResultCtx, TemporalFilter,
         Context,
     }, conf::Conf, domain::{Eval, Image, RwLock}, CvContours
 };
@@ -29,7 +28,7 @@ pub struct FastScan {
 impl FastScan {
     ///
     /// Returns [FastScan] new instance
-    pub fn new(conf: Conf, scheduler: Scheduler) -> Self {
+    pub fn new(conf: Conf, scheduler: Scheduler, debug: bool) -> Self {
         let pass_gray1 = Arc::new(RwLock::new(None));
         let pass_gray2 = Arc::new(RwLock::new(None));
         Self {
@@ -38,17 +37,20 @@ impl FastScan {
             ctx_gray: Box::new(
                 Gray::new(
                     AutoGamma::new(
-                        conf.contours.gamma.factor,
+                        conf.cv_contours.gamma.factor,
                         Cropping::new(
-                            conf.contours.cropping.x,
-                            conf.contours.cropping.width,
-                            conf.contours.cropping.y,
-                            conf.contours.cropping.height,
+                            conf.cv_contours.cropping.x,
+                            conf.cv_contours.cropping.width,
+                            conf.cv_contours.cropping.y,
+                            conf.cv_contours.cropping.height,
                             Initial::new(
                                 InitialCtx::new(),
                             ),
+                            debug
                         ),
+                        debug,
                     ),
+                    debug
                 ),
             ),
             ctx: Box::new(
@@ -58,33 +60,27 @@ impl FastScan {
                     conf.edge_detection.smooth,
                     FastUnion::new(
                         scheduler,
-                        // CvContours::new(
-                        //     conf.contours.clone(),
                         TemporalFilter::new(
-                            conf.contours.temporal_filter.amplify_factor,
-                            conf.contours.temporal_filter.grow_speed,
-                            conf.contours.temporal_filter.reduce_factor,
-                            conf.contours.temporal_filter.down_speed,
-                            conf.contours.temporal_filter.threshold,
+                            conf.cv_contours.temporal_filter.amplify_factor,
+                            conf.cv_contours.temporal_filter.grow_speed,
+                            conf.cv_contours.temporal_filter.reduce_factor,
+                            conf.cv_contours.temporal_filter.down_speed,
+                            conf.cv_contours.temporal_filter.threshold,
                             GaussianBlur::new(
-                                conf.contours.gausian.blur_w,
-                                conf.contours.gausian.blur_h,
-                                conf.contours.gausian.sigma_x,
-                                conf.contours.gausian.sigma_y,
-                                PassGray::new(pass_gray1)
+                                conf.cv_contours.gausian.blur_w,
+                                conf.cv_contours.gausian.blur_h,
+                                conf.cv_contours.gausian.sigma_x,
+                                conf.cv_contours.gausian.sigma_y,
+                                PassGray::new(pass_gray1),
+                                debug,
                             ),
+                            debug,
                         ),
                         CvContours::new(
-                            conf.contours.clone(),
-                            GaussianBlur::new(
-                                conf.contours.gausian.blur_w,
-                                conf.contours.gausian.blur_h,
-                                conf.contours.gausian.sigma_x,
-                                conf.contours.gausian.sigma_y,
-                                PassGray::new(pass_gray2),
-                            ),
+                            conf.cv_contours.clone(),
+                            PassGray::new(pass_gray2),
+                            debug,
                         )
-                        // ),
                     ),
                 ),
             ),
@@ -95,7 +91,20 @@ impl FastScan {
 //
 impl Eval<Image, EvalResult> for FastScan {
     fn eval(&self, frame: Image) -> EvalResult {
-        self.ctx.eval(frame).map_err(|err| Error::new("FastScan", "eval").pass(err))
+        let error = Error::new("FastScan", "eval");
+        match self.ctx_gray.eval(frame) {
+            Ok(ctx) => {
+                let t = Instant::now();
+                let result: &ResultCtx = ctx.read();
+                let frame = result.frame.clone();
+                *self.pass_gray1.write() = Some(ctx.clone());
+                *self.pass_gray2.write() = Some(ctx);
+                let result = self.ctx.eval(frame).map_err(|err| error.pass(err));
+                log::debug!("FastScan.eval | Elapsed: {:?}", t.elapsed());
+                result
+            }
+            Err(err) => Err(error.pass(err)),
+        }
     }
 }
 ///

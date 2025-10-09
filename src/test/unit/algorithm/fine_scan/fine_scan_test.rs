@@ -1,8 +1,8 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrastCtx, AutoGammaCtx, Initial, InitialCtx}, domain::{Eval, Image}};
+use crate::{algorithm::{AutoGammaCtx, Initial, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
-use opencv::{core::{MatTrait, MatTraitConst, Point2i, Vec3b, VecN}, highgui, imgproc::{HersheyFonts, LineTypes}};
-use sal_sync::services::conf::ConfTree;
+use opencv::{core::{MatTrait, MatTraitConst, Point2i, Vec3b, VecN}, highgui};
+use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
     DebugSession, 
@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, BitwiseAnd, BitwiseAndCtx, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, CvContours, CvContoursCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, CvContoursCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FineContours, FineUnion, FineUnionCtx, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
     }, 
     conf::Conf, domain::Error,
 };
@@ -37,7 +37,7 @@ fn eval() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
     init_once();
     init_each();
-    let dbg = Dbg::own("TemporalFilter-test");
+    let dbg = Dbg::own("FineScan-test");
     log::debug!("\n{}", dbg);
     let test_duration = TestDuration::new(&dbg, Duration::from_secs(1000));
     test_duration.run().unwrap();
@@ -90,74 +90,77 @@ fn eval() {
     );
     let conf = Conf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
+    let debug = false;
+    let tp = ThreadPool::new(&dbg, Some(4));
     let temporal_filter = 
         EdgeDetection::new(
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
-            BitwiseAnd::new(
+            FineUnion::new(
+                tp.scheduler(),
                 TemporalFilter::new(
-                    conf.contours.temporal_filter.amplify_factor,
-                    conf.contours.temporal_filter.grow_speed,
-                    conf.contours.temporal_filter.reduce_factor,
-                    conf.contours.temporal_filter.down_speed,
-                    conf.contours.temporal_filter.threshold,
+                    conf.cv_contours.temporal_filter.amplify_factor,
+                    conf.cv_contours.temporal_filter.grow_speed,
+                    conf.cv_contours.temporal_filter.reduce_factor,
+                    conf.cv_contours.temporal_filter.down_speed,
+                    conf.cv_contours.temporal_filter.threshold,
                         Gray::new(
-                            // AutoBrightnessAndContrast::new(
-                            //     conf.contours.brightness_contrast.hist_clip_left,
-                            //     conf.contours.brightness_contrast.hist_clip_right,
                             AutoGamma::new(
-                                conf.contours.gamma.factor,
+                                conf.cv_contours.gamma.factor,
                                 Cropping::new(
-                                    conf.contours.cropping.x,
-                                    conf.contours.cropping.width,
-                                    conf.contours.cropping.y,
-                                    conf.contours.cropping.height,
+                                    conf.cv_contours.cropping.x,
+                                    conf.cv_contours.cropping.width,
+                                    conf.cv_contours.cropping.y,
+                                    conf.cv_contours.cropping.height,
                                     Initial::new(
                                         InitialCtx::new(),
                                     ),
+                                    debug,
                                 ),
+                                debug,
                             ),
-                        // ),
+                        debug,
                     ),
+                    debug,
                 ),
-                CvContours::new(
-                    conf.contours.clone(),
+                FineContours::new(
+                    conf.cv_contours.clone(),
                     GaussianBlur::new(
-                        conf.contours.gausian.blur_w,
-                        conf.contours.gausian.blur_h,
-                        conf.contours.gausian.sigma_x,
-                        conf.contours.gausian.sigma_y,
+                        conf.cv_contours.gausian.blur_w,
+                        conf.cv_contours.gausian.blur_h,
+                        conf.cv_contours.gausian.sigma_x,
+                        conf.cv_contours.gausian.sigma_y,
                         Gray::new(
-                            // AutoBrightnessAndContrast::new(
-                            //     conf.contours.brightness_contrast.hist_clip_left,
-                            //     conf.contours.brightness_contrast.hist_clip_right,
-                                AutoGamma::new(
-                                    conf.contours.gamma.factor,
-                                    Cropping::new(
-                                        conf.contours.cropping.x,
-                                        conf.contours.cropping.width,
-                                        conf.contours.cropping.y,
-                                        conf.contours.cropping.height,
-                                        Initial::new(
-                                            InitialCtx::new(),
-                                        ),
+                            AutoGamma::new(
+                                conf.cv_contours.gamma.factor,
+                                Cropping::new(
+                                    conf.cv_contours.cropping.x,
+                                    conf.cv_contours.cropping.width,
+                                    conf.cv_contours.cropping.y,
+                                    conf.cv_contours.cropping.height,
+                                    Initial::new(
+                                        InitialCtx::new(),
                                     ),
+                                    debug,
                                 ),
-                            // ),
+                                debug,
+                            ),
+                            debug,
                         ),
+                        debug,
                     ),
+                    debug,
                 ),
-            )
+            ),
         );
     let w_gray = "Gray";
     let w_crop = "Cropped";
     let w_gamma = "Gamma";
-    let w_bright = "Brightness & Contrast";
     let w_contours = "Contours";
-    let w_bwand = "Bitwise And";
+    let w_union = "Union";
     let w_temp_filter = "Temporal Filter";
-    for window in [w_gray, w_crop, w_gamma, w_bright, w_contours, w_bwand, w_temp_filter] {
+    for window in [w_gray, w_crop, w_gamma, w_contours, w_union, w_temp_filter] {
         if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
             log::warn!("{dbg} | Create Window Error: {}", err);
         }
@@ -186,9 +189,8 @@ fn eval() {
                 let crop: &CroppingCtx = ctx.read();    
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
-                let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &CvContoursCtx = ctx.read();
-                let bw_and: &BitwiseAndCtx = ctx.read();
+                let union: &FineUnionCtx = ctx.read();
                 let edges: &EdgeDetectionCtx = ctx.read();
                 let temp_filter: &TemporalFilterCtx = ctx.read();
                 // let mut res = crop.result.mat.clone();
@@ -220,9 +222,8 @@ fn eval() {
                 opencv::imgproc::put_text(&mut crop, &text, Point2i::new(10, 30), 1, 2.0, text_color, 2, -1, false).unwrap();
                 if !gray.frame.mat.empty() { highgui::imshow(w_gray, &gray.frame.mat).unwrap() };
                 if !gamma.result.mat.empty() { highgui::imshow(w_gamma, &gamma.result.mat).unwrap() };
-                if !bright.result.mat.empty() { highgui::imshow(w_bright, &bright.result.mat).unwrap() };
                 if !contours.result.mat.empty() { highgui::imshow(w_contours, &contours.result.mat).unwrap() };
-                if !bw_and.frame.mat.empty() { highgui::imshow(w_bwand, &bw_and.frame.mat).unwrap() };
+                if !union.frame.mat.empty() { highgui::imshow(w_union, &union.frame.mat).unwrap() };
                 if !crop.empty() { highgui::imshow(w_crop, &crop).unwrap() };
                 if !temp_filter.frame.mat.empty() { highgui::imshow(w_temp_filter, &temp_filter.frame.mat).unwrap() };
                 highgui::wait_key(0).unwrap();

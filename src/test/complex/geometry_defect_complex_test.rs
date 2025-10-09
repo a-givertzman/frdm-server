@@ -11,10 +11,10 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, CvContours, EdgeDetection, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, Threshold
+        ContextRead, CvContours, EdgeDetection, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, Threshold,
     }, 
     conf::{
-        Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf
+        Conf, CvContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf,
     },
 };
 ///
@@ -51,7 +51,7 @@ fn eval() {
         )
     ];
     let conf = Conf {
-        contours: DetectingContoursConf::default(),
+        cv_contours: CvContoursConf::default(),
         edge_detection: EdgeDetectionConf::default(),
         rope_dimensions: RopeDimensionsConf::default(),
         fast_scan: FastScanConf {
@@ -67,8 +67,9 @@ fn eval() {
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
             CvContours::new(
-                conf.contours,
+                conf.cv_contours,
                 FakePassImg::new(),
+                false,
             ),
         ),
     );

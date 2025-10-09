@@ -1,5 +1,4 @@
 mod auto_correction;
-mod bitwise_and;
 mod context;
 mod cropping;
 pub mod cv;
@@ -20,7 +19,6 @@ mod width_emissions;
 mod initial_points;
 
 pub use auto_correction::*;
-pub use bitwise_and::*;
 pub use context::*;
 pub use cropping::*;
 pub use cv_contours::*;

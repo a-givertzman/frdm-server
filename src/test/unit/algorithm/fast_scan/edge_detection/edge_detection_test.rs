@@ -22,6 +22,7 @@ fn init_once() {
 fn init_each() -> () {}
 ///
 /// Visualize upper and lower edges on test image
+#[allow(unused)]
 fn edge_visualization_img() {
     let path = "src/test/unit/scan/edge_detection/test_photo2.png";
     let img = imgcodecs::imread(
@@ -35,14 +36,14 @@ fn edge_visualization_img() {
         imgcodecs::IMREAD_COLOR,
     ).unwrap();
     for dot in edges.result.get(Side::Upper) {
-        if dot.x >= 0 && dot.y >= 0 {
+        if dot.x as i32 >= 0 && dot.y as i32 >= 0 {
             let x = dot.x as i32;
             let y = dot.y as i32;
             *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
         }
     }
     for dot in edges.result.get(Side::Lower) {
-        if dot.x >= 0 && dot.y >= 0 {
+        if dot.x as i32 >= 0 && dot.y as i32 >= 0 {
             let x = dot.x as i32;
             let y = dot.y as i32;
             *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
@@ -65,14 +66,14 @@ fn edge_visualization_matrix(matrix: [[u8; 6]; 6]) {
     let ctx = EdgeDetection::new(None, Some(1), None, FakePassImg::new()).eval(Image::with(img)).unwrap();
     let edges: &EdgeDetectionCtx = ctx.read();
     for dot in edges.result.get(Side::Upper) {
-        if dot.x >= 0 && dot.y >= 0 {
+        if dot.x as i32 >= 0 && dot.y as i32 >= 0 {
             let x = dot.x as i32;
             let y = dot.y as i32;
             *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
         }
     }
     for dot in edges.result.get(Side::Lower) {
-        if dot.x >= 0 && dot.y >= 0 {
+        if dot.x as i32 >= 0 && dot.y as i32 >= 0 {
             let x = dot.x as i32;
             let y = dot.y as i32;
             *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);

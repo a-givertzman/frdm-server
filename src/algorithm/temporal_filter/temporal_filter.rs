@@ -15,6 +15,7 @@ pub struct TemporalFilter {
     filters: RwLock<Vec<FilterIsChanged::<f32>>>,
     // background: RefCell<Mat>,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 //
 //
@@ -22,7 +23,7 @@ impl TemporalFilter {
     ///
     /// Returns [TemporalFilter] new instance
     /// - `cache` - path to the cache folder
-    pub fn new(amplify_factor: f64, grow_speed: f64, reduce_factor: f64, down_speed: f64, threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
+    pub fn new(amplify_factor: f64, grow_speed: f64, reduce_factor: f64, down_speed: f64, threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self {
             amplify_factor,
             grow_speed,
@@ -31,6 +32,7 @@ impl TemporalFilter {
             threshold,
             filters: RwLock::new(vec![]),
             ctx: Box::new(ctx),
+            debug,
         }
     }
 }
@@ -106,49 +108,19 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                             opencv::core::BORDER_CONSTANT,
                             opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
                         ).map_err(|err| error.pass(err.to_string()))?;
-                        // let mut out = Mat::default();
-                        // // opencv::core::add_weighted(&frame.mat, 0.8, &dst, 0.2, 0.0, &mut out, -1)
-                        // opencv::core::bitwise_and(&frame.mat, &dst, &mut out, &Mat::default())
-                        //     .map_err(|err| error.pass(err.to_string()))?;
                         let frame = Image::with(dst);
-                        let result = TemporalFilterCtx { frame: frame.clone() };
-                        let ctx = ctx.write(result)?;
+                        let ctx = if self.debug {
+                            let result = TemporalFilterCtx { frame: frame.clone() };
+                            ctx.write(result).map_err(|err| error.pass(err))?
+                        } else {
+                            ctx
+                        };
                         let result = ResultCtx { frame };
                         log::debug!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)
                     }
                     Err(err) => Err(error.pass(err.to_string())),
                 }
-                // {
-                //     let mut filters = self.filters.borrow_mut();
-                //     let mut background = self.background.borrow_mut();
-                //     for i in 0..pixels {
-                //         let pixel = background.at_mut(i as i32).unwrap();
-                //         let value: &u8 = frame.mat.at(i as i32).unwrap();
-                //         if let Some(filter) = filters.get_mut(i) {
-                //             _ = filter.add(*value);
-                //             *pixel = ((*pixel as f32 + *value as f32) * 0.5 * filter.rate() * 6.0).round() as u8;
-                //         }
-                //     }
-                // }
-                // opencv::core::subtract(&frame.mat, &*self.background.borrow(), &mut out, &Vector::<u8>::new(), -1).unwrap();
-                // {
-                //     let mut filters = self.filters.borrow_mut();
-                //     for i in 0..pixels {
-                //         let pixel = input.get(i).unwrap();
-                //         match filters.get_mut(i as usize) {
-                //             Some(filter) => {
-                //                 if let Some(value) = filter.add(*pixel) {
-                //                     match out.at_mut(i as i32) {
-                //                         Ok(r) => *r = value,
-                //                         Err(_) => return Err(error.err(format!("Output image format error, index [{i}] out of range {width} x {height} = {pixels}"))),
-                //                     }
-                //                 }
-                //             }
-                //             None => return Err(error.err(format!("Filters matrix format error, index [{i}] out of range {width} x {height} = {pixels}"))),
-                //         }
-                //     }
-                // }
             }
             Err(err) => Err(error.pass(err)),
         }

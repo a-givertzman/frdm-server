@@ -39,7 +39,7 @@ use crate::{algorithm::{CroppingConf, TemporalFilterConf}, conf::{BrightnessCont
 ///     gamma: 0.0
 /// ```
 #[derive(Debug, Clone, PartialEq)]
-pub struct DetectingContoursConf {
+pub struct CvContoursConf {
     /// Configuration for `Cropping` operator
     pub cropping: CroppingConf,
     /// Configuration for `Gamma auto correction` algorithm
@@ -57,7 +57,7 @@ pub struct DetectingContoursConf {
 }
 //
 // 
-impl DetectingContoursConf {
+impl CvContoursConf {
     ///
     /// Returns [DetectingContoursConf] built from `ConfTree`:
     pub fn new(parent: impl Into<String>, conf: ConfTree) -> Self {
@@ -101,7 +101,7 @@ impl DetectingContoursConf {
 }
 //
 //
-impl Default for DetectingContoursConf {
+impl Default for CvContoursConf {
     fn default() -> Self {
         Self {
             cropping: CroppingConf::default(),

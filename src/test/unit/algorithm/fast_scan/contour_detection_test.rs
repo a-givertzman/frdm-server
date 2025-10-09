@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, AutoGammaCtx, Context, ContextWrite, CvContoursCtx, EdgeDetectionCtx, EvalResult, Initial, InitialCtx, Side}, domain::{Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, CvContoursCtx, EdgeDetectionCtx, Initial, InitialCtx, Side}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
 use sal_sync::services::conf::ConfTree;
@@ -80,31 +80,37 @@ fn eval() {
     );
     let conf = Conf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
+    let debug = false;
     let scan_rope = 
         EdgeDetection::new(
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
             CvContours::new(
-                conf.contours.clone(),
+                conf.cv_contours.clone(),
                 Gray::new(
                     AutoBrightnessAndContrast::new(
-                        conf.contours.brightness_contrast.hist_clip_left,
-                        conf.contours.brightness_contrast.hist_clip_right,
+                        conf.cv_contours.brightness_contrast.hist_clip_left,
+                        conf.cv_contours.brightness_contrast.hist_clip_right,
                         AutoGamma::new(
-                            conf.contours.gamma.factor,
+                            conf.cv_contours.gamma.factor,
                             Cropping::new(
-                                conf.contours.cropping.x,
-                                conf.contours.cropping.width,
-                                conf.contours.cropping.y,
-                                conf.contours.cropping.height,
+                                conf.cv_contours.cropping.x,
+                                conf.cv_contours.cropping.width,
+                                conf.cv_contours.cropping.y,
+                                conf.cv_contours.cropping.height,
                                 Initial::new(
                                     InitialCtx::new(),
                                 ),
+                                debug,
                             ),
+                            debug,
                         ),
+                        debug,
                     ),
+                    debug,
                 ),
+                debug,
             ),
         );
     let winp = "Otsu";
@@ -215,22 +221,4 @@ fn eval() {
 
     }
     test_duration.exit();
-}
-///
-/// Fake implements `Eval` for testing [EdgeDetection]
-struct FakePassImg {}
-impl FakePassImg{
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-//
-//
-impl Eval<Image, EvalResult> for FakePassImg {
-    fn eval(&self, frame: Image) -> EvalResult {
-        let ctx = Context::new(
-            InitialCtx::new()
-        );
-        ctx.write(AutoBrightnessAndContrastCtx { result: frame })
-    }
 }

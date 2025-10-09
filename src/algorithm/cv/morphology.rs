@@ -5,18 +5,18 @@ use sal_core::error::Error;
 use crate::{algorithm::cv::StructuringElement, Eval};
 ///
 /// Apply `OpenCv` Morphology transformetion to passed image
-pub struct Morphology<'a> {
+pub struct Morphology {
     operation: MorphTypes,
     kernel: Vec<i32>,
     iterations: i32,
     border: BorderTypes,
     border_val: Option<Scalar>,
-    structuring_element: Option<Box<dyn Eval<(), Result<Mat, Error>>>>,
-    ctx: Box<dyn Eval<&'a Mat, Result<Mat, Error>>>,
+    structuring_element: Option<Box<dyn Eval<(), Result<Mat, Error>> + Send + Sync>>,
+    ctx: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
 }
 //
 //
-impl<'a> Morphology<'a> {
+impl Morphology {
     ///
     /// Returns [Morphology] new instance
     /// - `operation` - Type of a morphological operation, see morph_types.
@@ -25,7 +25,7 @@ impl<'a> Morphology<'a> {
     pub fn new(
         operation: MorphTypes,
         kernel: &[i32; 2],
-        ctx: impl Eval<&'a Mat, Result<Mat, Error>> + 'static,
+        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             operation,
@@ -43,7 +43,7 @@ impl<'a> Morphology<'a> {
     #[allow(unused)]
     pub fn erode(
         kernel: &[i32; 2],
-        ctx: impl Eval<&'a Mat, Result<Mat, Error>> + 'static,
+        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             operation: MorphTypes::MORPH_ERODE,
@@ -61,7 +61,7 @@ impl<'a> Morphology<'a> {
     #[allow(unused)]
     pub fn open(
         kernel: &[i32; 2],
-        ctx: impl Eval<&'a Mat, Result<Mat, Error>> + 'static,
+        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             operation: MorphTypes::MORPH_OPEN,
@@ -79,7 +79,7 @@ impl<'a> Morphology<'a> {
     #[allow(unused)]
     pub fn dilate(
         kernel: &[i32; 2],
-        ctx: impl Eval<&'a Mat, Result<Mat, Error>> + 'static,
+        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             operation: MorphTypes::MORPH_DILATE,
@@ -111,15 +111,15 @@ impl<'a> Morphology<'a> {
     /// Returns Structuring element `Mat` new instance
     /// - `ctx` - Custom [StructuringElement] can be specified for kernel calculation
     #[allow(unused)]
-    pub fn with_kernel(mut self, ctx: impl Eval<(), Result<Mat, Error>> + 'static) -> Self {
+    pub fn with_kernel(mut self, ctx: impl Eval<(), Result<Mat, Error>> + Send + Sync + 'static) -> Self {
         self.structuring_element = Some(Box::new(ctx));
         self
     }
 }
 //
 //
-impl<'a> Eval<&'a Mat, Result<Mat, Error>> for Morphology<'a> {
-    fn eval(&self, mat: &'a Mat) -> Result<Mat, Error> {
+impl Eval<Mat, Result<Mat, Error>> for Morphology {
+    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
         let error = Error::new("Morphology", "eval");
         match self.ctx.eval(mat) {
             Ok(mat) => {
