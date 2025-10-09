@@ -1,5 +1,6 @@
 mod adaptive_threshold;
 mod auto_threshold;
+mod bitwise_and;
 mod gaussian_blur;
 mod laplacian;
 mod morphology;
@@ -8,6 +9,7 @@ mod threshold;
 
 pub use adaptive_threshold::*;
 pub use auto_threshold::*;
+pub use bitwise_and::*;
 pub use gaussian_blur::*;
 pub use laplacian::*;
 pub use morphology::*;
