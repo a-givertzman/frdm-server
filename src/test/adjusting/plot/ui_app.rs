@@ -9,7 +9,7 @@ use egui::{
 };
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, CvContours, CvContoursCtx, EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, FastContours, FastContoursCtx, EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
     },
     conf::{BrightnessContrastConf, Conf, CvContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf},
     domain::{Dot, Eval, Image},
@@ -558,7 +558,7 @@ impl eframe::App for UiApp {
                     conf.edge_detection.otsu_tune,
                     conf.edge_detection.threshold,
                     conf.edge_detection.smooth,
-                    CvContours::new(
+                    FastContours::new(
                         conf.cv_contours.clone(),
                         Gray::new(
                             AutoBrightnessAndContrast::new(
@@ -589,7 +589,7 @@ impl eframe::App for UiApp {
                     Ok(result_ctx) => {
                         self.elapsed = Some(t.elapsed());
                         self.alg_err = None;
-                        let contours_ctx: &CvContoursCtx = result_ctx.read();
+                        let contours_ctx: &FastContoursCtx = result_ctx.read();
                         self.contour_frame = Some(contours_ctx.result.clone());
                         let edges: &EdgeDetectionCtx = result_ctx.read();
                         let upper = edges.result.get(Side::Upper);

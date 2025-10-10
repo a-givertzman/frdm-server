@@ -10,7 +10,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, Cropping, CvContours, EdgeDetection, GeometryDefect, Gray, Initial, InitialCtx, Mad, RopeDimensionsConf, TemporalFilter, Threshold
+        AutoBrightnessAndContrast, AutoGamma, Cropping, FastContours, EdgeDetection, GeometryDefect, Gray, Initial, InitialCtx, Mad, RopeDimensionsConf, TemporalFilter, Threshold
     }, conf::{Conf, CvContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -45,7 +45,7 @@ fn main() {
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
-            CvContours::new(
+            FastContours::new(
                 conf.cv_contours.clone(),
                 TemporalFilter::new(
                     conf.cv_contours.temporal_filter.amplify_factor,

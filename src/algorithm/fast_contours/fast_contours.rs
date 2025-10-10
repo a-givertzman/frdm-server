@@ -3,7 +3,7 @@ use opencv::{core::Mat, imgproc::ThresholdTypes};
 use sal_core::error::Error;
 use crate::algorithm::{
     cv, ContextWrite, ContextRead,
-    CvContoursCtx,
+    FastContoursCtx,
     EvalResult, ResultCtx,
 };
 use crate::conf::CvContoursConf;
@@ -12,7 +12,7 @@ use crate::{Eval, domain::Image};
 /// Return filtered and binarised [Image] with contours detected
 /// 
 /// Binarization is based on the sharpness of the target segment
-pub struct CvContours {
+pub struct FastContours {
     conf: CvContoursConf,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>,
@@ -20,9 +20,9 @@ pub struct CvContours {
 }
 //
 //
-impl CvContours {
+impl FastContours {
     ///
-    /// Returns [CvContours] new instance
+    /// Returns [FastContours] new instance
     /// - `ctx` - Prevouse step returns [Image] in [Context]
     /// - `conf` - Configuration for `Contour dectection` algorithm:
     ///     - gausian:
@@ -77,9 +77,9 @@ impl CvContours {
 }
 //
 //
-impl Eval<Image, EvalResult> for CvContours {
+impl Eval<Image, EvalResult> for FastContours {
     fn eval(&self, frame: Image) -> EvalResult {
-        let error = Error::new("CvContours", "eval");
+        let error = Error::new("FastContours", "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
@@ -95,13 +95,13 @@ impl Eval<Image, EvalResult> for CvContours {
                     bytes: frame.bytes,
                 };
                 let ctx = if self.debug {
-                    let result = CvContoursCtx { result: frame.clone() };
+                    let result = FastContoursCtx { result: frame.clone() };
                     ctx.write(result)?
                 } else {
                     ctx
                 };
                 let result = ResultCtx { frame };
-                log::debug!("CvContours.eval | Elapsed: {:?}", t.elapsed());
+                log::debug!("FastContours.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }
             Err(err) => Err(error.pass(err)),

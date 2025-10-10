@@ -4,8 +4,8 @@ use sal_sync::thread_pool::Scheduler;
 use crate::{
     algorithm::{
         AutoGamma, ContextRead, Cropping, EdgeDetection, EvalResult, FastUnion, GaussianBlur, Gray, Initial, InitialCtx, ResultCtx, TemporalFilter,
-        Context,
-    }, conf::Conf, domain::{Eval, Image, RwLock}, CvContours
+        FastContours, Context,
+    }, conf::Conf, domain::{Eval, Image, RwLock},
 };
 ///
 /// Contour detection algorithms optimized for speed, tradeoff in result quality
@@ -76,7 +76,7 @@ impl FastScan {
                             ),
                             debug,
                         ),
-                        CvContours::new(
+                        FastContours::new(
                             conf.cv_contours.clone(),
                             PassGray::new(pass_gray2),
                             debug,

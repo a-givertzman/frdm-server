@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, CvContoursCtx, EdgeDetectionCtx, Initial, InitialCtx, Side}, domain::{Eval, Image}};
+use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, FastContoursCtx, EdgeDetectionCtx, Initial, InitialCtx, Side}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
 use sal_sync::services::conf::ConfTree;
@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, Cropping, CroppingCtx, CvContours, EdgeDetection, Gray
+        ContextRead, Cropping, CroppingCtx, FastContours, EdgeDetection, Gray
     }, 
     conf::Conf,
 };
@@ -86,7 +86,7 @@ fn eval() {
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
-            CvContours::new(
+            FastContours::new(
                 conf.cv_contours.clone(),
                 Gray::new(
                     AutoBrightnessAndContrast::new(
@@ -165,7 +165,7 @@ fn eval() {
                 let crop: &CroppingCtx = ctx.read();    
                 // let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
-                let contours: &CvContoursCtx = ctx.read();
+                let contours: &FastContoursCtx = ctx.read();
                 let edges: &EdgeDetectionCtx = ctx.read();
                 let mut res = crop.result.mat.clone();
                 // let edges_cont = contours.result.mat.clone();

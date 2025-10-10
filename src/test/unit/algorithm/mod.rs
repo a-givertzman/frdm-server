@@ -1,5 +1,5 @@
-mod cv_contours;
 mod detecting_contours;
+mod fast_contours;
 mod fast_scan;
 mod fine_scan;
 mod geometry_defect;

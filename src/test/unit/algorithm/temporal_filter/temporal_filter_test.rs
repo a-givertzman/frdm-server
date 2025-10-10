@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, CvContoursCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, FastContoursCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
     }, 
     conf::Conf, domain::Error,
 };
@@ -163,7 +163,7 @@ fn eval() {
                 let crop: &CroppingCtx = ctx.read();    
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
-                let contours: &CvContoursCtx = ctx.read();
+                let contours: &FastContoursCtx = ctx.read();
                 let edges: &EdgeDetectionCtx = ctx.read();
                 let temp_filter: &TemporalFilterCtx = ctx.read();
                 // let mut res = crop.result.mat.clone();

@@ -5,7 +5,7 @@ use opencv::{core::{Mat, MatTrait, Vec3b}, highgui, imgcodecs, imgproc};
 use sal_core::{dbg::Dbg, error::Error};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-use crate::{algorithm::{Context, ContextRead, ContextWrite, CvContoursCtx, EdgeDetection, EdgeDetectionCtx, InitialCtx, InitialPoints, Side}, domain::{Dot, Eval, Image}};
+use crate::{algorithm::{Context, ContextRead, ContextWrite, FastContoursCtx, EdgeDetection, EdgeDetectionCtx, InitialCtx, InitialPoints, Side}, domain::{Dot, Eval, Image}};
 ///
 ///
 static INIT: Once = Once::new();
@@ -180,6 +180,6 @@ impl Eval<Image, Result<Context, Error>> for FakePassImg {
         let ctx = Context::new(
             InitialCtx::new(),
         );
-        ctx.write(CvContoursCtx { result: frame })
+        ctx.write(FastContoursCtx { result: frame })
     }
 }

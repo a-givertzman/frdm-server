@@ -11,7 +11,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, CvContours, EdgeDetection, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, Threshold,
+        ContextRead, FastContours, EdgeDetection, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, Threshold,
     }, 
     conf::{
         Conf, CvContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf,
@@ -66,7 +66,7 @@ fn eval() {
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
-            CvContours::new(
+            FastContours::new(
                 conf.cv_contours,
                 FakePassImg::new(),
                 false,

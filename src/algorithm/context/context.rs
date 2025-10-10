@@ -2,7 +2,7 @@ use crate::{
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
         geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        CroppingCtx, CvContoursCtx, EdgeDetectionCtx, FineContoursCtx,
+        CroppingCtx, FastContoursCtx, EdgeDetectionCtx, FineContoursCtx,
         GaussianBlurCtx, GrayCtx, InitialCtx, ResultCtx, RopeDimensionsCtx, TemporalFilterCtx,
         FastUnionCtx, FineUnionCtx,
     },
@@ -19,7 +19,7 @@ pub struct Context {
     /// Common result image from current step
     pub(super) result: ResultCtx,
     /// Filtered and binarised image
-    pub(super) cv_contours: CvContoursCtx,
+    pub(super) fast_contours: FastContoursCtx,
     /// Fine filtered and binarised image
     pub(super) fine_contours: FineContoursCtx,
     /// Cropped image
@@ -61,7 +61,7 @@ impl Context {
         Self {
             initial,
             result: ResultCtx::default(),
-            cv_contours: CvContoursCtx::default(),
+            fast_contours: FastContoursCtx::default(),
             fine_contours: FineContoursCtx::default(),
             cropping: CroppingCtx::default(),
             auto_gamma: AutoGammaCtx::default(),

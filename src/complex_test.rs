@@ -9,7 +9,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CvContours, CvContoursCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, TemporalFilter, Threshold
+        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, FastContours, FastContoursCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, TemporalFilter, Threshold
     }, conf::{Conf, CvContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -24,7 +24,7 @@ use crate::{
 ///     `clear && cargo run --bin complex-test --release -- --nocapture --cam-pause`
 fn main() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
-    let dbg = Dbg::own("main");
+    let dbg = Dbg::own("complex-test");
     let path = "./config.yaml";
     let conf = CameraConf::read(&dbg, path);
     let mut camera = Camera::new(conf);
@@ -111,7 +111,7 @@ fn main() {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };
         let debug = false;
-        let contours_result = CvContours::new(
+        let contours_result = FastContours::new(
             CvContoursConf::default(),
             TemporalFilter::new(
                 conf.cv_contours.temporal_filter.amplify_factor,
@@ -145,7 +145,7 @@ fn main() {
             ),
             debug,
         ).eval(frame.clone()).unwrap();
-        let contours_ctx = ContextRead::<CvContoursCtx>::read(&contours_result);
+        let contours_ctx = ContextRead::<FastContoursCtx>::read(&contours_result);
         if let Err(e) = opencv::highgui::imshow(window2, &contours_ctx.result.mat) {
             log::error!("Display error: {}", e);
         }
@@ -173,7 +173,7 @@ fn main() {
         //     conf.fast_scan.geometry_defect_threshold,
         //     *Box::new(Mad::new()),
         //     EdgeDetection::new(
-        //         CvContours::new(
+        //         FastContours::new(
         //             Initial::new(
         //                 InitialCtx::new(frame),
         //             ),

@@ -14,7 +14,7 @@ use crate::{
     algorithm::{
         AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection,
         EdgeDetectionCtx, EvalResult, Gray, GrayCtx, RopeDimensions,
-        RopeDimensionsCtx, Side, CvContours, CvContoursCtx,
+        RopeDimensionsCtx, Side, FastContours, FastContoursCtx,
     }, 
     conf::Conf, domain::Error,
 };
@@ -39,7 +39,7 @@ fn eval() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
     init_once();
     init_each();
-    let dbg = Dbg::own("CvContours-test");
+    let dbg = Dbg::own("FastContours-test");
     log::debug!("\n{}", dbg);
     let test_duration = TestDuration::new(&dbg, Duration::from_secs(1000));
     test_duration.run().unwrap();
@@ -97,7 +97,7 @@ fn eval() {
         conf.edge_detection.otsu_tune,
         conf.edge_detection.threshold,
         conf.edge_detection.smooth,
-        CvContours::new(
+        FastContours::new(
             conf.cv_contours.clone(),
             Gray::new(
                 AutoGamma::new(
@@ -151,7 +151,7 @@ fn eval() {
                 let gray: &GrayCtx = ctx.read();    
                 let crop: &CroppingCtx = ctx.read();    
                 let gamma: &AutoGammaCtx = ctx.read();
-                let contours: &CvContoursCtx = ctx.read();
+                let contours: &FastContoursCtx = ctx.read();
                 let mut crop = if crop.result.mat.empty() {
                     let mut dst = opencv::core::Mat::default();
                     opencv::imgproc::cvt_color(&contours.result.mat, &mut dst, opencv::imgproc::COLOR_GRAY2BGR, 3).unwrap();
