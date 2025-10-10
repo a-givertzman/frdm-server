@@ -50,7 +50,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 let mut upper_edge = Vec::with_capacity(cols as usize);
                 let mut lower_edge = Vec::with_capacity(cols as usize);
                 let (mut filter_smooth_upper, mut filter_smooth_lower): (Box<dyn Filter<Item = i32>>, Box<dyn Filter<Item = i32>>) = match self.smooth {
-                    Some(smooth) => (Box::new(FilterSmooth2::new(None, smooth)), Box::new(FilterSmooth2::new(None, smooth))),
+                    Some(smooth) => (Box::new(FilterSmooth2::<i32>::new(None, smooth)), Box::new(FilterSmooth2::<i32>::new(None, smooth))),
                 // match smooth {
                 //         _ if (0.0..2.0).contains(&smooth) => (Box::new(FilterLowPass::<1, _>::new(None)), Box::new(FilterLowPass::<1, _>::new(None))),
                 //         _ if (2.0..4.0).contains(&smooth) => (Box::new(FilterLowPass::<2, _>::new(None)), Box::new(FilterLowPass::<2, _>::new(None))),

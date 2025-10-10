@@ -1,6 +1,5 @@
 use std::time::Instant;
-use opencv::core::Mat;
-use opencv::imgproc::ThresholdTypes;
+use opencv::{core::Mat, imgproc::ThresholdTypes};
 use sal_core::error::Error;
 use crate::algorithm::{
     cv, ContextWrite, ContextRead,
@@ -51,7 +50,7 @@ impl CvContours {
                         cv::Morphology::open(
                             &[5, 5],
                             cv::GaussianBlur::new(
-                                &[5, 5],
+                                &[7, 7],
                                 cv::AutoThreshold::new(
                                     0.4,
                                     255.0,

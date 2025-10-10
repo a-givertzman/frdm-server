@@ -116,7 +116,7 @@ fn eval() {
                 ),
                 debug,
             ),
-            debug,
+            true,
         ),
     );
     let w_gray = "Gray";
@@ -150,9 +150,16 @@ fn eval() {
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let gray: &GrayCtx = ctx.read();    
                 let crop: &CroppingCtx = ctx.read();    
-                let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
                 let contours: &CvContoursCtx = ctx.read();
+                let mut crop = if crop.result.mat.empty() {
+                    let mut dst = opencv::core::Mat::default();
+                    opencv::imgproc::cvt_color(&contours.result.mat, &mut dst, opencv::imgproc::COLOR_GRAY2BGR, 3).unwrap();
+                    dst
+                } else {
+                    crop.result.mat.clone()
+                };
+
                 let edges: &EdgeDetectionCtx = ctx.read();
                 let upper = edges.result.get(Side::Upper);
                 let lower = edges.result.get(Side::Lower);

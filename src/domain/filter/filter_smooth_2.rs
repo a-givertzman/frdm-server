@@ -5,7 +5,6 @@ use super::filter::Filter;
 pub struct FilterSmooth2<T> {
     prev: Option<T>,
     factor: f64,
-    factor_inv: f64,
 }
 //
 // 
@@ -18,7 +17,28 @@ impl<T: Copy> FilterSmooth2<T> {
         Self {
             prev: initial,
             factor,
-            factor_inv: 1.0 / factor,
+        }
+    }
+}
+//
+//
+impl Filter for FilterSmooth2<u8> {
+    type Item = u8;
+    //
+    //
+    fn add(&mut self, value: Self::Item) -> Option<Self::Item> {
+        match self.prev {
+            Some(prev) => {
+                let delta = value as f64 - prev as f64;
+                let factor = (1.0 + delta.abs() / value as f64) * self.factor;
+                let value = (prev as f64 + delta / factor).round() as u8;
+                self.prev.replace(value);
+                Some(value)
+            }
+            None => {
+                self.prev.replace(value);
+                Some(value)
+            }
         }
     }
 }
