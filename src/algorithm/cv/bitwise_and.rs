@@ -3,19 +3,19 @@ use sal_core::error::Error;
 use crate::domain::Eval;
 ///
 /// Returns Bitwise And of input frames
-pub struct BitwiseAnd {
-    ctx1: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
-    ctx2: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
+pub struct BitwiseAnd<In> {
+    ctx1: Box<dyn Eval<In, Result<Mat, Error>> + Send + Sync>,
+    ctx2: Box<dyn Eval<In, Result<Mat, Error>> + Send + Sync>,
 }
 //
 //
-impl BitwiseAnd {
+impl<In> BitwiseAnd<In> {
     ///
     /// Returns [BitwiseAnd] new instance
     #[allow(unused)]
     pub fn new(
-        ctx1: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
-        ctx2: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static
+        ctx1: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static,
+        ctx2: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static
     ) -> Self {
         Self {
             ctx1: Box::new(ctx1),
@@ -25,8 +25,8 @@ impl BitwiseAnd {
 }
 //
 //
-impl Eval<Mat, Result<Mat, Error>> for BitwiseAnd {
-    fn eval(&self, frame: Mat) -> Result<Mat, Error> {
+impl<In: Clone> Eval<In, Result<Mat, Error>> for BitwiseAnd<In> {
+    fn eval(&self, frame: In) -> Result<Mat, Error> {
         let error = Error::new("BitwiseAnd", "eval");
         match (self.ctx1.eval(frame.clone()), self.ctx2.eval(frame)) {
             (Ok(mat1), Ok(mat2)) => {

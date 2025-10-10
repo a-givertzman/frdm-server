@@ -6,15 +6,15 @@ use crate::Eval;
 /// 
 /// The `treshold` value calculated on input image using Otsu's algorithm
 /// Then applied multoplied by `factor` to the input image
-pub struct AutoThreshold {
+pub struct AutoThreshold<In> {
     factor: f64,
     maxval: f64,
     typ: ThresholdTypes,
-    ctx: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
+    ctx: Box<dyn Eval<In, Result<Mat, Error>> + Send + Sync>,
 }
 //
 //
-impl AutoThreshold {
+impl<In> AutoThreshold<In> {
     ///
     /// Returns [AutoThreshold] new instance
     /// - `factor` - Multiplier for the calculated threshold value.
@@ -24,7 +24,7 @@ impl AutoThreshold {
         factor: f64,
         maxval: f64,
         typ: ThresholdTypes,
-        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
+        ctx: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             factor,
@@ -36,8 +36,8 @@ impl AutoThreshold {
 }
 //
 //
-impl Eval<Mat, Result<Mat, Error>> for AutoThreshold {
-    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
+impl<In> Eval<In, Result<Mat, Error>> for AutoThreshold<In> {
+    fn eval(&self, mat: In) -> Result<Mat, Error> {
         let error = Error::new("AutoThreshold", "eval");
         match self.ctx.eval(mat) {
             Ok(mat) => {

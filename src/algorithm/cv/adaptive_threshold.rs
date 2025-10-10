@@ -5,17 +5,17 @@ use sal_core::error::Error;
 use crate::Eval;
 ///
 /// Apply `OpenCv` AdaptiveThreshold operator to passed image
-pub struct AdaptiveThreshold {
+pub struct AdaptiveThreshold<In> {
     maxval: f64,
     method: AdaptiveThresholdTypes,
     typ: ThresholdTypes,
     block_size: i32,
     decrement: f64,
-    ctx: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
+    ctx: Box<dyn Eval<In, Result<Mat, Error>> + Send + Sync>,
 }
 //
 //
-impl AdaptiveThreshold {
+impl<In> AdaptiveThreshold<In> {
     ///
     /// Returns [AdaptiveThreshold] new instance
     /// - `maxval` - Non-zero value assigned to the pixels for which the condition is satisfied.
@@ -31,7 +31,7 @@ impl AdaptiveThreshold {
         typ: ThresholdTypes,
         block_size: i32,
         decrement: f64,
-        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
+        ctx: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             maxval,
@@ -45,8 +45,8 @@ impl AdaptiveThreshold {
 }
 //
 //
-impl Eval<Mat, Result<Mat, Error>> for AdaptiveThreshold {
-    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
+impl<In> Eval<In, Result<Mat, Error>> for AdaptiveThreshold<In> {
+    fn eval(&self, mat: In) -> Result<Mat, Error> {
         let error = Error::new("AdaptiveThreshold", "eval");
         match self.ctx.eval(mat) {
             Ok(mat) => {

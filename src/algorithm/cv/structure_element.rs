@@ -15,6 +15,7 @@ impl StructuringElement {
     ///
     /// Returns Structuring element `Mat` new instance
     /// - `kernel` - Structuring element kernel size, [w, h]
+    ///    with default `shape`: `MORPH_ELLIPSE`
     #[allow(unused)]
     pub fn new(kernel: &[i32; 2]) -> Self {
         Self { 

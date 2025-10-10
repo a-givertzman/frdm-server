@@ -5,22 +5,22 @@ use sal_core::error::Error;
 use crate::Eval;
 ///
 /// Apply `OpenCv` Gaussian Blur to passed image
-pub struct GaussianBlur {
+pub struct GaussianBlur<In> {
     kernel: Vec<i32>,
     sigma: Vec<f64>,
     border: BorderTypes,
-    ctx: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
+    ctx: Box<dyn Eval<In, Result<Mat, Error>> + Send + Sync>,
 }
 //
 //
-impl GaussianBlur {
+impl<In> GaussianBlur<In> {
     ///
     /// Returns Structuring element `Mat` new instance
     /// - `kernel` - Gaussian kernel size, [w, h].
     ///    ksize.width and ksize.height can differ but they both must be positive and odd.
     ///    Or, they can be zero's and then they are computed from sigma.
     #[allow(unused)]
-    pub fn new(kernel: &[i32; 2], ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static) -> Self {
+    pub fn new(kernel: &[i32; 2], ctx: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static) -> Self {
         Self { 
             kernel: kernel.into(),
             sigma: vec![0.0, 0.0],
@@ -52,8 +52,8 @@ impl GaussianBlur {
 }
 //
 //
-impl Eval<Mat, Result<Mat, Error>> for GaussianBlur {
-    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
+impl<In> Eval<In, Result<Mat, Error>> for GaussianBlur<In> {
+    fn eval(&self, mat: In) -> Result<Mat, Error> {
         match self.ctx.eval(mat) {
             Ok(mat) => {
                 let mut dst = Mat::default();

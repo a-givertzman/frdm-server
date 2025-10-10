@@ -2,7 +2,7 @@ use std::time::Instant;
 use opencv::core::{Mat, MatTraitConst, MatTraitConstManual, Point2i, Size2i};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx}, domain::{Eval, Filter, Image, RwLock},
+    algorithm::{cv, ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx}, domain::{Eval, Filter, Image, RwLock}
 };
 ///
 /// Temporal Filter | Highlighting / Hiding pixels depending on those changing speed
@@ -14,6 +14,7 @@ pub struct TemporalFilter {
     threshold: f64,
     filters: RwLock<Vec<FilterIsChanged::<f32>>>,
     // background: RefCell<Mat>,
+    proc: RwLock<Option<Box<dyn Eval<(), Result<Mat, Error>> + Send + Sync + Send + Sync>>>,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     debug: bool,
 }
@@ -31,6 +32,7 @@ impl TemporalFilter {
             down_speed,
             threshold,
             filters: RwLock::new(vec![]),
+            proc: RwLock::new(None),
             ctx: Box::new(ctx),
             debug,
         }
@@ -79,13 +81,31 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                                 }
                             }
                         }
-                        let out = unsafe { Mat::new_rows_cols_with_data_unsafe(
-                            height as i32,
-                            width as i32,
-                            opencv::core::CV_8UC1,
-                            out.as_ptr() as *mut std::ffi::c_void,
-                            opencv::core::Mat_AUTO_STEP,
-                        ) }.map_err(|err| error.pass(err.to_string()))?;
+                        if self.proc.read().is_none() {
+                            *self.proc.write() = Some(Box::new(
+                                cv::Morphology::erode(
+                                    &[5, 5],
+                                    cv::Morphology::open(
+                                        &[5, 5],
+                                        cv::CreateMat::gray8(width as i32, height as i32),
+                                    ),
+                                ),
+                            ));
+                        }
+                        log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
+                        let dst = match self.proc.read().as_ref() {
+                            Some(proc) => proc.eval(()).map_err(|err| error.pass(err))?,
+                            None => Err(error.err("proc is not initialized"))?,
+                        };
+                        // let out = unsafe { Mat::new_rows_cols_with_data_unsafe(
+                        //     height as i32,
+                        //     width as i32,
+                        //     opencv::core::CV_8UC1,
+                        //     out.as_ptr() as *mut std::ffi::c_void,
+                        //     opencv::core::Mat_AUTO_STEP,
+                        // ) }.map_err(|err| error.pass(err.to_string()))?;
+                        let out = cv::CreateMat::gray8(width as i32, height as i32).eval(())?;
+                        
                         let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
                         let mut dst = Mat::default();
                         opencv::imgproc::morphology_ex(

@@ -3,15 +3,15 @@ use sal_core::error::Error;
 use crate::Eval;
 ///
 /// Apply `OpenCv` Threshold operator to passed image
-pub struct Threshold {
+pub struct Threshold<In> {
     threshold: f64,
     maxval: f64,
     typ: ThresholdTypes,
-    ctx: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
+    ctx: Box<dyn Eval<In, Result<Mat, Error>> + Send + Sync>,
 }
 //
 //
-impl Threshold {
+impl<In> Threshold<In> {
     ///
     /// Returns [Threshold] new instance
     /// - `threshold` - Threshold value.
@@ -22,7 +22,7 @@ impl Threshold {
         threshold: f64,
         maxval: f64,
         typ: ThresholdTypes,
-        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
+        ctx: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             threshold,
@@ -34,8 +34,8 @@ impl Threshold {
 }
 //
 //
-impl Eval<Mat, Result<Mat, Error>> for Threshold {
-    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
+impl<In> Eval<In, Result<Mat, Error>> for Threshold<In> {
+    fn eval(&self, mat: In) -> Result<Mat, Error> {
         let error = Error::new("Threshold", "eval");
         match self.ctx.eval(mat) {
             Ok(mat) => {

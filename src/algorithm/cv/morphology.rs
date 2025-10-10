@@ -5,18 +5,18 @@ use sal_core::error::Error;
 use crate::{algorithm::cv::StructuringElement, Eval};
 ///
 /// Apply `OpenCv` Morphology transformetion to passed image
-pub struct Morphology {
+pub struct Morphology<In> {
     operation: MorphTypes,
     kernel: Vec<i32>,
     iterations: i32,
     border: BorderTypes,
     border_val: Option<Scalar>,
     structuring_element: Option<Box<dyn Eval<(), Result<Mat, Error>> + Send + Sync>>,
-    ctx: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
+    ctx: Box<dyn Eval<In, Result<Mat, Error>> + Send + Sync>,
 }
 //
 //
-impl Morphology {
+impl<In> Morphology<In> {
     ///
     /// Returns [Morphology] new instance
     /// - `operation` - Type of a morphological operation, see morph_types.
@@ -25,7 +25,7 @@ impl Morphology {
     pub fn new(
         operation: MorphTypes,
         kernel: &[i32; 2],
-        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
+        ctx: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             operation,
@@ -43,7 +43,7 @@ impl Morphology {
     #[allow(unused)]
     pub fn erode(
         kernel: &[i32; 2],
-        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
+        ctx: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             operation: MorphTypes::MORPH_ERODE,
@@ -61,7 +61,7 @@ impl Morphology {
     #[allow(unused)]
     pub fn open(
         kernel: &[i32; 2],
-        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
+        ctx: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             operation: MorphTypes::MORPH_OPEN,
@@ -79,7 +79,7 @@ impl Morphology {
     #[allow(unused)]
     pub fn dilate(
         kernel: &[i32; 2],
-        ctx: impl Eval<Mat, Result<Mat, Error>> + Send + Sync + 'static,
+        ctx: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             operation: MorphTypes::MORPH_DILATE,
@@ -118,8 +118,8 @@ impl Morphology {
 }
 //
 //
-impl Eval<Mat, Result<Mat, Error>> for Morphology {
-    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
+impl<In> Eval<In, Result<Mat, Error>> for Morphology<In> {
+    fn eval(&self, mat: In) -> Result<Mat, Error> {
         let error = Error::new("Morphology", "eval");
         match self.ctx.eval(mat) {
             Ok(mat) => {
