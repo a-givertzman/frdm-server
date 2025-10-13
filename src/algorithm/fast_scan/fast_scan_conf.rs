@@ -9,21 +9,19 @@ use crate::{algorithm::{FastContoursConf, RopeDimensionsConf, TemporalFilterConf
 /// ```yaml
 /// fast-scan:
 ///     union:
-///         add-weighted:
-///             weight1: 1.0         # Weight of the first array elements.
-///             weight2: 1.0         # Weight of the second array elements.
+///         add-weighted:               # Combine two images
+///             weight1: 1.0            # Weight of the first array elements.
+///             weight2: 1.0            # Weight of the second array elements.
 ///             gamma: 0.0
-///         contours:
+///         fast-contours:
 ///             cropping:
-///                 x: 230           # New left edge
-///                 y: 300           # New top edge
-///                 width: 1410      # New image width
-///                 height: 1000     # New image height
+///                 x: 230              # New left edge
+///                 y: 300              # New top edge
+///                 width: 1410         # New image width
+///                 height: 1000        # New image height
 ///             gamma:
-///                 factor: 120.0    # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
-///             gausian:
-///                 kernel: [11, 11]
-///                 sigma: [0.0, 0.0]
+///                 factor: 120.0       # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+///             otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
 ///         temporal-filter:
 ///             open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
 ///             erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
@@ -58,9 +56,9 @@ impl FastScanConf {
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::trace!("{}.new | name: {:?}", dbg, name);
-        let fast_contours = conf.get("contours").expect(&format!("{dbg}.new | 'contours' - not found or wrong configuration"));
+        let fast_contours = conf.get("fast-contours").expect(&format!("{dbg}.new | 'fast-contours' - not found or wrong configuration"));
         let fast_contours = FastContoursConf::new(&name, fast_contours);
-        log::trace!("{dbg}.new | contours: {:#?}", fast_contours);
+        log::trace!("{dbg}.new | fast-contours: {:#?}", fast_contours);
         let temporal_filter = conf.get("temporal-filter").expect(&format!("{dbg}.new | 'temporal-filter' - not found or wrong configuration"));
         let temporal_filter = TemporalFilterConf::new(&name, temporal_filter);
         log::trace!("{dbg}.new | temporal-filter: {:#?}", temporal_filter);

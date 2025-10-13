@@ -93,19 +93,19 @@ fn eval() {
     let debug = false;
     let temporal_filter = 
         EdgeDetection::new(
-            conf.edge_detection.otsu_tune,
-            conf.edge_detection.threshold,
-            conf.edge_detection.smooth,
+            Some(1.4),
+            None,
+            Some(16.0),
             FineContours::new(
                 conf.cv_contours.clone(),
                 Gray::new(
                     AutoGamma::new(
-                        conf.cv_contours.gamma.factor,
+                        120.0,
                         Cropping::new(
-                            conf.cv_contours.cropping.x,
-                            conf.cv_contours.cropping.width,
-                            conf.cv_contours.cropping.y,
-                            conf.cv_contours.cropping.height,
+                            230,
+                            1410,
+                            300,
+                            1000,
                             Initial::new(
                                 InitialCtx::new(),
                             ),

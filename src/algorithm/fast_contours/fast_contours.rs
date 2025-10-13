@@ -12,7 +12,6 @@ use crate::{Eval, domain::Image};
 /// 
 /// Binarization is based on the sharpness of the target segment
 pub struct FastContours {
-    conf: FastContoursConf,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>,
     debug: bool,
@@ -23,23 +22,18 @@ impl FastContours {
     ///
     /// Returns [FastContours] new instance
     /// - `ctx` - Prevouse step returns [Image] in [Context]
-    /// - `conf` - Configuration for `Contour dectection` algorithm:
-    ///     - gausian:
-    ///         - `kernel` - Gausian blur kernel size
-    ///         - `sigma_x` - Standard deviation in X direction
-    ///         - `sigma_y` - Standard deviation in Y direction
-    ///     - sobel:
-    ///         - `kernel_size` - Sobel kernel size
-    ///         - `scale` - Scale factor for computed derivative values
-    ///         - `delta` - Delta values added to results
-    ///     - overlay:
-    ///         - `src1-weight` - Weight for X gradient
-    ///         - `src1-weight` - Weight for Y gradient
-    ///         - `gamma` - Scalar added to weighted sum
+    /// - `conf` - Configuration for `Fast Contour dectection` algorithm:
+    ///     cropping:
+    ///         x: 230              # New left edge
+    ///         y: 300              # New top edge
+    ///         width: 1410         # New image width
+    ///         height: 1000        # New image height
+    ///     gamma:
+    ///         factor: 120.0       # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+    ///     otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
     pub fn new(conf: FastContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         let kernel = 13;
         Self {
-            conf,
             ctx: Box::new(ctx),
             proc: Box::new(
                 cv::Morphology::dilate(
@@ -51,7 +45,7 @@ impl FastContours {
                             cv::GaussianBlur::new(
                                 &[7, 7],
                                 cv::AutoThreshold::new(
-                                    0.4,
+                                    conf.otsu_tune,
                                     255.0,
                                     ThresholdTypes::THRESH_BINARY,
                                     cv::GaussianBlur::new(

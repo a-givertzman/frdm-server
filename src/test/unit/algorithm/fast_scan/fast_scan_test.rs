@@ -49,7 +49,7 @@ fn eval() {
                         weight1: 1.0         # Weight of the first array elements.
                         weight2: 1.0         # Weight of the second array elements.
                         gamma: 0.0
-                    contours:
+                    fast-contours:
                         cropping:
                             x: 230           # New left edge
                             y: 300           # New top edge
@@ -57,15 +57,13 @@ fn eval() {
                             height: 1000     # New image height
                         gamma:
                             factor: 120.0    # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
-                        gausian:
-                            kernel: [11, 11]
-                            sigma: [0.0, 0.0]
+                        otsu-tune: 1.40
                     temporal-filter:
                         open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
                         erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
                         threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
                 edge-detection:
-                    otsu-tune: 1.40             # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                    otsu-tune: 0.40             # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                     # threshold: 128            # 0...255, used if otsu-tune is not specified
                     smooth: 36                  # Smoothing of edge line factor. The higher the factor the smoother the line.
                 rope-dimensions:            # Verifaing the rope dimensions 
