@@ -109,7 +109,7 @@ impl Eval<Image, EvalResult> for FastContours {
     }
 }
 ///
-/// Closes calculation sequence, passing input `Mat`
+/// Closes calculation sequence, passing input [Mat]
 struct PassCvMat {}
 impl PassCvMat {
     fn new() -> Self {

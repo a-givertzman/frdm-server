@@ -7,7 +7,7 @@ pub struct CreateMat {
     width: i32,
     height: i32,
     typ: MatType,
-    fill: Option<>
+    fill: Option<()>
 }
 //
 //
@@ -27,6 +27,7 @@ impl CreateMat {
             width,
             height,
             typ,
+            fill: None,
         }
     }
     ///
@@ -42,6 +43,7 @@ impl CreateMat {
             width,
             height,
             typ: MatType::Cv8uc1,
+            fill: None,
         }
     }
     ///
@@ -57,6 +59,7 @@ impl CreateMat {
             width,
             height,
             typ: MatType::Cv8uc3,
+            fill: None,
         }
     }
     ///
@@ -73,15 +76,19 @@ impl CreateMat {
             width,
             height,
             typ: MatType::Cv8uc4,
+            fill: None,
         }
     }
     ///
     /// Creates 
-    pub fn filled(mut self, ) -> Self {
+    #[allow(unused)]
+    pub fn filled(mut self) -> Self {
+        self.fill = Some(());
         self
     }
     ///
     /// 
+    #[allow(unused)]
     fn from_bytes(_bytes: &[u8], typ: MatType) -> Result<Mat, Error> {
         match typ {
             // opencv::core::CV_8UC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 1>>(height as i32, width as i32, data),
@@ -118,32 +125,47 @@ impl CreateMat {
 }
 //
 //
-impl Eval<(), Result<Mat, Error>> for CreateMat {
-    fn eval(&self, _: ()) -> Result<Mat, Error> {
+impl<T: AsPtr> Eval<T, Result<Mat, Error>> for CreateMat {
+    fn eval(&self, val: T) -> Result<Mat, Error> {
         let error = Error::new("CreateMat", "eval");
-        match self.fill {
-            Some(fill) => {
+        match &self.fill {
+            Some(_) => {
                 unsafe { Mat::new_rows_cols_with_data_unsafe(
                     self.height,
                     self.width,
                     self.typ as i32,
-                    out.as_ptr() as *mut std::ffi::c_void,
+                    val.as_ptr::<Vec<u8>>() as *mut std::ffi::c_void,
                     opencv::core::Mat_AUTO_STEP,
                 ) }
+                .map_err(|err| {error.pass_with(
+                    format!("Can't create Mat with width {}, height {}, type {:?}", self.width, self.height, self.typ),
+                    err.to_string(),
+                )})
             }
             None => {
                 unsafe { opencv::core::Mat::new_rows_cols(
                     self.height,
                     self.width,
                     self.typ as i32,
-                )
+                )}
+                .map_err(|err| {error.pass_with(
+                    format!("Can't create Mat with width {}, height {}, type {:?}", self.width, self.height, self.typ),
+                    err.to_string(),
+                )})
             }
         }
-        .map_err(|err| {
-            error.pass_with(
-                format!("Can't create Mat with width {}, height {}, type {:?}", self.width, self.height, self.typ),
-                err.to_string(),
-            )
-        }) }
+    }
+}
+pub trait AsPtr {
+    fn as_ptr<T>(&self) -> *const T;
+}
+impl AsPtr for Vec<u8> {
+    fn as_ptr<u8>(&self) -> *const u8 {
+        Vec::as_ptr(&self) as *const u8
+    }
+}
+impl AsPtr for &Vec<u8> {
+    fn as_ptr<u8>(&self) -> *const u8 {
+        Vec::as_ptr(self) as *const u8
     }
 }

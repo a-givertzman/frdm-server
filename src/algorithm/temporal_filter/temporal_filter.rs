@@ -1,5 +1,5 @@
 use std::time::Instant;
-use opencv::core::{Mat, MatTraitConst, MatTraitConstManual, Point2i, Size2i};
+use opencv::core::{Mat, MatTraitConst, MatTraitConstManual};
 use sal_core::error::Error;
 use crate::{
     algorithm::{cv, ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx}, domain::{Eval, Filter, Image, RwLock}
@@ -7,14 +7,12 @@ use crate::{
 ///
 /// Temporal Filter | Highlighting / Hiding pixels depending on those changing speed
 pub struct TemporalFilter {
-    amplify_factor: f64,
-    grow_speed: f64,
-    reduce_factor: f64,
-    down_speed: f64,
+    open_kernel: [i32; 2],
+    erode_kernel: [i32; 2],
     threshold: f64,
     filters: RwLock<Vec<FilterIsChanged::<f32>>>,
     // background: RefCell<Mat>,
-    proc: RwLock<Option<Box<dyn Eval<(), Result<Mat, Error>> + Send + Sync + Send + Sync>>>,
+    proc: RwLock<Option<Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>>>,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     debug: bool,
 }
@@ -23,13 +21,13 @@ pub struct TemporalFilter {
 impl TemporalFilter {
     ///
     /// Returns [TemporalFilter] new instance
-    /// - `cache` - path to the cache folder
-    pub fn new(amplify_factor: f64, grow_speed: f64, reduce_factor: f64, down_speed: f64, threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
+    /// - `open_kernel` - Morphology open operation kernel size
+    /// - `erode_kernel` - Morphology erode operation kernel size
+    /// - `threshold` - used to detect movement by comparing with the delta between same pixel of each frame
+    pub fn new(open_kernel: [i32; 2], erode_kernel: [i32; 2], threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self {
-            amplify_factor,
-            grow_speed,
-            reduce_factor,
-            down_speed,
+            open_kernel,
+            erode_kernel,
             threshold,
             filters: RwLock::new(vec![]),
             proc: RwLock::new(None),
@@ -53,7 +51,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                         let height = frame.mat.rows() as usize;
                         let width = frame.mat.cols() as usize;
                         let pixels = width * height * frame.mat.channels() as usize;
-                        let mut out = vec![0u8; pixels];
+                        let mut dst = vec![0u8; pixels];
                         log::debug!("TemporalFilter.eval | pixels: {:?}", pixels);
                         if self.filters.read().is_empty() {
                             *self.filters.write() = (0..pixels).map(|_| {
@@ -62,72 +60,42 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                         }
                         log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
                         log::debug!("TemporalFilter.eval | mat.channels: {:?}", frame.mat.channels());
-                        {
-                            let mut filters = self.filters.write();
-                            for i in 0..pixels {
-                                match input.get(i) {
-                                    Some(value) => {
-                                        if let Some(filter) = filters.get_mut(i) {
-                                            match out.get_mut(i) {
-                                                Some(pixel) => *pixel = match filter.add(*value as f32) {
-                                                    Some(_) => 255,
-                                                    None => 0,
-                                                },
-                                                None => return Err(error.err(format!("Out image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
-                                            }
+                        let mut filters = self.filters.write();
+                        for i in 0..pixels {
+                            match input.get(i) {
+                                Some(value) => {
+                                    if let Some(filter) = filters.get_mut(i) {
+                                        match dst.get_mut(i) {
+                                            Some(pixel) => *pixel = match filter.add(*value as f32) {
+                                                Some(_) => 255,
+                                                None => 0,
+                                            },
+                                            None => return Err(error.err(format!("Out image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
                                         }
                                     }
-                                    None => return Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
                                 }
+                                None => return Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
                             }
+                        }
+                        {
                         }
                         if self.proc.read().is_none() {
                             *self.proc.write() = Some(Box::new(
                                 cv::Morphology::erode(
-                                    &[5, 5],
+                                    &self.erode_kernel,
                                     cv::Morphology::open(
-                                        &[5, 5],
-                                        cv::CreateMat::gray8(width as i32, height as i32),
+                                        &self.open_kernel,
+                                        PassCvMat::new(),
                                     ),
                                 ),
                             ));
                         }
                         log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
+                        let dst = cv::CreateMat::gray8(width as i32, height as i32).filled().eval(&dst)?;
                         let dst = match self.proc.read().as_ref() {
-                            Some(proc) => proc.eval(()).map_err(|err| error.pass(err))?,
+                            Some(proc) => proc.eval(dst).map_err(|err| error.pass(err))?,
                             None => Err(error.err("proc is not initialized"))?,
                         };
-                        // let out = unsafe { Mat::new_rows_cols_with_data_unsafe(
-                        //     height as i32,
-                        //     width as i32,
-                        //     opencv::core::CV_8UC1,
-                        //     out.as_ptr() as *mut std::ffi::c_void,
-                        //     opencv::core::Mat_AUTO_STEP,
-                        // ) }.map_err(|err| error.pass(err.to_string()))?;
-                        let out = cv::CreateMat::gray8(width as i32, height as i32).eval(())?;
-                        
-                        let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
-                        let mut dst = Mat::default();
-                        opencv::imgproc::morphology_ex(
-                            &out,
-                            &mut dst,
-                            opencv::imgproc::MORPH_OPEN,
-                            &kernel,
-                            Point2i::new(-1, -1),
-                            1,
-                            opencv::core::BORDER_CONSTANT,
-                            opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
-                        ).map_err(|err| error.pass(err.to_string()))?;
-                        opencv::imgproc::morphology_ex(
-                            &dst.clone(),
-                            &mut dst,
-                            opencv::imgproc::MORPH_ERODE,
-                            &kernel,
-                            Point2i::new(-1, -1),
-                            1,
-                            opencv::core::BORDER_CONSTANT,
-                            opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
-                        ).map_err(|err| error.pass(err.to_string()))?;
                         let frame = Image::with(dst);
                         let ctx = if self.debug {
                             let result = TemporalFilterCtx { frame: frame.clone() };
@@ -144,5 +112,18 @@ impl Eval<Image, EvalResult> for TemporalFilter {
             }
             Err(err) => Err(error.pass(err)),
         }
+    }
+}
+///
+/// Closes calculation sequence, passing input [Mat]
+struct PassCvMat {}
+impl PassCvMat {
+    fn new() -> Self {
+        Self {  }
+    }
+}
+impl Eval<Mat, Result<Mat, Error>> for PassCvMat {
+    fn eval(&self, mat: Mat) -> Result<Mat, Error> {
+        Ok(mat)
     }
 }

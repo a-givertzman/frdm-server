@@ -114,10 +114,8 @@ fn main() {
         let contours_result = FastContours::new(
             CvContoursConf::default(),
             TemporalFilter::new(
-                conf.cv_contours.temporal_filter.amplify_factor,
-                conf.cv_contours.temporal_filter.grow_speed,
-                conf.cv_contours.temporal_filter.reduce_factor,
-                conf.cv_contours.temporal_filter.down_speed,
+                conf.cv_contours.temporal_filter.open_kernel,
+                conf.cv_contours.temporal_filter.erode_kernel,
                 conf.cv_contours.temporal_filter.threshold,
                 Gray::new(
                     AutoBrightnessAndContrast::new(
