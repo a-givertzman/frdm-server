@@ -1,8 +1,11 @@
 use sal_core::dbg::Dbg;
-use sal_sync::services::{conf::ConfTree, entity::Name};
+use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
+use crate::algorithm::FineContoursConf;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct FineScanConf {}
+pub struct FineScanConf {
+    pub fine_contours: FineContoursConf
+}
 //
 //
 impl FineScanConf {
@@ -10,16 +13,16 @@ impl FineScanConf {
     /// Returns [FineScanConf] built from `ConfTree`:
     pub fn new(parent: impl Into<String>, conf: ConfTree) -> Self {
         let parent = parent.into();
-        let me = "RopeConf";
+        let me = "FineScanConf";
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::trace!("{}.new | name: {:?}", dbg, name);
-        // let geometry_defect_threshold = conf.get("geometry-defect-threshold").unwrap();
-        // let geometry_defect_threshold = Threshold(geometry_defect_threshold);
-        // log::trace!("{dbg}.new | geometry-defect-threshold: {:?}", geometry_defect_threshold);
+        let fine_contours = conf.get("fine-contours").expect(&format!("{dbg}.new | 'fine-contours' - not found or wrong configuration"));
+        let fine_contours = FineContoursConf::new(&name, fine_contours);
+        log::trace!("{dbg}.new | fine-contours: {:?}", fine_contours);
         Self {
-            // geometry_defect_threshold,
+            fine_contours
         }
     }
 }
@@ -27,6 +30,8 @@ impl FineScanConf {
 //
 impl Default for FineScanConf {
     fn default() -> Self {
-        Self { }
+        Self {
+            fine_contours: FineContoursConf::default(),
+        }
     }
 }

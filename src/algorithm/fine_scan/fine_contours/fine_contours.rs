@@ -18,8 +18,9 @@ use crate::{Eval, domain::Image};
 /// Takes source [Image]
 /// Return filtered and binarised [Image] with contours detected
 pub struct FineContours {
-    conf: FineContoursConf,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    thresh_ctx: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
+    conf: FineContoursConf,
     debug: bool,
 }
 //
@@ -28,23 +29,33 @@ impl FineContours {
     ///
     /// Returns [FineContours] new instance
     /// - `ctx` - Prevouse step returns [Image] in [Context]
-    /// - `conf` - Configuration for `Contour dectection` algorithm:
-    ///     - gausian:
-    ///         - `kernel` - Gausian blur kernel size
-    ///         - `sigma_x` - Standard deviation in X direction
-    ///         - `sigma_y` - Standard deviation in Y direction
-    ///     - sobel:
-    ///         - `kernel_size` - Sobel kernel size
-    ///         - `scale` - Scale factor for computed derivative values
-    ///         - `delta` - Delta values added to results
-    ///     - overlay:
-    ///         - `src1-weight` - Weight for X gradient
-    ///         - `src1-weight` - Weight for Y gradient
-    ///         - `gamma` - Scalar added to weighted sum
+    /// - `conf` - Configuration for `Fine Contour dectection` algorithm:
+    ///     - otsu-tune: 0.40 - Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
+    ///     - merge-distance: 24.0 - Maximum distance between contours to be merged
     pub fn new(conf: FineContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
-            conf,
             ctx: Box::new(ctx),
+            thresh_ctx: Box::new(
+                cv::AutoThreshold::new(
+                    conf.otsu_tune,
+                    255.0,
+                    ThresholdTypes::THRESH_BINARY,
+                    cv::Morphology::open(
+                        &[5, 5],
+                        cv::GaussianBlur::new(
+                            &[13, 13],
+                            cv::Laplacian::new(
+                                5,
+                                cv::GaussianBlur::new(
+                                    &[11, 11],
+                                    PassCvMat::new(),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+            ),
+            conf,
             debug,
         }
     }
@@ -191,25 +202,7 @@ impl Eval<Image, EvalResult> for FineContours {
                 // let result: &ResultCtx = ctx.read();
                 let result: &ResultCtx = ctx.read();
                 let frame = &result.frame;
-                let thresh = cv::AutoThreshold::new(
-                    0.4,
-                    255.0,
-                    ThresholdTypes::THRESH_BINARY,
-                    cv::Morphology::open(
-                        &[5, 5],
-                        cv::GaussianBlur::new(
-                            &[13, 13],
-                            cv::Laplacian::new(
-                                5,
-                                cv::GaussianBlur::new(
-                                    &[11, 11],
-                                    PassCvMat::new(),
-                                ),
-                            ),
-                        ),
-                    ),
-                )
-                    .eval(frame.mat.clone())
+                let thresh = self.thresh_ctx.eval(frame.mat.clone())
                     .map_err(|err| error.pass(err))?;
                 // imgproc::gaussian_blur(&frame.mat, &mut dst, Size2i::new(11, 11), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
                 //     .map_err(|err| error.pass(err.to_string()))?;
@@ -254,7 +247,7 @@ impl Eval<Image, EvalResult> for FineContours {
                     'contour1: for (i1, contour1) in contours.iter().enumerate() {
                         for (i2, contour2) in contours.iter().enumerate().filter(|(i, _)| i1 != *i) {
                             // log::debug!("FineContours.eval | search nierby segments...");
-                            if let Ok(hull) = Self::min_distance(&contour1, &contour2, 24.0) {
+                            if let Ok(hull) = Self::min_distance(&contour1, &contour2, self.conf.merge_distance as f32) {
                                 if hull.len() > 0 {
                                 //             let mut hull: core::Vector<Point> = core::Vector::default();
                                             // imgproc::approx_poly_dp(&hull.clone(), &mut hull, 0.4, true)

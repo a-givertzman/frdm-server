@@ -45,68 +45,53 @@ fn eval() {
     test_duration.run().unwrap();
     let conf = ConfTree::new_root(
         serde_yaml::from_str(&format!(r#"
-            contours:
-                cropping:
-                    x: 230           # new left edge
-                    width: 1410     # new image width
-                    y: 300           # new top edge
-                    height: 1000    # new image height
-                gamma:
-                    factor: 120.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
-                brightness-contrast:
-                    hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
-                    hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
-                temporal-filter:
-                    amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 2.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-                    reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 2.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
-                    threshold: 12.0
-                gausian:
-                    blur-size:
-                        width: 11
-                        height: 11
-                    sigma-x: 0.0
-                    sigma-y: 0.0
-                sobel:
-                    kernel-size: 3
-                    scale: 1.0
-                    delta: 0.0
-                overlay:
-                    src1-weight: 1.0
-                    src2-weight: 1.0
-                    gamma: 0.0
-            edge-detection:
-                otsu-tune: 1.20       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                # threshold: 128       # 0...255, used if otsu-tune is not specified
-                smooth: 36             # Smoothing of edge line factor. The higher the factor the smoother the line.
-            rope-dimensions:
-                rope-width: 380               # Standart rope width, px
-                width-tolerance: 25.0         # Tolerance for rope width, %
-                square-tolerance: 100.0       # Tolerance for rope square, %
             fast-scan:
-                geometry-defect-threshold: 1.0      # 1.1..1.3, absolute threshold to detect the geometry deffects
-            fine-scan:
-                no-params: not implemented yet
+                union:
+                    add-weighted:
+                        weight1: 1.0         # Weight of the first array elements.
+                        weight2: 1.0         # Weight of the second array elements.
+                        gamma: 0.0
+                    fast-contours:
+                        cropping:
+                            x: 230           # New left edge
+                            y: 300           # New top edge
+                            width: 1410      # New image width
+                            height: 1000     # New image height
+                        gamma:
+                            factor: 120.0    # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                        otsu-tune: 0.40      # 
+                    temporal-filter:
+                        open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
+                        erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
+                        threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
+                edge-detection:
+                    otsu-tune: 1.40             # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                    # threshold: 128            # 0...255, used if otsu-tune is not specified
+                    smooth: 36                  # Smoothing of edge line factor. The higher the factor the smoother the line.
+                rope-dimensions:            # Verifaing the rope dimensions 
+                    rope-width: 380               # Standart rope width, px
+                    width-tolerance: 25.0         # Tolerance for rope width, %
+                    square-tolerance: 100.0       # Tolerance for rope square, %
+                geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
         "#)).unwrap(),
     );
     let conf = Conf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let temporal_filter = EdgeDetection::new(
-        conf.edge_detection.otsu_tune,
-        conf.edge_detection.threshold,
-        conf.edge_detection.smooth,
+        conf.fast_scan.edge_detection.otsu_tune,
+        conf.fast_scan.edge_detection.threshold,
+        conf.fast_scan.edge_detection.smooth,
         FastContours::new(
-            conf.cv_contours.clone(),
+            conf.fast_scan.fast_contours.clone(),
             Gray::new(
                 AutoGamma::new(
-                    conf.cv_contours.gamma.factor,
+                    conf.fast_scan.fast_contours.gamma.factor,
                     Cropping::new(
-                        conf.cv_contours.cropping.x,
-                        conf.cv_contours.cropping.width,
-                        conf.cv_contours.cropping.y,
-                        conf.cv_contours.cropping.height,
+                        conf.fast_scan.fast_contours.cropping.x,
+                        conf.fast_scan.fast_contours.cropping.width,
+                        conf.fast_scan.fast_contours.cropping.y,
+                        conf.fast_scan.fast_contours.cropping.height,
                         Initial::new(
                             InitialCtx::new(),
                         ),
@@ -172,15 +157,15 @@ fn eval() {
                     *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
                 }
                 let (text, text_color) = match RopeDimensions::new(
-                    conf.rope_dimensions.rope_width,
-                    conf.rope_dimensions.width_tolerance,
-                    conf.rope_dimensions.square_tolerance,
+                    conf.fast_scan.rope_dimensions.rope_width,
+                    conf.fast_scan.rope_dimensions.width_tolerance,
+                    conf.fast_scan.rope_dimensions.square_tolerance,
                     FakePassDots::new(edges.clone()),
                 ).eval(frame.clone()) {
                     Ok(ctx) => {
                         let dimensions: &RopeDimensionsCtx = ctx.read();
-                        let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_dimensions.rope_width as f64).abs();
-                        let square_error = (100.0 - dimensions.square * 100.0 / (conf.rope_dimensions.rope_width * upper.len()) as f64).abs();
+                        let width_error = (100.0 - dimensions.width * 100.0 / conf.fast_scan.rope_dimensions.rope_width as f64).abs();
+                        let square_error = (100.0 - dimensions.square * 100.0 / (conf.fast_scan.rope_dimensions.rope_width * upper.len()) as f64).abs();
                         (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), VecN::from_array([255.0, 0.0, 0.0, 0.0]))
                     }
                     Err(err) => (format!("Error: {:?}", err), VecN::from_array([0.0, 0.0, 255.0, 0.0]))

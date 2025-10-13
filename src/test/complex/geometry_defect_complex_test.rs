@@ -11,11 +11,10 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, FastContours, EdgeDetection, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, Threshold,
+        ContextRead, EdgeDetection, FastContours, FastContoursConf, FastScanConf,
+        GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, TemporalFilterConf, Threshold
     }, 
-    conf::{
-        Conf, CvContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf,
-    },
+    conf::EdgeDetectionConf,
 };
 ///
 ///
@@ -50,24 +49,22 @@ fn eval() {
             vec![]
         )
     ];
-    let conf = Conf {
-        cv_contours: CvContoursConf::default(),
+    let conf = FastScanConf {
+        fast_contours: FastContoursConf::default(),
+        temporal_filter: TemporalFilterConf::default(),
         edge_detection: EdgeDetectionConf::default(),
         rope_dimensions: RopeDimensionsConf::default(),
-        fast_scan: FastScanConf {
-            geometry_defect_threshold: Threshold::min(),
-        },
-        fine_scan: FineScanConf {},
+        geometry_defect_threshold: Threshold(1.1),
     };
     let geometry_defect = GeometryDefect::new(
-        conf.fast_scan.geometry_defect_threshold,
+        conf.geometry_defect_threshold,
         *Box::new(Mad::new()),
         EdgeDetection::new(
             conf.edge_detection.otsu_tune,
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
             FastContours::new(
-                conf.cv_contours,
+                conf.fast_contours,
                 FakePassImg::new(),
                 false,
             ),

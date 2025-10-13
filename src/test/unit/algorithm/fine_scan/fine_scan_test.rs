@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FastContoursCtx, FastScanConf, FineContours, FineUnion, FineUnionCtx, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FastContoursCtx, FastScanConf, FineContours, FineScanConf, FineUnion, FineUnionCtx, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
     }, 
     conf::Conf, domain::Error,
 };
@@ -88,15 +88,15 @@ fn eval() {
                 no-params: not implemented yet
         "#)).unwrap(),
     );
-    let conf = FastScanConf::new(&dbg, conf);
+    let conf = FineScanConf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let tp = ThreadPool::new(&dbg, Some(4));
     let temporal_filter = 
         EdgeDetection::new(
-            conf.edge_detection.otsu_tune,
-            conf.edge_detection.threshold,
-            conf.edge_detection.smooth,
+            Some(1.4),
+            None,
+            Some(16.0),
             FineUnion::new(
                 tp.scheduler(),
                 TemporalFilter::new(
@@ -124,7 +124,7 @@ fn eval() {
                     debug,
                 ),
                 FineContours::new(
-                    conf.cv_contours.clone(),
+                    conf.fine_contours,
                     GaussianBlur::new(
                         conf.cv_contours.gausian.blur_w,
                         conf.cv_contours.gausian.blur_h,

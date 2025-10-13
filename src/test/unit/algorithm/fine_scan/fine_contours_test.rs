@@ -12,9 +12,12 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FineContours, FineContoursConf, FineContoursCtx, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx,
+        EdgeDetection, EdgeDetectionCtx, EvalResult, FineContours, FineContoursCtx,
+        FineScanConf, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsConf,
+        RopeDimensionsCtx, Side,
     }, 
-    conf::Conf, domain::Error,
+    domain::Error,
 };
 ///
 ///
@@ -43,52 +46,18 @@ fn eval() {
     test_duration.run().unwrap();
     let conf = ConfTree::new_root(
         serde_yaml::from_str(&format!(r#"
-            contours:
-                cropping:
-                    x: 230           # new left edge
-                    width: 1410     # new image width
-                    y: 300           # new top edge
-                    height: 1000    # new image height
-                gamma:
-                    factor: 100.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
-                brightness-contrast:
-                    hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
-                    hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
-                temporal-filter:
-                    amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 2.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-                    reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 2.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
-                    threshold: 64.0
-                gausian:
-                    blur-size:
-                        width: 11
-                        height: 3
-                    sigma-x: 0.0
-                    sigma-y: 0.0
-                sobel:
-                    kernel-size: 1
-                    scale: 5.0
-                    delta: 0.0
-                overlay:
-                    src1-weight: 1.0
-                    src2-weight: 1.0
-                    gamma: 0.0
-            edge-detection:
-                # otsu-tune: 0.90       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                threshold: 128       # 0...255, used if otsu-tune is not specified
-                smooth: 8             # Smoothing of edge line factor. The higher the factor the smoother the line.
-            rope-dimensions:
-                rope-width: 380               # Standart rope width, px
-                width-tolerance: 25.0         # Tolerance for rope width, %
-                square-tolerance: 100.0       # Tolerance for rope square, %
-            fast-scan:
-                geometry-defect-threshold: 1.0      # 1.1..1.3, absolute threshold to detect the geometry deffects
             fine-scan:
-                no-params: not implemented yet
+                fine-contours:
+                    otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
+                    merge-distance: 24.0    # Maximum distance between contours to be merged
         "#)).unwrap(),
     );
-    let conf = FineContoursConf::new(&dbg, conf);
+    let conf = FineScanConf::new(&dbg, conf);
+    let rope_dimensions_conf = RopeDimensionsConf {
+        rope_width: 380,               // Standart rope width, px
+        width_tolerance: 25.0,         // Tolerance for rope width, %
+        square_tolerance: 100.0,       // Tolerance for rope square, %
+    };
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let temporal_filter = 
@@ -97,7 +66,7 @@ fn eval() {
             None,
             Some(16.0),
             FineContours::new(
-                conf.cv_contours.clone(),
+                conf.fine_contours,
                 Gray::new(
                     AutoGamma::new(
                         120.0,
@@ -167,15 +136,15 @@ fn eval() {
                     *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
                 }
                 let (text, text_color) = match RopeDimensions::new(
-                    conf.rope_dimensions.rope_width,
-                    conf.rope_dimensions.width_tolerance,
-                    conf.rope_dimensions.square_tolerance,
+                    rope_dimensions_conf.rope_width,
+                    rope_dimensions_conf.width_tolerance,
+                    rope_dimensions_conf.square_tolerance,
                     FakePassDots::new(edges.clone()),
                 ).eval(frame.clone()) {
                     Ok(ctx) => {
                         let dimensions: &RopeDimensionsCtx = ctx.read();
-                        let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_dimensions.rope_width as f64).abs();
-                        let square_error = (100.0 - dimensions.square * 100.0 / (conf.rope_dimensions.rope_width * upper.len()) as f64).abs();
+                        let width_error = (100.0 - dimensions.width * 100.0 / rope_dimensions_conf.rope_width as f64).abs();
+                        let square_error = (100.0 - dimensions.square * 100.0 / (rope_dimensions_conf.rope_width * upper.len()) as f64).abs();
                         (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), VecN::from_array([255.0, 0.0, 0.0, 0.0]))
                     }
                     Err(err) => (format!("Error: {:?}", err), VecN::from_array([0.0, 0.0, 255.0, 0.0]))
