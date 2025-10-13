@@ -11,7 +11,7 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 ///     scale: 1.0
 ///     delta: 0.0
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SobelConf {
     /// Sobel kernel size
     /// It must be 1, 3, 5 or 7

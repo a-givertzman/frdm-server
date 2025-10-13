@@ -14,6 +14,8 @@
 //!
 mod fine_contours;
 mod fine_union;
+mod fine_scan_conf;
 
 pub use fine_contours::*;
 pub use fine_union::*;
+pub use fine_scan_conf::*;

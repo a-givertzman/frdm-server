@@ -12,9 +12,9 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        Context, ContextRead, ContextWrite, CroppingCtx, EdgeDetectionCtx, EvalResult, FastScan, FastUnionCtx, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side
+        Context, ContextRead, ContextWrite, CroppingCtx, EdgeDetectionCtx, EvalResult, FastScan, FastScanConf, FastUnionCtx, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side
     }, 
-    conf::Conf, domain::Error,
+    domain::Error,
 };
 ///
 ///
@@ -43,52 +43,39 @@ fn eval() {
     test_duration.run().unwrap();
     let conf = ConfTree::new_root(
         serde_yaml::from_str(&format!(r#"
-            contours:
-                cropping:
-                    x: 230           # new left edge
-                    width: 1410     # new image width
-                    y: 300           # new top edge
-                    height: 1000    # new image height
-                gamma:
-                    factor: 120.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
-                brightness-contrast:
-                    hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
-                    hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
-                temporal-filter:
-                    amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 2.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-                    reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 2.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
-                    threshold: 12.0
-                gausian:
-                    blur-size:
-                        width: 11
-                        height: 11
-                    sigma-x: 0.0
-                    sigma-y: 0.0
-                sobel:
-                    kernel-size: 3
-                    scale: 1.0
-                    delta: 0.0
-                overlay:
-                    src1-weight: 1.0
-                    src2-weight: 1.0
-                    gamma: 0.0
-            edge-detection:
-                otsu-tune: 1.40       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                # threshold: 128       # 0...255, used if otsu-tune is not specified
-                smooth: 36             # Smoothing of edge line factor. The higher the factor the smoother the line.
-            rope-dimensions:
-                rope-width: 380               # Standart rope width, px
-                width-tolerance: 25.0         # Tolerance for rope width, %
-                square-tolerance: 100.0       # Tolerance for rope square, %
             fast-scan:
-                geometry-defect-threshold: 1.0      # 1.1..1.3, absolute threshold to detect the geometry deffects
-            fine-scan:
-                no-params: not implemented yet
+                union:
+                    add-weighted:
+                        weight1: 1.0         # Weight of the first array elements.
+                        weight2: 1.0         # Weight of the second array elements.
+                        gamma: 0.0
+                    contours:
+                        cropping:
+                            x: 230           # New left edge
+                            y: 300           # New top edge
+                            width: 1410      # New image width
+                            height: 1000     # New image height
+                        gamma:
+                            factor: 120.0    # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                        gausian:
+                            kernel: [11, 11]
+                            sigma: [0.0, 0.0]
+                    temporal-filter:
+                        open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
+                        erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
+                        threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
+                edge-detection:
+                    otsu-tune: 1.40             # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                    # threshold: 128            # 0...255, used if otsu-tune is not specified
+                    smooth: 36                  # Smoothing of edge line factor. The higher the factor the smoother the line.
+                rope-dimensions:            # Verifaing the rope dimensions 
+                    rope-width: 380               # Standart rope width, px
+                    width-tolerance: 25.0         # Tolerance for rope width, %
+                    square-tolerance: 100.0       # Tolerance for rope square, %
+                geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
         "#)).unwrap(),
     );
-    let conf = Conf::new(&dbg, conf);
+    let conf = FastScanConf::new(&dbg, conf);
     let tp = ThreadPool::new(&dbg, Some(4));
     let temporal_filter = FastScan::new(
         conf.clone(),

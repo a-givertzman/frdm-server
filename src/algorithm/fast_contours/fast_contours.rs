@@ -3,17 +3,16 @@ use opencv::{core::Mat, imgproc::ThresholdTypes};
 use sal_core::error::Error;
 use crate::algorithm::{
     cv, ContextWrite, ContextRead,
-    FastContoursCtx,
+    FastContoursCtx, FastContoursConf,
     EvalResult, ResultCtx,
 };
-use crate::conf::CvContoursConf;
 use crate::{Eval, domain::Image};
 ///
 /// Return filtered and binarised [Image] with contours detected
 /// 
 /// Binarization is based on the sharpness of the target segment
 pub struct FastContours {
-    conf: CvContoursConf,
+    conf: FastContoursConf,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>,
     debug: bool,
@@ -37,7 +36,7 @@ impl FastContours {
     ///         - `src1-weight` - Weight for X gradient
     ///         - `src1-weight` - Weight for Y gradient
     ///         - `gamma` - Scalar added to weighted sum
-    pub fn new(conf: CvContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
+    pub fn new(conf: FastContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         let kernel = 13;
         Self {
             conf,

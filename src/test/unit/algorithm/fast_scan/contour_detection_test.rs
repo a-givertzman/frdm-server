@@ -1,5 +1,4 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoBrightnessAndContrast, AutoBrightnessAndContrastCtx, AutoGamma, FastContoursCtx, EdgeDetectionCtx, Initial, InitialCtx, Side}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
 use sal_sync::services::conf::ConfTree;
@@ -12,9 +11,10 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, Cropping, CroppingCtx, FastContours, EdgeDetection, Gray
-    }, 
-    conf::Conf,
+        ContextRead, Cropping, CroppingCtx, EdgeDetection, FastContours, FastScanConf, Gray,
+        AutoBrightnessAndContrastCtx, AutoGamma, FastContoursCtx, EdgeDetectionCtx, Initial, InitialCtx, Side,
+    },
+    domain::{Eval, Image}
 };
 ///
 ///
@@ -78,7 +78,7 @@ fn eval() {
                 no-params: not implemented yet
         "#)).unwrap(),
     );
-    let conf = Conf::new(&dbg, conf);
+    let conf = FastScanConf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let scan_rope = 
@@ -87,22 +87,17 @@ fn eval() {
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
             FastContours::new(
-                conf.cv_contours.clone(),
+                conf.fast_contours,
                 Gray::new(
-                    AutoBrightnessAndContrast::new(
-                        conf.cv_contours.brightness_contrast.hist_clip_left,
-                        conf.cv_contours.brightness_contrast.hist_clip_right,
-                        AutoGamma::new(
-                            conf.cv_contours.gamma.factor,
-                            Cropping::new(
-                                conf.cv_contours.cropping.x,
-                                conf.cv_contours.cropping.width,
-                                conf.cv_contours.cropping.y,
-                                conf.cv_contours.cropping.height,
-                                Initial::new(
-                                    InitialCtx::new(),
-                                ),
-                                debug,
+                    AutoGamma::new(
+                        conf.fast_contours.gamma.factor,
+                        Cropping::new(
+                            conf.fast_contours.cropping.x,
+                            conf.fast_contours.cropping.width,
+                            conf.fast_contours.cropping.y,
+                            conf.fast_contours.cropping.height,
+                            Initial::new(
+                                InitialCtx::new(),
                             ),
                             debug,
                         ),

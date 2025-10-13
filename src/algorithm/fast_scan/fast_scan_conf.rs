@@ -1,6 +1,6 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::algorithm::{FastScanConf, FineScanConf};
+use crate::{algorithm::{FastContoursConf, RopeDimensionsConf, TemporalFilterConf, Threshold}, conf::EdgeDetectionConf};
 
 ///
 /// The application configuration
@@ -37,34 +37,61 @@ use crate::algorithm::{FastScanConf, FineScanConf};
 ///         width-tolerance: 25.0         # Tolerance for rope width, %
 ///         square-tolerance: 100.0       # Tolerance for rope square, %
 ///     geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
-/// fine-scan:
-///     no-params: not implemented yet
 /// ```
 #[derive(Debug, PartialEq, Clone)]
-pub struct Conf {
-    pub fast_scan: FastScanConf,
-    pub fine_scan: FineScanConf,
+pub struct FastScanConf {
+    pub fast_contours: FastContoursConf,
+    /// Configuration for `Temporal Filter`
+    pub temporal_filter: TemporalFilterConf,
+    pub edge_detection: EdgeDetectionConf,
+    pub rope_dimensions: RopeDimensionsConf,
+    pub geometry_defect_threshold: Threshold,
 }
-impl Conf {
+impl FastScanConf {
     ///
-    /// Returns [Conf] built from `ConfTree`:
+    /// Returns [FastScanConf] built from `ConfTree`:
     #[allow(unused)]
     pub fn new(parent: impl Into<String>, conf: ConfTree) -> Self {
         let parent = parent.into();
-        let me = "Conf";
+        let me = "FastScanConf";
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::trace!("{}.new | name: {:?}", dbg, name);
-        let fast_scan = conf.get("fast-scan").expect(&format!("{dbg}.new | 'fast-scan' - not found or wrong configuration"));
-        let fast_scan = FastScanConf::new(&name, fast_scan);
-        log::trace!("{dbg}.new | fast-scan: {:#?}", fast_scan);
-        let fine_scan = conf.get("fine-scan").expect(&format!("{dbg}.new | 'fine-scan' - not found or wrong configuration"));
-        let fine_scan = FineScanConf::new(&name, fine_scan);
-        log::trace!("{dbg}.new | fine-scan: {:#?}", fine_scan);
+        let fast_contours = conf.get("contours").expect(&format!("{dbg}.new | 'contours' - not found or wrong configuration"));
+        let fast_contours = FastContoursConf::new(&name, fast_contours);
+        log::trace!("{dbg}.new | contours: {:#?}", fast_contours);
+        let temporal_filter = conf.get("temporal-filter").expect(&format!("{dbg}.new | 'temporal-filter' - not found or wrong configuration"));
+        let temporal_filter = TemporalFilterConf::new(&name, temporal_filter);
+        log::trace!("{dbg}.new | temporal-filter: {:#?}", temporal_filter);
+        let edge_detection = conf.get("edge-detection").expect(&format!("{dbg}.new | 'edge-detection' - not found or wrong configuration"));
+        let edge_detection = EdgeDetectionConf::new(&name, edge_detection);
+        log::trace!("{dbg}.new | edge-detection: {:#?}", edge_detection);
+        let rope_dimensions = conf.get("rope-dimensions").expect(&format!("{dbg}.new | 'rope-dimensions' - not found or wrong configuration"));
+        let rope_dimensions = RopeDimensionsConf::new(&name, rope_dimensions);
+        log::trace!("{dbg}.new | rope-dimensions: {:#?}", rope_dimensions);
+        let geometry_defect_threshold = conf.get("geometry-defect-threshold").unwrap();
+        let geometry_defect_threshold = Threshold(geometry_defect_threshold);
+        log::trace!("{dbg}.new | geometry-defect-threshold: {:?}", geometry_defect_threshold);
         Self {
-            fast_scan,
-            fine_scan,
+            fast_contours,
+            temporal_filter,
+            edge_detection,
+            rope_dimensions,
+            geometry_defect_threshold,
+        }
+    }
+}
+//
+//
+impl Default for FastScanConf {
+    fn default() -> Self {
+        Self {
+            fast_contours: Default::default(),
+            temporal_filter: Default::default(),
+            edge_detection: Default::default(),
+            rope_dimensions: Default::default(),
+            geometry_defect_threshold: Default::default(),
         }
     }
 }

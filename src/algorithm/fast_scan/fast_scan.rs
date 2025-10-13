@@ -3,9 +3,10 @@ use sal_core::error::Error;
 use sal_sync::thread_pool::Scheduler;
 use crate::{
     algorithm::{
-        AutoGamma, ContextRead, Cropping, EdgeDetection, EvalResult, FastUnion, GaussianBlur, Gray, Initial, InitialCtx, ResultCtx, TemporalFilter,
-        FastContours, Context,
-    }, conf::Conf, domain::{Eval, Image, RwLock},
+        AutoGamma, Context, ContextRead, Cropping, EdgeDetection,
+        EvalResult, FastContours, FastUnion, GaussianBlur, Gray,
+        Initial, InitialCtx, ResultCtx, TemporalFilter, FastScanConf,
+    }, domain::{Eval, Image, RwLock},
 };
 ///
 /// Contour detection algorithms optimized for speed, tradeoff in result quality
@@ -28,7 +29,7 @@ pub struct FastScan {
 impl FastScan {
     ///
     /// Returns [FastScan] new instance
-    pub fn new(conf: Conf, scheduler: Scheduler, debug: bool) -> Self {
+    pub fn new(conf: FastScanConf, scheduler: Scheduler, debug: bool) -> Self {
         let pass_gray1 = Arc::new(RwLock::new(None));
         let pass_gray2 = Arc::new(RwLock::new(None));
         Self {
@@ -37,12 +38,12 @@ impl FastScan {
             ctx_gray: Box::new(
                 Gray::new(
                     AutoGamma::new(
-                        conf.cv_contours.gamma.factor,
+                        conf.fast_contours.gamma.factor,
                         Cropping::new(
-                            conf.cv_contours.cropping.x,
-                            conf.cv_contours.cropping.width,
-                            conf.cv_contours.cropping.y,
-                            conf.cv_contours.cropping.height,
+                            conf.fast_contours.cropping.x,
+                            conf.fast_contours.cropping.width,
+                            conf.fast_contours.cropping.y,
+                            conf.fast_contours.cropping.height,
                             Initial::new(
                                 InitialCtx::new(),
                             ),
@@ -61,21 +62,15 @@ impl FastScan {
                     FastUnion::new(
                         scheduler,
                         TemporalFilter::new(
-                            conf.cv_contours.temporal_filter.open_kernel,
-                            conf.cv_contours.temporal_filter.erode_kernel,
-                            conf.cv_contours.temporal_filter.threshold,
-                            GaussianBlur::new(
-                                conf.cv_contours.gausian.blur_w,
-                                conf.cv_contours.gausian.blur_h,
-                                conf.cv_contours.gausian.sigma_x,
-                                conf.cv_contours.gausian.sigma_y,
-                                PassGray::new(pass_gray1),
-                                debug,
-                            ),
+                            conf.temporal_filter.gaussian,
+                            conf.temporal_filter.open_kernel,
+                            conf.temporal_filter.erode_kernel,
+                            conf.temporal_filter.threshold,
+                            PassGray::new(pass_gray1),
                             debug,
                         ),
                         FastContours::new(
-                            conf.cv_contours.clone(),
+                            conf.fast_contours,
                             PassGray::new(pass_gray2),
                             debug,
                         )

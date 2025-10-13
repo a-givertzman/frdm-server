@@ -10,8 +10,9 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, Cropping, FastContours, EdgeDetection, GeometryDefect, Gray, Initial, InitialCtx, Mad, RopeDimensionsConf, TemporalFilter, Threshold
-    }, conf::{Conf, CvContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
+        AutoGamma, Cropping, FastContours, EdgeDetection,
+        GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter, FastScanConf, FineScanConf,
+    }, conf::Conf, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -29,43 +30,34 @@ fn main() {
     }
     opencv::highgui::wait_key(1).unwrap();
     let conf = Conf {
-        cv_contours: CvContoursConf::default(),
-        edge_detection: EdgeDetectionConf::default(),
-        rope_dimensions: RopeDimensionsConf::default(),
-        fast_scan: FastScanConf {
-            geometry_defect_threshold: Threshold::min(),
-        },
-        fine_scan: FineScanConf {},
+        fast_scan: FastScanConf::default(),
+        fine_scan: FineScanConf::default(),
     };
     let debug = false;
     let scan_rope = GeometryDefect::new(
         conf.fast_scan.geometry_defect_threshold,
         *Box::new(Mad::new()),
         EdgeDetection::new(
-            conf.edge_detection.otsu_tune,
-            conf.edge_detection.threshold,
-            conf.edge_detection.smooth,
+            conf.fast_scan.edge_detection.otsu_tune,
+            conf.fast_scan.edge_detection.threshold,
+            conf.fast_scan.edge_detection.smooth,
             FastContours::new(
-                conf.cv_contours.clone(),
+                conf.fast_scan.fast_contours.clone(),
                 TemporalFilter::new(
-                    conf.cv_contours.temporal_filter.open_kernel,
-                    conf.cv_contours.temporal_filter.erode_kernel,
-                    conf.cv_contours.temporal_filter.threshold,
+                    conf.fast_scan.temporal_filter.gaussian,
+                    conf.fast_scan.temporal_filter.open_kernel,
+                    conf.fast_scan.temporal_filter.erode_kernel,
+                    conf.fast_scan.temporal_filter.threshold,
                     Gray::new(
-                        AutoBrightnessAndContrast::new(
-                            conf.cv_contours.brightness_contrast.hist_clip_left,
-                            conf.cv_contours.brightness_contrast.hist_clip_right,
-                            AutoGamma::new(
-                                conf.cv_contours.gamma.factor,
-                                Cropping::new(
-                                    conf.cv_contours.cropping.x,
-                                    conf.cv_contours.cropping.width,
-                                    conf.cv_contours.cropping.y,
-                                    conf.cv_contours.cropping.height,
-                                    Initial::new(
-                                        InitialCtx::new(),
-                                    ),
-                                    debug,
+                        AutoGamma::new(
+                            conf.fast_scan.fast_contours.gamma.factor,
+                            Cropping::new(
+                                conf.fast_scan.fast_contours.cropping.x,
+                                conf.fast_scan.fast_contours.cropping.width,
+                                conf.fast_scan.fast_contours.cropping.y,
+                                conf.fast_scan.fast_contours.cropping.height,
+                                Initial::new(
+                                    InitialCtx::new(),
                                 ),
                                 debug,
                             ),

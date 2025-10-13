@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FineContours, FineContoursCtx, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side,
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FineContours, FineContoursConf, FineContoursCtx, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side
     }, 
     conf::Conf, domain::Error,
 };
@@ -88,7 +88,7 @@ fn eval() {
                 no-params: not implemented yet
         "#)).unwrap(),
     );
-    let conf = Conf::new(&dbg, conf);
+    let conf = FineContoursConf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let temporal_filter = 

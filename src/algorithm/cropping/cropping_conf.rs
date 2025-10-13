@@ -12,7 +12,7 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 ///     y: 10           # new top edge
 ///     height: 1180    # new image height
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CroppingConf {
     /// - `x` - new left edge
     pub x: i32,

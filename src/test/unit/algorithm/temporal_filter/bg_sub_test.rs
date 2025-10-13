@@ -12,9 +12,8 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, Gray, GrayCtx,
+        AutoGamma, ContextRead, Cropping, FastContoursConf, Gray, GrayCtx
     }, 
-    conf::Conf,
 };
 ///
 ///
@@ -84,32 +83,20 @@ fn eval() {
                 no-params: not implemented yet
         "#)).unwrap(),
     );
-    let conf = Conf::new(&dbg, conf);
+    let conf = FastContoursConf::new(&dbg, conf);
     let debug = false;
-    let temporal_filter = 
-    //     EdgeDetection::new(
-    //         conf.edge_detection.otsu_tune,
-    //         conf.edge_detection.threshold,
-    //         conf.edge_detection.smooth,
-    //         CvContours::new(
-    //             conf.contours.clone(),
-    //             TemporalFilter::new(
-    //                 conf.contours.temporal_filter.amplify_factor,
-    //                 conf.contours.temporal_filter.grow_speed,
-    //                 conf.contours.temporal_filter.reduce_factor,
-    //                 conf.contours.temporal_filter.down_speed,
-    //                 conf.contours.temporal_filter.threshold,
+    let gray = 
                     Gray::new(
-                        AutoBrightnessAndContrast::new(
-                            conf.cv_contours.brightness_contrast.hist_clip_left,
-                            conf.cv_contours.brightness_contrast.hist_clip_right,
+                        // AutoBrightnessAndContrast::new(
+                        //     conf.brightness_contrast.hist_clip_left,
+                        //     conf.brightness_contrast.hist_clip_right,
                             AutoGamma::new(
-                                conf.cv_contours.gamma.factor,
+                                conf.gamma.factor,
                                 Cropping::new(
-                                    conf.cv_contours.cropping.x,
-                                    conf.cv_contours.cropping.width,
-                                    conf.cv_contours.cropping.y,
-                                    conf.cv_contours.cropping.height,
+                                    conf.cropping.x,
+                                    conf.cropping.width,
+                                    conf.cropping.y,
+                                    conf.cropping.height,
                                     Initial::new(
                                         InitialCtx::new(),
                                     ),
@@ -118,8 +105,8 @@ fn eval() {
                                 debug,
                             ),
                             debug,
-                        ),
-                        debug,
+                        // ),
+                        // debug,
                     );
     //             ),
     //         ),
@@ -152,7 +139,7 @@ fn eval() {
                 log::debug!("{dbg}.eval | src frame: {} x {}", frame.width, frame.height);
                 // let test = src.clone();
                 let t = Instant::now();
-                let ctx = temporal_filter.eval(frame).unwrap();
+                let ctx = gray.eval(frame).unwrap();
                 // let mut bg_sub = opencv::bgsegm::create_background_subtractor_gsoc(
                 //     opencv::bgsegm::LSBP_CAMERA_MOTION_COMPENSATION_NONE,
                 //     20,

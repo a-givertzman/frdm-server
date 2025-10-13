@@ -1,5 +1,6 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
+use crate::conf::GaussianConf;
 
 ///
 /// ## Configuration for `Cropping` operator
@@ -7,16 +8,21 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 /// ### Example:
 /// ```yaml
 /// temporal-filter:
+///     gausian:
+///         kernel: [3, 3]             # blur radius
+///         sigma: [0.0, 0.0]
 ///     open-kernel: [5, 5]     # Morphology open operation kernel size [w, h], default [5, 5]
 ///     erode-kernel: [5, 5]    # Morphology erode operation kernel size [w, h], default [5, 5]
 ///     threshold: 1.0          # Threshold to detect the pixel whas changed or not in the each next frame, default 1
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TemporalFilterConf {
     /// Morphology open operation kernel size
     pub open_kernel: [i32; 2],
     /// Morphology erode operation kernel size
     pub erode_kernel: [i32; 2],
+    /// Gaussian filter conf
+    pub gaussian: GaussianConf,
     /// Threshold to detect the pixel whas changed or not in the each next frame
     pub threshold: f64,
 }
@@ -32,6 +38,9 @@ impl TemporalFilterConf {
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
         log::trace!("{}.new | name: {:?}", dbg, name);
+        let gaussian = conf.get("gaussian").expect(&format!("{dbg}.new | 'gaussian' - not found or wrong configuration"));
+        let gaussian = GaussianConf::new(&name, gaussian);
+        log::trace!("{dbg}.new | gaussian: {:#?}", gaussian);
         let open_kernel: Vec<i32> = conf.as_vec("open-kernel").map(|val| {
             val.into_iter().map(|v| v.as_u64().expect(&format!("{dbg}.new | 'open-kernel' - wrong configuration")) as i32)
         }).expect(&format!("{dbg}.new | 'open-kernel' - not found or wrong configuration")).collect();
@@ -43,6 +52,7 @@ impl TemporalFilterConf {
         let threshold = conf.get("threshold").unwrap_or(1.0);
         log::trace!("{dbg}.new | threshold: {:?}", threshold);
         Self {
+            gaussian,
             open_kernel: open_kernel.try_into().expect(&format!("{dbg}.new | 'open-kernel' - wrong configuration")),
             erode_kernel: erode_kernel.try_into().expect(&format!("{dbg}.new | 'erode-kernel' - wrong configuration")),
             threshold,
@@ -54,6 +64,7 @@ impl TemporalFilterConf {
 impl Default for TemporalFilterConf {
     fn default() -> Self {
         Self {
+            gaussian: GaussianConf::default(),
             open_kernel: [5; 2],
             erode_kernel: [5; 2],
             threshold: 1.0,

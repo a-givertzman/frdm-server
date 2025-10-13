@@ -1,6 +1,6 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::{algorithm::{CroppingConf, TemporalFilterConf}, conf::{BrightnessContrastConf, GammaConf, GausianConf, OverlayConf, SobelConf}};
+use crate::{algorithm::{CroppingConf, TemporalFilterConf}, conf::{BrightnessContrastConf, GammaConf, GaussianConf, OverlayConf, SobelConf}};
 
 ///
 /// ## Configuration for `Contour dectection` algorithm
@@ -39,7 +39,7 @@ use crate::{algorithm::{CroppingConf, TemporalFilterConf}, conf::{BrightnessCont
 ///     gamma: 0.0
 /// ```
 #[derive(Debug, Clone, PartialEq)]
-pub struct CvContoursConf {
+pub struct FineContoursConf {
     /// Configuration for `Cropping` operator
     pub cropping: CroppingConf,
     /// Configuration for `Gamma auto correction` algorithm
@@ -49,7 +49,7 @@ pub struct CvContoursConf {
     /// Configuration for `Temporal Filter`
     pub temporal_filter: TemporalFilterConf,
     /// Configuration for `Gaussian filter`
-    pub gausian: GausianConf,
+    pub gausian: GaussianConf,
     /// Configuration for `Sobel operator`
     pub sobel: SobelConf,
     /// Configuration for `Weighted sum`
@@ -57,7 +57,7 @@ pub struct CvContoursConf {
 }
 //
 // 
-impl CvContoursConf {
+impl FineContoursConf {
     ///
     /// Returns [DetectingContoursConf] built from `ConfTree`:
     pub fn new(parent: impl Into<String>, conf: ConfTree) -> Self {
@@ -80,7 +80,7 @@ impl CvContoursConf {
         let temporal_filter = TemporalFilterConf::new(&name, temporal_filter);
         log::trace!("{dbg}.new | temporal-filter: {:#?}", temporal_filter);
         let gausian = conf.get("gausian").expect(&format!("{dbg}.new | 'gausian' - not found or wrong configuration"));
-        let gausian = GausianConf::new(&name, gausian);
+        let gausian = GaussianConf::new(&name, gausian);
         log::trace!("{dbg}.new | gausian: {:#?}", gausian);
         let sobel = conf.get("sobel").expect(&format!("{dbg}.new | 'sobel' - not found or wrong configuration"));
         let sobel = SobelConf::new(&name, sobel);
@@ -101,14 +101,14 @@ impl CvContoursConf {
 }
 //
 //
-impl Default for CvContoursConf {
+impl Default for FineContoursConf {
     fn default() -> Self {
         Self {
             cropping: CroppingConf::default(),
             gamma: GammaConf::default(),
             brightness_contrast: BrightnessContrastConf::default(),
             temporal_filter: TemporalFilterConf::default(),
-            gausian: GausianConf::default(),
+            gausian: GaussianConf::default(),
             sobel: SobelConf::default(),
             overlay: OverlayConf::default(),
         }

@@ -2,11 +2,12 @@ use std::time::Instant;
 use opencv::core::{Mat, MatTraitConst, MatTraitConstManual};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{cv, ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx}, domain::{Eval, Filter, Image, RwLock}
+    algorithm::{cv, ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx}, conf::GaussianConf, domain::{Eval, Filter, Image, RwLock}
 };
 ///
 /// Temporal Filter | Highlighting / Hiding pixels depending on those changing speed
 pub struct TemporalFilter {
+    gaussian: GaussianConf,
     open_kernel: [i32; 2],
     erode_kernel: [i32; 2],
     threshold: f64,
@@ -24,8 +25,9 @@ impl TemporalFilter {
     /// - `open_kernel` - Morphology open operation kernel size
     /// - `erode_kernel` - Morphology erode operation kernel size
     /// - `threshold` - used to detect movement by comparing with the delta between same pixel of each frame
-    pub fn new(open_kernel: [i32; 2], erode_kernel: [i32; 2], threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
+    pub fn new(gaussian: GaussianConf, open_kernel: [i32; 2], erode_kernel: [i32; 2], threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self {
+            gaussian,
             open_kernel,
             erode_kernel,
             threshold,
@@ -85,7 +87,10 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                                     &self.erode_kernel,
                                     cv::Morphology::open(
                                         &self.open_kernel,
-                                        PassCvMat::new(),
+                                        cv::GaussianBlur::new(
+                                            &self.gaussian.kernel,
+                                            PassCvMat::new(),
+                                        )
                                     ),
                                 ),
                             ));

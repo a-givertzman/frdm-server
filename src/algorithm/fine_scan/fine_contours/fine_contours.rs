@@ -11,15 +11,14 @@ use opencv::imgproc::ThresholdTypes;
 use sal_core::error::Error;
 use crate::algorithm::{
     ContextWrite, ContextRead, FineContoursCtx,
-    GrayCtx, EvalResult, ResultCtx, cv,
+    EvalResult, ResultCtx, cv, FineContoursConf,
 };
-use crate::conf::CvContoursConf;
 use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
 /// Return filtered and binarised [Image] with contours detected
 pub struct FineContours {
-    conf: CvContoursConf,
+    conf: FineContoursConf,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     debug: bool,
 }
@@ -42,7 +41,7 @@ impl FineContours {
     ///         - `src1-weight` - Weight for X gradient
     ///         - `src1-weight` - Weight for Y gradient
     ///         - `gamma` - Scalar added to weighted sum
-    pub fn new(conf: CvContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
+    pub fn new(conf: FineContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
             conf,
             ctx: Box::new(ctx),

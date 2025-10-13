@@ -9,8 +9,11 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, FastContours, FastContoursCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, TemporalFilter, Threshold
-    }, conf::{Conf, CvContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
+        AutoGamma, ContextRead, Cropping, FastContours,
+        FastContoursCtx, Gray, Initial, InitialCtx,
+        TemporalFilter, FastScanConf, FineScanConf,
+        FastContoursConf,
+    }, conf::Conf, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -95,13 +98,8 @@ fn main() {
     }
     opencv::highgui::wait_key(1).unwrap();
     let conf = Conf {
-        cv_contours: CvContoursConf::default(),
-        edge_detection: EdgeDetectionConf::default(),
-        rope_dimensions: RopeDimensionsConf::default(),
-        fast_scan: FastScanConf {
-            geometry_defect_threshold: Threshold::min(),
-        },
-        fine_scan: FineScanConf {},
+        fast_scan: FastScanConf::default(),
+        fine_scan: FineScanConf::default(),
     };
     for frame in recv {
         log::trace!("{} | Frame width : {:?}", dbg, frame.width);
@@ -112,26 +110,22 @@ fn main() {
         };
         let debug = false;
         let contours_result = FastContours::new(
-            CvContoursConf::default(),
+            FastContoursConf::default(),
             TemporalFilter::new(
-                conf.cv_contours.temporal_filter.open_kernel,
-                conf.cv_contours.temporal_filter.erode_kernel,
-                conf.cv_contours.temporal_filter.threshold,
+                conf.fast_scan.temporal_filter.gaussian,
+                conf.fast_scan.temporal_filter.open_kernel,
+                conf.fast_scan.temporal_filter.erode_kernel,
+                conf.fast_scan.temporal_filter.threshold,
                 Gray::new(
-                    AutoBrightnessAndContrast::new(
-                        conf.cv_contours.brightness_contrast.hist_clip_left,
-                        conf.cv_contours.brightness_contrast.hist_clip_right,
-                        AutoGamma::new(
-                            conf.cv_contours.gamma.factor,
-                            Cropping::new(
-                                conf.cv_contours.cropping.x,
-                                conf.cv_contours.cropping.width,
-                                conf.cv_contours.cropping.y,
-                                conf.cv_contours.cropping.height,
-                                Initial::new(
-                                    InitialCtx::new(),
-                                ),
-                                debug,
+                    AutoGamma::new(
+                        conf.fast_scan.fast_contours.gamma.factor,
+                        Cropping::new(
+                            conf.fast_scan.fast_contours.cropping.x,
+                            conf.fast_scan.fast_contours.cropping.width,
+                            conf.fast_scan.fast_contours.cropping.y,
+                            conf.fast_scan.fast_contours.cropping.height,
+                            Initial::new(
+                                InitialCtx::new(),
                             ),
                             debug,
                         ),

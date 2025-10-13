@@ -10,7 +10,9 @@
 //! - Union contours of two ways using bitwise operation
 //! 
 mod fast_union;
+mod fast_scan_conf;
 mod fast_scan;
 
 pub use fast_union::*;
+pub use fast_scan_conf::*;
 pub use fast_scan::*;

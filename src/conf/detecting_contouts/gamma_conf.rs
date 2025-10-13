@@ -9,7 +9,7 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 /// gamma:
 ///     factor: 95.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GammaConf {
     /// percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
     /// - exposure 35 us: beatter percent - 60 %

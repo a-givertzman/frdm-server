@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, FastContoursCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FastContoursCtx, FastScanConf, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
     }, 
     conf::Conf, domain::Error,
 };
@@ -55,21 +55,12 @@ fn eval() {
                     hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
                     hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
                 temporal-filter:
-                    amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 2.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-                    reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 2.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
+                    gausian:
+                        kernel: [11, 11]
+                        sigma: [0.0, 0.0]
+                    open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
+                    erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
                     threshold: 12.0
-                gausian:
-                    blur-size:
-                        width: 11
-                        height: 11
-                    sigma-x: 0.0
-                    sigma-y: 0.0
-                sobel:
-                    kernel-size: 1
-                    scale: 5.0
-                    delta: 0.0
                 overlay:
                     src1-weight: 1.0
                     src2-weight: 1.0
@@ -88,7 +79,7 @@ fn eval() {
                 no-params: not implemented yet
         "#)).unwrap(),
     );
-    let conf = Conf::new(&dbg, conf);
+    let conf = FastScanConf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = true;
     let temporal_filter = 
@@ -97,26 +88,20 @@ fn eval() {
             conf.edge_detection.threshold,
             conf.edge_detection.smooth,
             TemporalFilter::new(
-                conf.cv_contours.temporal_filter.open_kernel,
-                conf.cv_contours.temporal_filter.erode_kernel,
-                conf.cv_contours.temporal_filter.threshold,
-                GaussianBlur::new(
-                    conf.cv_contours.gausian.blur_w,
-                    conf.cv_contours.gausian.blur_h,
-                    conf.cv_contours.gausian.sigma_x,
-                    conf.cv_contours.gausian.sigma_y,
-                    Gray::new(
-                        AutoGamma::new(
-                            conf.cv_contours.gamma.factor,
-                            Cropping::new(
-                                conf.cv_contours.cropping.x,
-                                conf.cv_contours.cropping.width,
-                                conf.cv_contours.cropping.y,
-                                conf.cv_contours.cropping.height,
-                                Initial::new(
-                                    InitialCtx::new(),
-                                ),
-                                debug,
+                conf.temporal_filter.gaussian,
+                conf.temporal_filter.open_kernel,
+                conf.temporal_filter.erode_kernel,
+                conf.temporal_filter.threshold,
+                Gray::new(
+                    AutoGamma::new(
+                        conf.fast_contours.gamma.factor,
+                        Cropping::new(
+                            conf.fast_contours.cropping.x,
+                            conf.fast_contours.cropping.width,
+                            conf.fast_contours.cropping.y,
+                            conf.fast_contours.cropping.height,
+                            Initial::new(
+                                InitialCtx::new(),
                             ),
                             debug,
                         ),

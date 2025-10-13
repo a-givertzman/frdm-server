@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, FastContoursCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FineContours, FineUnion, FineUnionCtx, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FastContoursCtx, FastScanConf, FineContours, FineUnion, FineUnionCtx, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
     }, 
     conf::Conf, domain::Error,
 };
@@ -88,7 +88,7 @@ fn eval() {
                 no-params: not implemented yet
         "#)).unwrap(),
     );
-    let conf = Conf::new(&dbg, conf);
+    let conf = FastScanConf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let tp = ThreadPool::new(&dbg, Some(4));
@@ -100,17 +100,18 @@ fn eval() {
             FineUnion::new(
                 tp.scheduler(),
                 TemporalFilter::new(
-                    conf.cv_contours.temporal_filter.open_kernel,
-                    conf.cv_contours.temporal_filter.erode_kernel,
-                    conf.cv_contours.temporal_filter.threshold,
+                    conf.temporal_filter.gaussian,
+                    conf.temporal_filter.open_kernel,
+                    conf.temporal_filter.erode_kernel,
+                    conf.temporal_filter.threshold,
                         Gray::new(
                             AutoGamma::new(
-                                conf.cv_contours.gamma.factor,
+                                conf.fast_contours.gamma.factor,
                                 Cropping::new(
-                                    conf.cv_contours.cropping.x,
-                                    conf.cv_contours.cropping.width,
-                                    conf.cv_contours.cropping.y,
-                                    conf.cv_contours.cropping.height,
+                                    conf.fast_contours.cropping.x,
+                                    conf.fast_contours.cropping.width,
+                                    conf.fast_contours.cropping.y,
+                                    conf.fast_contours.cropping.height,
                                     Initial::new(
                                         InitialCtx::new(),
                                     ),
