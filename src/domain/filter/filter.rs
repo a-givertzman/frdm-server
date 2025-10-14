@@ -1,8 +1,8 @@
+use std::marker::PhantomData;
+
 ///
-/// Holds single value
-/// - call add(value) to apply new value
-/// - pop current value by calling value()
-/// - is_changed() - check if value was changed after las add()
+/// Passes through single value
+/// - call add(value) to apply new value, it will be returned immediately
 pub trait Filter: std::fmt::Debug {
     type Item;
     ///
@@ -13,13 +13,15 @@ pub trait Filter: std::fmt::Debug {
 /// Pass input value as is
 #[derive(Debug, Clone)]
 pub struct FilterEmpty<T> {
-    last: Option<T>,
+    item: PhantomData<T>
 }
 //
 // 
-impl<T: Copy> FilterEmpty<T> {
-    pub fn new(initial: Option<T>) -> Self {
-        Self { last: initial }
+impl<T> FilterEmpty<T> {
+    pub fn new() -> Self {
+        Self {
+            item: PhantomData,
+        }
     }
 }
 //

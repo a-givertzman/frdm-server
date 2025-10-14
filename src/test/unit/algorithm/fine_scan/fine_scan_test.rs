@@ -1,6 +1,6 @@
 #[cfg(test)]
 use crate::{algorithm::{AutoGammaCtx, Initial, InitialCtx}, domain::{Eval, Image}};
-use std::{sync::Once, time::{Duration, Instant}};
+use std::{sync::{Arc, Once}, time::{Duration, Instant}};
 use opencv::{core::{MatTrait, MatTraitConst, Point2i, Vec3b, VecN}, highgui};
 use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
 use testing::stuff::max_test_duration::TestDuration;
@@ -12,9 +12,13 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx, EvalResult, FastContoursCtx, FastScanConf, FineContours, FineScanConf, FineUnion, FineUnionCtx, GaussianBlur, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
+        AutoGamma, Context, ContextRead,
+        Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx,
+        EvalResult, FineContoursCtx, FineContours, FineScanConf,
+        FineUnion, FineUnionCtx, Gray, GrayCtx, RopeDimensions,
+        RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx,
     }, 
-    conf::Conf, domain::Error,
+    domain::{Error, RwLock},
 };
 ///
 ///
@@ -92,67 +96,48 @@ fn eval() {
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let tp = ThreadPool::new(&dbg, Some(4));
-    let temporal_filter = 
-        EdgeDetection::new(
-            Some(1.4),
-            None,
-            Some(16.0),
-            FineUnion::new(
-                tp.scheduler(),
-                TemporalFilter::new(
-                    conf.temporal_filter.gaussian,
-                    conf.temporal_filter.open_kernel,
-                    conf.temporal_filter.erode_kernel,
-                    conf.temporal_filter.threshold,
-                        Gray::new(
-                            AutoGamma::new(
-                                conf.fast_contours.gamma.factor,
-                                Cropping::new(
-                                    conf.fast_contours.cropping.x,
-                                    conf.fast_contours.cropping.width,
-                                    conf.fast_contours.cropping.y,
-                                    conf.fast_contours.cropping.height,
-                                    Initial::new(
-                                        InitialCtx::new(),
-                                    ),
-                                    debug,
-                                ),
-                                debug,
-                            ),
-                        debug,
-                    ),
-                    debug,
+    let ctx_gray = Gray::new(
+        AutoGamma::new(
+            120.0,
+            Cropping::new(
+                230,
+                1410,
+                300,
+                1000,
+                Initial::new(
+                    InitialCtx::new(),
                 ),
-                FineContours::new(
-                    conf.fine_contours,
-                    GaussianBlur::new(
-                        conf.cv_contours.gausian.blur_w,
-                        conf.cv_contours.gausian.blur_h,
-                        conf.cv_contours.gausian.sigma_x,
-                        conf.cv_contours.gausian.sigma_y,
-                        Gray::new(
-                            AutoGamma::new(
-                                conf.cv_contours.gamma.factor,
-                                Cropping::new(
-                                    conf.cv_contours.cropping.x,
-                                    conf.cv_contours.cropping.width,
-                                    conf.cv_contours.cropping.y,
-                                    conf.cv_contours.cropping.height,
-                                    Initial::new(
-                                        InitialCtx::new(),
-                                    ),
-                                    debug,
-                                ),
-                                debug,
-                            ),
-                            debug,
-                        ),
-                        debug,
-                    ),
-                    debug,
-                ),
+                debug
             ),
-        );
+            debug,
+        ),
+        debug
+    );
+    let temporal_filter = EdgeDetection::new(
+        Some(1.4),
+        None,
+        Some(16.0),
+        FineUnion::new(
+            tp.scheduler(),
+            TemporalFilter::new(
+                conf.temporal_filter.gaussian,
+                conf.temporal_filter.open_kernel,
+                conf.temporal_filter.erode_kernel,
+                conf.temporal_filter.threshold,
+                Initial::new(
+                    InitialCtx::new(),
+                ),
+                debug,
+            ),
+            FineContours::new(
+                conf.fine_contours,
+                Initial::new(
+                    InitialCtx::new(),
+                ),
+                debug,
+            ),
+        ),
+    );
     let w_gray = "Gray";
     let w_crop = "Cropped";
     let w_gamma = "Gamma";
@@ -181,17 +166,18 @@ fn eval() {
                 // let src = Image::with(rotated);
                 log::debug!("{dbg}.eval | src frame: {} x {}", frame.width, frame.height);
                 // let test = src.clone();
-                let t = Instant::now();
-                let ctx = temporal_filter.eval(frame.clone()).unwrap();
-                log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
-                let gray: &GrayCtx = ctx.read();    
+                let ctx = ctx_gray.eval(frame.clone()).unwrap();
+                let gray: &GrayCtx = ctx.read();
                 let crop: &CroppingCtx = ctx.read();    
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
-                let contours: &FastContoursCtx = ctx.read();
+                let t = Instant::now();
+                let ctx = temporal_filter.eval(gray.frame.clone()).unwrap();
+                log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
+                let contours: &FineContoursCtx = ctx.read();
+                let temp_filter: &TemporalFilterCtx = ctx.read();
                 let union: &FineUnionCtx = ctx.read();
                 let edges: &EdgeDetectionCtx = ctx.read();
-                let temp_filter: &TemporalFilterCtx = ctx.read();
                 // let mut res = crop.result.mat.clone();
                 // let edges_cont = contours.result.mat.clone();
                 let upper = edges.result.get(Side::Upper);
@@ -208,7 +194,7 @@ fn eval() {
                     conf.rope_dimensions.rope_width,
                     conf.rope_dimensions.width_tolerance,
                     conf.rope_dimensions.square_tolerance,
-                    FakePassDots::new(edges.clone()),
+                    FakePassCtx::new(ctx.clone()),
                 ).eval(frame.clone()) {
                     Ok(ctx) => {
                         let dimensions: &RopeDimensionsCtx = ctx.read();
@@ -234,22 +220,39 @@ fn eval() {
     test_duration.exit();
 }
 ///
-/// Fake implements `Eval` for testing [RopeDimensions]
-struct FakePassDots {
-    dots: EdgeDetectionCtx,
+/// Passes the gray `ctx` into two cases
+struct FakePassGray {
+    ctx: Arc<RwLock<Option<Context>>>,
 }
-impl FakePassDots{
-    pub fn new(dots: EdgeDetectionCtx) -> Self {
-        Self { dots }
+impl FakePassGray {
+    fn new(ctx: Arc<RwLock<Option<Context>>>) -> Self {
+        Self {
+            ctx
+        }
+    }
+}
+impl Eval<Image, EvalResult> for FakePassGray {
+    fn eval(&self, _: Image) -> EvalResult {
+        match self.ctx.write().take() {
+            Some(ctx) => Ok(ctx),
+            None => Err(Error::new("FakePassGray", "eval").err("Can't take 'Context'")),
+        }
+    }
+}
+///
+/// Fake implements `Eval` for testing [RopeDimensions]
+struct FakePassCtx {
+    ctx: Context,
+}
+impl FakePassCtx{
+    pub fn new(ctx: Context) -> Self {
+        Self { ctx }
     }
 }
 //
 //
-impl Eval<Image, EvalResult> for FakePassDots {
+impl Eval<Image, EvalResult> for FakePassCtx {
     fn eval(&self, _: Image) -> Result<Context, Error> {
-        let ctx = Context::new(
-            InitialCtx::new(),
-        );
-        ctx.write(self.dots.clone())
+        Ok(self.ctx.clone())
     }
 }

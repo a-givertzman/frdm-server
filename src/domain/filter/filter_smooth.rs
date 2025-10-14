@@ -4,7 +4,6 @@ use super::filter::Filter;
 #[derive(Debug, Clone)]
 pub struct FilterSmooth<T> {
     prev: Option<T>,
-    factor: f64,
     factor_inv: f64,
 }
 //
@@ -14,10 +13,10 @@ impl<T: Copy> FilterSmooth<T> {
     /// Creates new FilterSmooth<const N: usize, T>
     /// - `T` - Type of the Filter Item
     /// - `factor` - Smoothing of edge line factor. The higher the factor the smoother the line, can't be 0
+    #[allow(unused)]
     pub fn new(initial: Option<T>, factor: f64) -> Self {
         Self {
             prev: initial,
-            factor,
             factor_inv: 1.0 / factor,
         }
     }

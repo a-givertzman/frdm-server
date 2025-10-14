@@ -11,10 +11,9 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, EdgeDetection, FastContours, FastContoursConf, FastScanConf,
+        ContextRead, EdgeDetectionConf, EdgeDetection, FastContours, FastContoursConf, FastScanConf,
         GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, TemporalFilterConf, Threshold
     }, 
-    conf::EdgeDetectionConf,
 };
 ///
 ///

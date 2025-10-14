@@ -1,9 +1,9 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::{algorithm::{FastContoursConf, RopeDimensionsConf, TemporalFilterConf, Threshold}, conf::EdgeDetectionConf};
+use crate::{algorithm::{EdgeDetectionConf, FastContoursConf, RopeDimensionsConf, TemporalFilterConf, Threshold}};
 
 ///
-/// The application configuration
+/// `FastScan` algorithm configuration
 /// 
 /// ### Example
 /// ```yaml

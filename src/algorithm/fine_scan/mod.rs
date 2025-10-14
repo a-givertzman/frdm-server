@@ -1,8 +1,7 @@
 //!
 //! Contour detection algorithms are optimized for best result, at the expence of speed
 //! 
-//! - Convert into gray scale
-//! - Apply autogamma
+//! - Expect gray scale normalised image
 //! - Find contours
 //!    - First way
 //!       - Find contours based on the sharpness (Sobel gradient or Laplacian)
@@ -15,7 +14,9 @@
 mod fine_contours;
 mod fine_union;
 mod fine_scan_conf;
+mod fine_scan;
 
 pub use fine_contours::*;
 pub use fine_union::*;
 pub use fine_scan_conf::*;
+pub use fine_scan::*;

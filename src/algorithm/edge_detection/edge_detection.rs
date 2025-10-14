@@ -61,7 +61,7 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                 //         _ if (16.0..24.0).contains(&smooth) => (Box::new(FilterLowPass::<16, _>::new(None)), Box::new(FilterLowPass::<16, _>::new(None))),
                 //         _ => (Box::new(FilterLowPass::<1, _>::new(None)), Box::new(FilterLowPass::<1, _>::new(None))),
                     // }
-                    None => (Box::new(FilterEmpty::new(None)), Box::new(FilterEmpty::new(None))),
+                    None => (Box::new(FilterEmpty::new()), Box::new(FilterEmpty::new())),
                 };
                 let mut upper;
                 let mut lower;

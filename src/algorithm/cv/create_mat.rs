@@ -159,13 +159,13 @@ impl<T: AsPtr> Eval<T, Result<Mat, Error>> for CreateMat {
 pub trait AsPtr {
     fn as_ptr<T>(&self) -> *const T;
 }
-impl AsPtr for Vec<u8> {
-    fn as_ptr<u8>(&self) -> *const u8 {
-        Vec::as_ptr(&self) as *const u8
+impl<O> AsPtr for Vec<O> {
+    fn as_ptr<T>(&self) -> *const T {
+        Vec::as_ptr(&self) as *const T
     }
 }
-impl AsPtr for &Vec<u8> {
-    fn as_ptr<u8>(&self) -> *const u8 {
-        Vec::as_ptr(self) as *const u8
+impl<O> AsPtr for &Vec<O> {
+    fn as_ptr<T>(&self) -> *const T {
+        Vec::as_ptr(self) as *const T
     }
 }

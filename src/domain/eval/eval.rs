@@ -8,6 +8,7 @@ pub trait Eval<In, Out> {
 }
 ///
 /// Trate defines common mutable evaluation function for calculations classes
+#[allow(unused)]
 pub trait EvalMut<In, Out> {
     ///
     /// Performs a calculation

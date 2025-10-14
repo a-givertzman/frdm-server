@@ -4,7 +4,7 @@ use sal_sync::thread_pool::Scheduler;
 use crate::{
     algorithm::{
         AutoGamma, Context, ContextRead, Cropping, EdgeDetection,
-        EvalResult, FastContours, FastUnion, GaussianBlur, Gray,
+        EvalResult, FastContours, FastUnion, Gray,
         Initial, InitialCtx, ResultCtx, TemporalFilter, FastScanConf,
     }, domain::{Eval, Image, RwLock},
 };

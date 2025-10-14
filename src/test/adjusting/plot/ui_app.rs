@@ -9,13 +9,14 @@ use egui::{
 };
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead,
+        AutoGamma, ContextRead,
         Cropping, CroppingConf, FastContours, FastContoursCtx,
-        EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx,
+        EdgeDetectionConf, EdgeDetection, EdgeDetectionCtx, Gray,
+        Initial, InitialCtx,
         RopeDimensionsConf, Side, TemporalFilterConf, Threshold,
-        FastScanConf, FineScanConf, FastContoursConf,
+        FastScanConf, FastContoursConf,
     },
-    conf::{BrightnessContrastConf, Conf, EdgeDetectionConf, GaussianConf, GammaConf, OverlayConf, SobelConf},
+    conf::GammaConf,
     domain::{Dot, Eval, Image},
 };
 
