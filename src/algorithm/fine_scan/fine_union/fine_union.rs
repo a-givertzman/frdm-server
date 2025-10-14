@@ -45,7 +45,7 @@ impl Eval<Image, EvalResult> for FineUnion {
             Ok(())
         }).map_err(|err| error.pass(err))?;
         let (ctx2, sink) = Future::new();
-        let ctx2_eval = self.ctx1.clone();
+        let ctx2_eval = self.ctx2.clone();
         self.scheduler.spawn(move || {
             let ctx = ctx2_eval.read().eval(frame);
             sink.add(ctx);
@@ -56,21 +56,22 @@ impl Eval<Image, EvalResult> for FineUnion {
         match (ctx1, ctx2) {
             (Ok(ctx1), Ok(ctx2)) => {
                 let t = Instant::now();
-                let src1: &ResultCtx = ctx1.read();
-                let src1_mat = &src1.frame.mat;
+                let src1: &ResultCtx<Image> = ctx1.read();
+                let src1_mat = &src1.val.mat;
                 log::debug!("FineUnion.eval | src1: {}x{}", src1_mat.cols(), src1_mat.rows());
-                let src2: &ResultCtx = ctx2.read();
-                let src2_mat = &src2.frame.mat;
+                let src2: &ResultCtx<Image> = ctx2.read();
+                let src2_mat = &src2.val.mat;
                 log::debug!("FineUnion.eval | src1: {}x{}", src2_mat.cols(), src2_mat.rows());
                 let mut dst = opencv::core::Mat::default();
-                // match opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array()) {
+                match opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array()) {
                 // match opencv::core::add(src1_mat, src2_mat, &mut dst, &opencv::core::no_array(), -1) {
-                match opencv::core::add_weighted_def(src1_mat, 0.1, src2_mat, 1.0, 0.0, &mut dst) {
+                // match opencv::core::add_weighted_def(src1_mat, 0.1, src2_mat, 1.0, 0.0, &mut dst) {
                     Ok(_) => {
                         let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
+                        let mut out = opencv::core::Mat::default();
                         opencv::imgproc::morphology_ex(
-                            &dst.clone(),
-                            &mut dst,
+                            &dst,
+                            &mut out,
                             opencv::imgproc::MORPH_OPEN,
                             &kernel,
                             Point2i::new(-1, -1),
@@ -78,11 +79,10 @@ impl Eval<Image, EvalResult> for FineUnion {
                             opencv::core::BORDER_CONSTANT,
                             opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
                         ).map_err(|err| error.pass(err.to_string()))?;
-
-                        let frame = Image::with(dst);
-                        let bw_and = FineUnionCtx { frame: frame.clone() };
-                        let ctx = ctx1.write(bw_and)?;
-                        let result = ResultCtx { frame };
+                        let frame = Image::with(out);
+                        let union = FineUnionCtx { frame: frame.clone() };
+                        let ctx = ctx1.write(union)?;
+                        let result = ResultCtx { val: frame };
                         log::debug!("FineUnion.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)
                     }

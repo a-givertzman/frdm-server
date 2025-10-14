@@ -7,13 +7,9 @@ use crate::{
 ///
 /// Temporal Filter | Highlighting / Hiding pixels depending on those changing speed
 pub struct TemporalFilter {
-    gaussian: GaussianConf,
-    open_kernel: [i32; 2],
-    erode_kernel: [i32; 2],
     threshold: f64,
     filters: RwLock<Vec<FilterIsChanged::<f32>>>,
-    // background: RefCell<Mat>,
-    proc: RwLock<Option<Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>>>,
+    proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     debug: bool,
 }
@@ -27,12 +23,20 @@ impl TemporalFilter {
     /// - `threshold` - used to detect movement by comparing with the delta between same pixel of each frame
     pub fn new(gaussian: GaussianConf, open_kernel: [i32; 2], erode_kernel: [i32; 2], threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self {
-            gaussian,
-            open_kernel,
-            erode_kernel,
             threshold,
             filters: RwLock::new(vec![]),
-            proc: RwLock::new(None),
+            proc: Box::new(
+                cv::Morphology::erode(
+                    &erode_kernel,
+                    cv::Morphology::open(
+                        &open_kernel,
+                        cv::GaussianBlur::new(
+                            &gaussian.kernel,
+                            PassCvMat::new(),
+                        )
+                    ),
+                ),
+            ),
             ctx: Box::new(ctx),
             debug,
         }
@@ -46,8 +50,8 @@ impl Eval<Image, EvalResult> for TemporalFilter {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ContextRead::<>::read(&ctx);
+                let frame = &result.val;
                 match frame.mat.data_bytes() {
                     Ok(input) => {
                         let height = frame.mat.rows() as usize;
@@ -79,28 +83,27 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                                 None => return Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
                             }
                         }
-                        {
-                        }
-                        if self.proc.read().is_none() {
-                            *self.proc.write() = Some(Box::new(
-                                cv::Morphology::erode(
-                                    &self.erode_kernel,
-                                    cv::Morphology::open(
-                                        &self.open_kernel,
-                                        cv::GaussianBlur::new(
-                                            &self.gaussian.kernel,
-                                            PassCvMat::new(),
-                                        )
-                                    ),
-                                ),
-                            ));
-                        }
+                        // if self.proc.read().is_none() {
+                        //     *self.proc.write() = Some(Box::new(
+                        //         cv::Morphology::erode(
+                        //             &self.erode_kernel,
+                        //             cv::Morphology::open(
+                        //                 &self.open_kernel,
+                        //                 cv::GaussianBlur::new(
+                        //                     &self.gaussian.kernel,
+                        //                     PassCvMat::new(),
+                        //                 )
+                        //             ),
+                        //         ),
+                        //     ));
+                        // }
                         log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
-                        let dst = cv::CreateMat::gray8(width as i32, height as i32).filled().eval(&dst)?;
-                        let dst = match self.proc.read().as_ref() {
-                            Some(proc) => proc.eval(dst).map_err(|err| error.pass(err))?,
-                            None => Err(error.err("proc is not initialized"))?,
-                        };
+                        let dst = cv::CreateMat::gray8(width as i32, height as i32)
+                            .filled()
+                            .eval(&dst)
+                            .map_err(|err| error.pass(err))?;
+                        let dst = self.proc.eval(dst)
+                            .map_err(|err| error.pass(err))?;
                         let frame = Image::with(dst);
                         let ctx = if self.debug {
                             let result = TemporalFilterCtx { frame: frame.clone() };
@@ -108,7 +111,7 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                         } else {
                             ctx
                         };
-                        let result = ResultCtx { frame };
+                        let result = ResultCtx { val: frame };
                         log::debug!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)
                     }

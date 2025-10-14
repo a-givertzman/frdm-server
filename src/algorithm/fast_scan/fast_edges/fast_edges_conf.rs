@@ -2,17 +2,17 @@ use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 
 ///
-/// ## Configuration for edge-detection algorithm
+/// ## Configuration for fast-edges algorithm
 /// 
 /// ### Example:
 /// ```yaml
-/// edge-detection:
+/// fast-edges:
 ///     otsu-tune: 1.0      # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0, if not specified, `threshold` will be used
 ///     threshold: 1        # 0...255, if not specified otsu auto threshold will be used, if nothing specified, otsu threshold will be used with otsu-tune = 1
 ///     smooth: 16          # Smoothing of edge line factor. The higher the factor the smoother the line.
 /// ```
-#[derive(Debug, Clone, PartialEq)]
-pub struct EdgeDetectionConf {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FastEdgesConf {
     /// Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold
     /// 
     /// If not specified, then manual threshold will used
@@ -26,12 +26,12 @@ pub struct EdgeDetectionConf {
 }
 //
 // 
-impl EdgeDetectionConf {
+impl FastEdgesConf {
     ///
-    /// Returns [EdgeDetectionConf] built from `ConfTree`:
+    /// Returns [FastEdgesConf] built from `ConfTree`:
     pub fn new(parent: impl Into<String>, conf: ConfTree) -> Self {
         let parent = parent.into();
-        let me = "EdgeDetectionConf";
+        let me = "FastEdgesConf";
         let dbg = Dbg::new(&parent, me);
         log::trace!("{}.new | conf: {:?}", dbg, conf);
         let name = Name::new(parent, me);
@@ -65,7 +65,7 @@ impl EdgeDetectionConf {
 }
 //
 //
-impl Default for EdgeDetectionConf {
+impl Default for FastEdgesConf {
     fn default() -> Self {
         Self {
             otsu_tune: Some(1.0),

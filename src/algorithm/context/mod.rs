@@ -14,6 +14,7 @@
 mod context_access;
 mod context;
 mod initial;
+mod normalised_ctx;
 mod result_ctx;
 ///
 /// TODO: To be moved to the better place
@@ -22,6 +23,7 @@ mod testing_ctx;
 pub use context_access::*;
 pub use context::*;
 pub use initial::*;
+pub use normalised_ctx::*;
 pub use result_ctx::*;
 #[allow(unused)]
 pub use testing_ctx::*;

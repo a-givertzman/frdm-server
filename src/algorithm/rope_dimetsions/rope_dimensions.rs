@@ -1,7 +1,7 @@
 use std::time::Instant;
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EdgeDetectionCtx, RopeDimensionsCtx, EvalResult, Side},
+    algorithm::{ContextRead, ContextWrite, FastEdgesCtx, RopeDimensionsCtx, EvalResult, Side},
     domain::{Eval, Image},
 };
 ///
@@ -37,7 +37,7 @@ impl Eval<Image, EvalResult> for RopeDimensions {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &EdgeDetectionCtx = ctx.read();
+                let result: &FastEdgesCtx = ctx.read();
                 let upper_points = result.result.get(Side::Upper);
                 let lower_points = result.result.get(Side::Lower);
                 let mut upper_average = 0.0f64;

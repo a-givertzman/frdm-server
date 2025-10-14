@@ -1,7 +1,7 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 use crate::algorithm::{
-    EdgeDetectionConf, FineContoursConf,
+    FineEdgesConf, FineContoursConf,
     RopeDimensionsConf, TemporalFilterConf, Threshold,
 };
 
@@ -11,25 +11,21 @@ use crate::algorithm::{
 /// ### Example
 /// ```yaml
 /// fine-scan:
-///     union:
-///         add-weighted:               # Combine two images
-///             weight1: 1.0            # Weight of the first array elements.
-///             weight2: 1.0            # Weight of the second array elements.
-///             gamma: 0.0
-///         fast-contours:
-///             cropping:
-///                 x: 230              # New left edge
-///                 y: 300              # New top edge
-///                 width: 1410         # New image width
-///                 height: 1000        # New image height
-///             gamma:
-///                 factor: 120.0       # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
-///             otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
-///         temporal-filter:
-///             open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
-///             erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
-///             threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
-///     edge-detection:
+///     add-weighted:               # Combine two images
+///         weight1: 1.0            # Weight of the first array elements.
+///         weight2: 1.0            # Weight of the second array elements.
+///         gamma: 0.0
+///     fine-contours:
+///         otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
+///         merge-distance: 24.0    # Maximum distance between contours to be merged
+///     temporal-filter:
+///         gaussian:
+///             kernel: [11, 11]    # Gausian blur kernel size, must be odd
+///             sigma: [0.0, 0.0]   # Standard deviation in [X, Y] direction, The higher the value, the more pixels are used to count each pixel and the smoother blur will be
+///         open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
+///         erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
+///         threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
+///     fine-edges:
 ///         otsu-tune: 1.40             # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
 ///         # threshold: 128            # 0...255, used if otsu-tune is not specified
 ///         smooth: 36                  # Smoothing of edge line factor. The higher the factor the smoother the line.
@@ -39,11 +35,11 @@ use crate::algorithm::{
 ///         square-tolerance: 100.0       # Tolerance for rope square, %
 ///     geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FineScanConf {
     pub fine_contours: FineContoursConf,
     pub temporal_filter: TemporalFilterConf,
-    pub edge_detection: EdgeDetectionConf,
+    pub fine_edges: FineEdgesConf,
     pub rope_dimensions: RopeDimensionsConf,
     pub geometry_defect_threshold: Threshold,
 }
@@ -65,9 +61,9 @@ impl FineScanConf {
         let temporal_filter = conf.get("temporal-filter").expect(&format!("{dbg}.new | 'temporal-filter' - not found or wrong configuration"));
         let temporal_filter = TemporalFilterConf::new(&name, temporal_filter);
         log::trace!("{dbg}.new | temporal-filter: {:#?}", temporal_filter);
-        let edge_detection = conf.get("edge-detection").expect(&format!("{dbg}.new | 'edge-detection' - not found or wrong configuration"));
-        let edge_detection = EdgeDetectionConf::new(&name, edge_detection);
-        log::trace!("{dbg}.new | edge-detection: {:#?}", edge_detection);
+        let fine_edges = conf.get("fine-edge").expect(&format!("{dbg}.new | 'fine-edge' - not found or wrong configuration"));
+        let fine_edges = FineEdgesConf::new(&name, fine_edges);
+        log::trace!("{dbg}.new | fine-edge: {:#?}", fine_edges);
         let rope_dimensions = conf.get("rope-dimensions").expect(&format!("{dbg}.new | 'rope-dimensions' - not found or wrong configuration"));
         let rope_dimensions = RopeDimensionsConf::new(&name, rope_dimensions);
         log::trace!("{dbg}.new | rope-dimensions: {:#?}", rope_dimensions);
@@ -77,7 +73,7 @@ impl FineScanConf {
         Self {
             fine_contours,
             temporal_filter,
-            edge_detection,
+            fine_edges,
             rope_dimensions,
             geometry_defect_threshold,
         }
@@ -90,7 +86,7 @@ impl Default for FineScanConf {
         Self {
             fine_contours: FineContoursConf::default(),
             temporal_filter: TemporalFilterConf::default(),
-            edge_detection: EdgeDetectionConf::default(),
+            fine_edges: FineEdgesConf::default(),
             rope_dimensions: RopeDimensionsConf::default(),
             geometry_defect_threshold: Threshold::default(),
         }

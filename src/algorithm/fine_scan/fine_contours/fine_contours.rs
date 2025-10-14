@@ -32,6 +32,7 @@ impl FineContours {
     /// - `conf` - Configuration for `Fine Contour dectection` algorithm:
     ///     - otsu-tune: 0.40 - Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
     ///     - merge-distance: 24.0 - Maximum distance between contours to be merged
+    #[allow(unused)]
     pub fn new(conf: FineContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
             ctx: Box::new(ctx),
@@ -200,8 +201,8 @@ impl Eval<Image, EvalResult> for FineContours {
             Ok(ctx) => {
                 let t = Instant::now();
                 // let result: &ResultCtx = ctx.read();
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ctx.read();
+                let frame = &result.val;
                 let thresh = self.thresh_ctx.eval(frame.mat.clone())
                     .map_err(|err| error.pass(err))?;
                 // imgproc::gaussian_blur(&frame.mat, &mut dst, Size2i::new(11, 11), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
@@ -334,7 +335,7 @@ impl Eval<Image, EvalResult> for FineContours {
                 } else {
                     ctx
                 };
-                let result = ResultCtx { frame };
+                let result = ResultCtx { val: frame };
                 log::debug!("FineContours.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }

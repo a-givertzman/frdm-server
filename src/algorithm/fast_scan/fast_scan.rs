@@ -1,12 +1,13 @@
 use std::{sync::Arc, time::Instant};
 use sal_core::error::Error;
-use sal_sync::thread_pool::Scheduler;
+use sal_sync::{sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, EdgeDetection,
-        EvalResult, FastContours, FastUnion, Gray,
-        Initial, InitialCtx, ResultCtx, TemporalFilter, FastScanConf,
-    }, domain::{Eval, Image, RwLock},
+        Context, ContextRead, FastEdges, FastScanCtx,
+        EvalResult, FastContours, FastUnion,
+        ResultCtx, TemporalFilter, FastScanConf,
+    },
+    domain::{Eval, Image},
 };
 ///
 /// Contour detection algorithms optimized for speed, tradeoff in result quality
@@ -19,8 +20,8 @@ use crate::{
 ///    - Find contours based on the moving objhect (diff of same pixel betwee current and previouse frame)
 /// - Union contours of two ways using bitwise operation
 pub struct FastScan {
-    pass_gray1: Arc<RwLock<Option<Context>>>,
-    pass_gray2: Arc<RwLock<Option<Context>>>,
+    pass_ctx1: Arc<Owner<Context>>,
+    pass_ctx2: Arc<Owner<Context>>,
     ctx_gray: Box<dyn Eval<Image, EvalResult>>,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
@@ -29,36 +30,23 @@ pub struct FastScan {
 impl FastScan {
     ///
     /// Returns [FastScan] new instance
-    pub fn new(conf: FastScanConf, scheduler: Scheduler, debug: bool) -> Self {
-        let pass_gray1 = Arc::new(RwLock::new(None));
-        let pass_gray2 = Arc::new(RwLock::new(None));
+    #[allow(unused)]
+    pub fn new(
+        conf: FastScanConf,
+        scheduler: Scheduler,
+        ctx: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
+        debug: bool) -> Self {
+        let pass_ctx1 = Arc::new(Owner::empty());
+        let pass_ctx2 = Arc::new(Owner::empty());
         Self {
-            pass_gray1: pass_gray1.clone(),
-            pass_gray2: pass_gray2.clone(),
-            ctx_gray: Box::new(
-                Gray::new(
-                    AutoGamma::new(
-                        conf.fast_contours.gamma.factor,
-                        Cropping::new(
-                            conf.fast_contours.cropping.x,
-                            conf.fast_contours.cropping.width,
-                            conf.fast_contours.cropping.y,
-                            conf.fast_contours.cropping.height,
-                            Initial::new(
-                                InitialCtx::new(),
-                            ),
-                            debug
-                        ),
-                        debug,
-                    ),
-                    debug
-                ),
-            ),
+            pass_ctx1: pass_ctx1.clone(),
+            pass_ctx2: pass_ctx2.clone(),
+            ctx_gray: Box::new(ctx),
             ctx: Box::new(
-                EdgeDetection::new(
-                    conf.edge_detection.otsu_tune,
-                    conf.edge_detection.threshold,
-                    conf.edge_detection.smooth,
+                FastEdges::new(
+                    conf.fast_edges.otsu_tune,
+                    conf.fast_edges.threshold,
+                    conf.fast_edges.smooth,
                     FastUnion::new(
                         scheduler,
                         TemporalFilter::new(
@@ -66,12 +54,12 @@ impl FastScan {
                             conf.temporal_filter.open_kernel,
                             conf.temporal_filter.erode_kernel,
                             conf.temporal_filter.threshold,
-                            PassGray::new(pass_gray1),
+                            PassGrayCtx::new(pass_ctx1),
                             debug,
                         ),
                         FastContours::new(
                             conf.fast_contours,
-                            PassGray::new(pass_gray2),
+                            PassGrayCtx::new(pass_ctx2),
                             debug,
                         )
                     ),
@@ -88,10 +76,10 @@ impl Eval<Image, EvalResult> for FastScan {
         match self.ctx_gray.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = result.frame.clone();
-                *self.pass_gray1.write() = Some(ctx.clone());
-                *self.pass_gray2.write() = Some(ctx);
+                let result: &ResultCtx<Image> = ContextRead::<FastScanCtx, _>::read(&ctx);
+                let frame = result.val.clone();
+                self.pass_ctx1.replace(ctx.clone());
+                self.pass_ctx2.replace(ctx);
                 let result = self.ctx.eval(frame).map_err(|err| error.pass(err));
                 log::debug!("FastScan.eval | Elapsed: {:?}", t.elapsed());
                 result
@@ -102,19 +90,19 @@ impl Eval<Image, EvalResult> for FastScan {
 }
 ///
 /// 
-struct PassGray {
-    ctx: Arc<RwLock<Option<Context>>>,
+struct PassGrayCtx {
+    ctx: Arc<Owner<Context>>,
 }
-impl PassGray {
-    fn new(ctx: Arc<RwLock<Option<Context>>>) -> Self {
+impl PassGrayCtx {
+    fn new(ctx: Arc<Owner<Context>>) -> Self {
         Self {
             ctx
         }
     }
 }
-impl Eval<Image, EvalResult> for PassGray {
+impl Eval<Image, EvalResult> for PassGrayCtx {
     fn eval(&self, _: Image) -> EvalResult {
-        match self.ctx.write().take() {
+        match self.ctx.take() {
             Some(ctx) => Ok(ctx),
             None => Err(Error::new("PassGray", "eval").err("Can't take 'Context'")),
         }

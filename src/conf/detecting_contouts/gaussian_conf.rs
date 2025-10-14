@@ -7,8 +7,8 @@ use sal_sync::services::{conf::ConfTree, entity::Name};
 /// ### Example:
 /// ```yaml
 /// gausian:
-///     kernel: [3, 3]             # blur radius
-///     sigma: [0.0, 0.0]
+///     kernel: [3, 3]          # Gausian blur kernel size, must be odd
+///     sigma: [0.0, 0.0]       # Standard deviation in [X, Y] direction, The higher the value, the more pixels are used to count each pixel and the smoother blur will be
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GaussianConf {

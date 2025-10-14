@@ -3,7 +3,7 @@ use crate::{
     algorithm::{
         geometry_defect::{
             GeometryDefectCtx, GeometryDefectType, Threshold
-        }, mad::{Bond, MadCtx}, width_emissions::WidthEmissionsCtx, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, Side
+        }, mad::{Bond, MadCtx}, width_emissions::WidthEmissionsCtx, ContextRead, ContextWrite, FastEdgesCtx, EvalResult, Side
     }, 
     domain::{Error, Eval, Image},
 };
@@ -91,7 +91,7 @@ impl Eval<Image, EvalResult> for GeometryDefect {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let mut result: Vec<GeometryDefectType> = Vec::new();
-                let initial_points = ContextRead::<EdgeDetectionCtx>::read(&ctx);
+                let initial_points = ContextRead::<FastEdgesCtx>::read(&ctx);
                 let initial_points_upper = initial_points.result.get(Side::Upper);
                 let initial_points_lower = initial_points.result.get(Side::Lower);
                 let width_emissions_result = ContextRead::<WidthEmissionsCtx>::read(&ctx).result.clone();

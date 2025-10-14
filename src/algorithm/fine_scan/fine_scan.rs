@@ -1,13 +1,11 @@
-use std::time::Instant;
+use std::{sync::Arc, time::Instant};
 use sal_core::error::Error;
-use sal_sync::thread_pool::Scheduler;
+use sal_sync::{sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        ContextRead, EdgeDetection,
-        EvalResult, FineContours, FineUnion, Initial,
-        InitialCtx, ResultCtx, TemporalFilter, FineScanConf,
+        ContextRead, FineEdges, EvalResult, FineContours, FineScanConf, FineUnion, Initial, InitialCtx, ResultCtx, TemporalFilter,
     },
-    domain::{Eval, Image},
+    domain::{Eval, Image}, Context,
 };
 ///
 /// Contour detection algorithms optimized for speed, tradeoff in result quality
@@ -20,6 +18,9 @@ use crate::{
 ///    - Find contours based on the moving objhect (diff of same pixel betwee current and previouse frame)
 /// - Union contours of two ways using bitwise operation
 pub struct FineScan {
+    pass_ctx1: Arc<Owner<Context>>,
+    pass_ctx2: Arc<Owner<Context>>,
+    ctx_gray: Box<dyn Eval<Image, EvalResult>>,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
 }
 //
@@ -27,13 +28,18 @@ pub struct FineScan {
 impl FineScan {
     ///
     /// Returns [FineScan] new instance
+    #[allow(unused)]
     pub fn new(conf: FineScanConf, scheduler: Scheduler, debug: bool) -> Self {
+        let pass_ctx1 = Arc::new(Owner::empty());
+        let pass_ctx2 = Arc::new(Owner::empty());
         Self {
+            pass_ctx1: pass_ctx1.clone(),
+            pass_ctx2: pass_ctx2.clone(),
             ctx: Box::new(
-                EdgeDetection::new(
-                    conf.edge_detection.otsu_tune,
-                    conf.edge_detection.threshold,
-                    conf.edge_detection.smooth,
+                FineEdges::new(
+                    conf.fine_edges.otsu_tune,
+                    conf.fine_edges.threshold,
+                    conf.fine_edges.smooth,
                     FineUnion::new(
                         scheduler,
                         TemporalFilter::new(
@@ -67,8 +73,8 @@ impl Eval<Image, EvalResult> for FineScan {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = result.frame.clone();
+                let result: &ResultCtx<Image> = ctx.read();
+                let frame = result.val.clone();
                 let result = self.ctx.eval(frame).map_err(|err| error.pass(err));
                 log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
                 result

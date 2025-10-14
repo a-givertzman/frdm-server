@@ -12,11 +12,10 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead,
-        Cropping, CroppingCtx, EdgeDetection, EdgeDetectionCtx,
-        EvalResult, FineContoursCtx, FineContours, FineScanConf,
-        FineUnion, FineUnionCtx, Gray, GrayCtx, RopeDimensions,
-        RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx,
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx,
+        EdgeDetectionCtx, EvalResult, FineContoursCtx, FineScan,
+        FineScanConf, FineUnionCtx, Gray, GrayCtx, RopeDimensions,
+        RopeDimensionsCtx, Side, TemporalFilterCtx,
     }, 
     domain::{Error, RwLock},
 };
@@ -47,49 +46,29 @@ fn eval() {
     test_duration.run().unwrap();
     let conf = ConfTree::new_root(
         serde_yaml::from_str(&format!(r#"
-            contours:
-                cropping:
-                    x: 230           # new left edge
-                    width: 1410     # new image width
-                    y: 300           # new top edge
-                    height: 1000    # new image height
-                gamma:
-                    factor: 120.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
-                brightness-contrast:
-                    hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
-                    hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
-                temporal-filter:
-                    amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 2.6          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-                    reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 2.8          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
-                    threshold: 12.0
-                gausian:
-                    blur-size:
-                        width: 11
-                        height: 11
-                    sigma-x: 0.0
-                    sigma-y: 0.0
-                sobel:
-                    kernel-size: 1
-                    scale: 5.0
-                    delta: 0.0
-                overlay:
-                    src1-weight: 1.0
-                    src2-weight: 1.0
-                    gamma: 0.0
+            add-weighted:               # Combine two images
+                weight1: 1.0            # Weight of the first array elements.
+                weight2: 1.0            # Weight of the second array elements.
+                gamma: 0.0
+            fine-contours:
+                otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
+                merge-distance: 24.0    # Maximum distance between contours to be merged
+            temporal-filter:
+                gaussian:
+                    kernel: [11, 11]    # Gausian blur kernel size, must be odd
+                    sigma: [0.0, 0.0]   # Standard deviation in [X, Y] direction, The higher the value, the more pixels are used to count each pixel and the smoother blur will be
+                open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
+                erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
+                threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
             edge-detection:
-                # otsu-tune: 0.90       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                threshold: 128       # 0...255, used if otsu-tune is not specified
-                smooth: 36             # Smoothing of edge line factor. The higher the factor the smoother the line.
-            rope-dimensions:
+                otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                # threshold: 128        # 0...255, used if otsu-tune is not specified
+                smooth: 36              # Smoothing of edge line factor. The higher the factor the smoother the line.
+            rope-dimensions:        # Verifaing the rope dimensions 
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 25.0         # Tolerance for rope width, %
                 square-tolerance: 100.0       # Tolerance for rope square, %
-            fast-scan:
-                geometry-defect-threshold: 1.0      # 1.1..1.3, absolute threshold to detect the geometry deffects
-            fine-scan:
-                no-params: not implemented yet
+            geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
         "#)).unwrap(),
     );
     let conf = FineScanConf::new(&dbg, conf);
@@ -113,30 +92,10 @@ fn eval() {
         ),
         debug
     );
-    let temporal_filter = EdgeDetection::new(
-        Some(1.4),
-        None,
-        Some(16.0),
-        FineUnion::new(
-            tp.scheduler(),
-            TemporalFilter::new(
-                conf.temporal_filter.gaussian,
-                conf.temporal_filter.open_kernel,
-                conf.temporal_filter.erode_kernel,
-                conf.temporal_filter.threshold,
-                Initial::new(
-                    InitialCtx::new(),
-                ),
-                debug,
-            ),
-            FineContours::new(
-                conf.fine_contours,
-                Initial::new(
-                    InitialCtx::new(),
-                ),
-                debug,
-            ),
-        ),
+    let fine_scan = FineScan::new(
+        conf,
+        tp.scheduler(),
+        false,
     );
     let w_gray = "Gray";
     let w_crop = "Cropped";
@@ -172,7 +131,7 @@ fn eval() {
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
                 let t = Instant::now();
-                let ctx = temporal_filter.eval(gray.frame.clone()).unwrap();
+                let ctx = fine_scan.eval(gray.frame.clone()).unwrap();
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let contours: &FineContoursCtx = ctx.read();
                 let temp_filter: &TemporalFilterCtx = ctx.read();

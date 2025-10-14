@@ -12,11 +12,15 @@
 //! - Union contours of two ways using bitwise operation
 //!
 mod fine_contours;
+mod fine_edges;
 mod fine_union;
 mod fine_scan_conf;
+mod fine_scan_ctx;
 mod fine_scan;
 
 pub use fine_contours::*;
+pub use fine_edges::*;
 pub use fine_union::*;
 pub use fine_scan_conf::*;
+pub use fine_scan_ctx::*;
 pub use fine_scan::*;

@@ -43,39 +43,40 @@ fn eval() {
     test_duration.run().unwrap();
     let conf = ConfTree::new_root(
         serde_yaml::from_str(&format!(r#"
-            fast-scan:
-                union:
-                    add-weighted:
-                        weight1: 1.0         # Weight of the first array elements.
-                        weight2: 1.0         # Weight of the second array elements.
-                        gamma: 0.0
-                    fast-contours:
-                        cropping:
-                            x: 230           # New left edge
-                            y: 300           # New top edge
-                            width: 1410      # New image width
-                            height: 1000     # New image height
-                        gamma:
-                            factor: 120.0    # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
-                        otsu-tune: 0.40
-                    temporal-filter:
-                        open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
-                        erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
-                        threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
-                edge-detection:
-                    otsu-tune: 1.40             # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                    # threshold: 128            # 0...255, used if otsu-tune is not specified
-                    smooth: 36                  # Smoothing of edge line factor. The higher the factor the smoother the line.
-                rope-dimensions:            # Verifaing the rope dimensions 
-                    rope-width: 380               # Standart rope width, px
-                    width-tolerance: 25.0         # Tolerance for rope width, %
-                    square-tolerance: 100.0       # Tolerance for rope square, %
-                geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
+            add-weighted:
+                weight1: 1.0            # Weight of the first array elements.
+                weight2: 1.0            # Weight of the second array elements.
+                gamma: 0.0
+            fast-contours:
+                cropping:
+                    x: 230              # New left edge
+                    y: 300              # New top edge
+                    width: 1410         # New image width
+                    height: 1000        # New image height
+                gamma:
+                    factor: 120.0       # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
+                otsu-tune: 0.40
+            temporal-filter:
+                gaussian:
+                    kernel: [11, 11]    # Gausian blur kernel size, must be odd
+                    sigma: [0.0, 0.0]   # Standard deviation in [X, Y] direction, The higher the value, the more pixels are used to count each pixel and the smoother blur will be
+                open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
+                erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
+                threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
+            edge-detection:
+                otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                # threshold: 128        # 0...255, used if otsu-tune is not specified
+                smooth: 36              # Smoothing of edge line factor. The higher the factor the smoother the line.
+            rope-dimensions:        # Verifaing the rope dimensions 
+                rope-width: 380               # Standart rope width, px
+                width-tolerance: 25.0         # Tolerance for rope width, %
+                square-tolerance: 100.0       # Tolerance for rope square, %
+            geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
         "#)).unwrap(),
     );
     let conf = FastScanConf::new(&dbg, conf);
     let tp = ThreadPool::new(&dbg, Some(4));
-    let temporal_filter = FastScan::new(
+    let fast_scan = FastScan::new(
         conf.clone(),
         tp.scheduler(),
         false,
@@ -107,7 +108,7 @@ fn eval() {
                 log::debug!("{dbg}.eval | src frame: {} x {}", frame.width, frame.height);
                 // let test = src.clone();
                 let t = Instant::now();
-                let ctx = temporal_filter.eval(frame.clone()).unwrap();
+                let ctx = fast_scan.eval(frame.clone()).unwrap();
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let gray: &GrayCtx = ctx.read();    
                 let crop: &CroppingCtx = ctx.read();    

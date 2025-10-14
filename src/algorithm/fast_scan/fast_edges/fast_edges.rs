@@ -2,13 +2,15 @@ use std::time::Instant;
 use opencv::{core::{Mat, MatTraitConst, MatTraitConstManual}, imgproc};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, InitialPoints, ResultCtx}, domain::{Dot, Eval, Filter, FilterEmpty, FilterSmooth2, Image}
+    algorithm::{
+        ContextRead, ContextWrite, EvalResult, Edges, ResultCtx, FastScanCtx, FastEdgesCtx,
+    },
+    domain::{Dot, Eval, Filter, FilterEmpty, FilterSmooth2, Image}
 };
-use super::edge_detection_ctx::EdgeDetectionCtx;
 ///
 /// Take [Image]
 /// Return vectors of [Dot] for upper and lower edges of rope
-pub struct EdgeDetection {
+pub struct FastEdges {
     otsu_tune: Option<f64>,
     threshold: Option<u8>,
     smooth: Option<f64>,
@@ -16,9 +18,9 @@ pub struct EdgeDetection {
 }
 //
 //
-impl EdgeDetection {
+impl FastEdges {
     ///
-    /// Returns [EdgeDetection] new instance
+    /// Returns [FastEdges] new instance
     pub fn new(otsu_tune: Option<f64>, threshold: Option<u8>, smooth: Option<f64>, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self {
             otsu_tune,
@@ -30,21 +32,21 @@ impl EdgeDetection {
 }
 //
 //
-impl Eval<Image, EvalResult> for EdgeDetection {
+impl Eval<Image, EvalResult> for FastEdges {
     fn eval(&self, frame: Image) -> EvalResult {
-        let error = Error::new("EdgeDetection", "eval");
+        let error = Error::new("FastEdges", "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ContextRead::<FastScanCtx, _>::read(&ctx);
+                let frame = &result.val;
                 let threshold = match (self.otsu_tune, self.threshold) {
                     (None, None) => imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap().round() as u8,
                     (None, Some(threshold)) => threshold,
                     (Some(otsu_tune), None) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
                     (Some(otsu_tune), Some(_)) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
                 };
-                log::debug!("EdgeDetection.eval | threshold: {threshold}");
+                log::debug!("FastEdges.eval | threshold: {threshold}");
                 let rows = frame.mat.rows();
                 let cols = frame.mat.cols();
                 let mut upper_edge = Vec::with_capacity(cols as usize);
@@ -102,10 +104,10 @@ impl Eval<Image, EvalResult> for EdgeDetection {
                         }
                     }
                 }
-                let result = EdgeDetectionCtx {
-                    result: InitialPoints::new(upper_edge, lower_edge),
+                let result = FastEdgesCtx {
+                    result: Edges::new(upper_edge, lower_edge),
                 };
-                log::debug!("EdgeDetection.eval | Elapsed: {:?}", t.elapsed());
+                log::debug!("FastEdges.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }
             Err(err) => Err(error.pass(err)),

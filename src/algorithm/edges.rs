@@ -1,12 +1,12 @@
 use indexmap::IndexMap;
 use crate::domain::Dot;
 ///
-/// Storing points of ropes side's
+/// Storing points of ropes edges
 #[derive(Debug, Clone)]
-pub struct InitialPoints<T> {
+pub struct Edges<T> {
     sides: IndexMap<Side, Vec<Dot<T>>>,
 }
-impl<T: Copy> InitialPoints<T> {
+impl<T: Copy> Edges<T> {
     ///
     /// 
     pub fn new(upper: Vec<Dot<T>>, lower: Vec<Dot<T>>) -> Self {
@@ -24,12 +24,12 @@ impl<T: Copy> InitialPoints<T> {
         }
     }
 }
-impl<T> Default for InitialPoints<T> {
+impl<T> Default for Edges<T> {
     fn default() -> Self {
         Self { sides: IndexMap::<Side, Vec<Dot<T>>>::new() }
     }
 }
-impl<T: PartialEq> PartialEq for InitialPoints<T> {
+impl<T: PartialEq> PartialEq for Edges<T> {
     fn eq(&self, other: &Self) -> bool {
         self.sides == other.sides
     }

@@ -9,6 +9,7 @@ use crate::algorithm::{
     EvalResult,
     ResultCtx,
 };
+use crate::NormalizedCtx;
 use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
@@ -48,8 +49,8 @@ impl Eval<Image, EvalResult> for Cropping {
         let error = Error::new("Cropping", "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ContextRead::<NormalizedCtx, _>::read(&ctx);
+                let frame = &result.val;
                 match Mat::roi(&frame.mat, core::Rect { x: self.x,y: self.y,width: self.width,height: self.height,}) {
                         Ok(cropped) => {
                             let frame = Image {
@@ -65,8 +66,8 @@ impl Eval<Image, EvalResult> for Cropping {
                             } else {
                                 ctx
                             };
-                            let result = ResultCtx { frame };
-                            ctx.write(result)
+                            let result = ResultCtx { val: frame };
+                            ContextWrite::<NormalizedCtx, _>::write(ctx, result)
                         },
                         Err(err) => Err(error.pass(err.to_string())),
                     }

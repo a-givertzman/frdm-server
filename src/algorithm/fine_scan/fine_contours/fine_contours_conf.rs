@@ -10,7 +10,7 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 ///     otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
 ///     merge-distance: 24.0    # Maximum distance between contours to be merged
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FineContoursConf {
     ///     - otsu-tune: 0.40 - Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
     pub otsu_tune: f64,

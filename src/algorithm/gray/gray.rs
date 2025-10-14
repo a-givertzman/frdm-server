@@ -31,8 +31,8 @@ impl Eval<Image, EvalResult> for Gray {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ctx.read();
+                let frame = &result.val;
                 let mut gray = opencv::core::Mat::default();
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
@@ -43,7 +43,7 @@ impl Eval<Image, EvalResult> for Gray {
                         } else {
                             ctx
                         };
-                        let result = ResultCtx { frame };
+                        let result = ResultCtx { val: frame };
                         log::debug!("Gray.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)
                     }

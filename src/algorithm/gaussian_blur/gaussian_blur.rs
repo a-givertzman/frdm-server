@@ -2,7 +2,7 @@ use std::time::Instant;
 use opencv::{core::{Mat, Size}, imgproc};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, GaussianBlurCtx, ResultCtx},
+    algorithm::{ContextRead, ContextWrite, EvalResult, ResultCtx},
     domain::{Eval, Image},
 };
 ///
@@ -35,8 +35,8 @@ impl Eval<Image, EvalResult> for GaussianBlur {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ctx.read();
+                let frame = &result.val;
                 let mut blurred = Mat::default();
                 match imgproc::gaussian_blur(
                     &frame.mat,
@@ -47,13 +47,13 @@ impl Eval<Image, EvalResult> for GaussianBlur {
                 ) {
                     Ok(_) => {
                         let frame = Image::with(blurred);
-                        let ctx = if self.debug {
-                            let result = GaussianBlurCtx { frame: frame.clone() };
-                            ctx.write(result).map_err(|err| error.pass(err))?
-                        } else {
-                            ctx
-                        };
-                        let result = ResultCtx { frame };
+                        // let ctx = if self.debug {
+                        //     let result = GaussianBlurCtx { frame: frame.clone() };
+                        //     ctx.write(result).map_err(|err| error.pass(err))?
+                        // } else {
+                        //     ctx
+                        // };
+                        let result = ResultCtx { val: frame };
                         log::debug!("GaussianBlur.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)
                     }

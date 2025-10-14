@@ -11,7 +11,7 @@ use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
 ///     width-tolerance: 5.0        # Tolerance for rope width, %
 ///     square-tolerance: 10.0      # Tolerance for rope square, %
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RopeDimensionsConf {
     /// Standart rope width, px
     pub rope_width: usize,

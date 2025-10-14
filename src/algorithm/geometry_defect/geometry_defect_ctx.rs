@@ -1,4 +1,4 @@
-use crate::algorithm::geometry_defect::GeometryDefectType;
+use crate::algorithm::GeometryDefectType;
 ///
 /// Store result of `GeometryDefect`
 /// - Index of the frame containing the defect

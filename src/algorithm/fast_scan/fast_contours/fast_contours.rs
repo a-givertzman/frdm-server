@@ -76,8 +76,8 @@ impl Eval<Image, EvalResult> for FastContours {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ctx.read();
+                let frame = &result.val;
                 let mat = self.proc.eval(frame.mat.clone())
                     .map_err(|err| error.pass(err))?;
                 let frame = Image {
@@ -93,7 +93,7 @@ impl Eval<Image, EvalResult> for FastContours {
                 } else {
                     ctx
                 };
-                let result = ResultCtx { frame };
+                let result = ResultCtx { val: frame };
                 log::debug!("FastContours.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }
