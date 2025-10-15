@@ -12,10 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx,
-        EdgeDetection, EdgeDetectionCtx, EvalResult, FineContours, FineContoursCtx,
-        FineScanConf, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsConf,
-        RopeDimensionsCtx, Side,
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastScanCtx, FineContours, FineContoursCtx, FineEdges, FineEdgesCtx, FineScanConf, FineScanCtx, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side
     }, 
     domain::Error,
 };
@@ -61,7 +58,7 @@ fn eval() {
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let temporal_filter = 
-        EdgeDetection::new(
+        FineEdges::new(
             Some(1.4),
             None,
             Some(16.0),
@@ -123,10 +120,10 @@ fn eval() {
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
                 let contours: &FineContoursCtx = ctx.read();
-                let result: &ResultCtx = ctx.read();
-                let edges: &EdgeDetectionCtx = ctx.read();
-                let upper = edges.result.get(Side::Upper);
-                let lower = edges.result.get(Side::Lower);
+                let result: &ResultCtx<Image> = ctx.read();
+                let edges: &FineEdgesCtx = ctx.read();
+                let upper = edges.edges.get(Side::Upper);
+                let lower = edges.edges.get(Side::Lower);
                 log::trace!("{dbg}.eval | upper: {:?}", upper);
                 log::trace!("{dbg}.eval | lower: {:?}", lower);
                 for dot in &upper {
@@ -135,14 +132,14 @@ fn eval() {
                 for dot in &lower {
                     *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
                 }
-                let (text, text_color) = match RopeDimensions::new(
+                let (text, text_color) = match RopeDimensions::<FineScanCtx>::new(
                     rope_dimensions_conf.rope_width,
                     rope_dimensions_conf.width_tolerance,
                     rope_dimensions_conf.square_tolerance,
                     FakePassDots::new(edges.clone()),
                 ).eval(frame.clone()) {
                     Ok(ctx) => {
-                        let dimensions: &RopeDimensionsCtx = ctx.read();
+                        let dimensions: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
                         let width_error = (100.0 - dimensions.width * 100.0 / rope_dimensions_conf.rope_width as f64).abs();
                         let square_error = (100.0 - dimensions.square * 100.0 / (rope_dimensions_conf.rope_width * upper.len()) as f64).abs();
                         (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), VecN::from_array([255.0, 0.0, 0.0, 0.0]))
@@ -152,7 +149,7 @@ fn eval() {
                 opencv::imgproc::put_text(&mut crop, &text, Point2i::new(10, 30), 1, 2.0, text_color, 2, -1, false).unwrap();
                 if !gray.frame.mat.empty() { highgui::imshow(wgray, &gray.frame.mat).unwrap() };
                 if !gamma.result.mat.empty() { highgui::imshow(wgamma, &gamma.result.mat).unwrap() };
-                if !result.frame.mat.empty() { highgui::imshow(w_temp_filter, &result.frame.mat).unwrap() };
+                if !result.val.mat.empty() { highgui::imshow(w_temp_filter, &result.val.mat).unwrap() };
                 if !crop.empty() { highgui::imshow(wcrop, &crop).unwrap() };
                 if !contours.result.mat.empty() { highgui::imshow(wcontours, &contours.result.mat).unwrap() };
                 highgui::wait_key(0).unwrap();
@@ -166,10 +163,10 @@ fn eval() {
 ///
 /// Fake implements `Eval` for testing [RopeDimensions]
 struct FakePassDots {
-    dots: EdgeDetectionCtx,
+    dots: FineEdgesCtx,
 }
 impl FakePassDots{
-    pub fn new(dots: EdgeDetectionCtx) -> Self {
+    pub fn new(dots: FineEdgesCtx) -> Self {
         Self { dots }
     }
 }

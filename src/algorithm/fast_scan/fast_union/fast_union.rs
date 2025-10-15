@@ -3,7 +3,7 @@ use opencv::core::MatTraitConst;
 use sal_core::error::Error;
 use sal_sync::{services::future::Future, thread_pool::Scheduler};
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, FastScanCtx, FastUnionCtx, ResultCtx},
+    algorithm::{ContextRead, ContextWrite, EvalResult, FastUnionCtx, ResultCtx},
     domain::{Eval, Image, RwLock},
 };
 ///
@@ -55,10 +55,10 @@ impl Eval<Image, EvalResult> for FastUnion {
         match (ctx1, ctx2) {
             (Ok(ctx1), Ok(ctx2)) => {
                 let t = Instant::now();
-                let src1: &ResultCtx<Image> = ContextRead::<FastScanCtx, _>::read(&ctx1);
+                let src1: &ResultCtx<Image> = ctx1.read();
                 let src1_mat = &src1.val.mat;
                 log::debug!("FastUnion.eval | src1: {}x{}", src1_mat.cols(), src1_mat.rows());
-                let src2: &ResultCtx<Image> = ContextRead::<FastScanCtx, _>::read(&ctx2);
+                let src2: &ResultCtx<Image> = ctx2.read();
                 let src2_mat = &src2.val.mat;
                 log::debug!("FastUnion.eval | src1: {}x{}", src2_mat.cols(), src2_mat.rows());
                 let mut dst = opencv::core::Mat::default();
@@ -71,7 +71,7 @@ impl Eval<Image, EvalResult> for FastUnion {
                         let ctx = ctx1.write(union)?;
                         let result = ResultCtx { val: frame };
                         log::debug!("FastUnion.eval | Elapsed: {:?}", t.elapsed());
-                        ContextWrite::<FastScanCtx, _>::write(ctx, result)
+                        ctx.write(result)
                     }
                     Err(err) => Err(error.pass(err.to_string())),
                 }

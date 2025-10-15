@@ -1,21 +1,23 @@
-use std::time::Instant;
+use std::{any::TypeId, marker::PhantomData, time::Instant};
 use opencv::core::{Mat, MatTraitConst, MatTraitConstManual};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{cv, ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx}, conf::GaussianConf, domain::{Eval, Filter, Image, RwLock}
+    algorithm::{cv, ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx, FastScanCtx, FineScanCtx},
+    conf::GaussianConf, domain::{Eval, Filter, Image, RwLock}
 };
 ///
 /// Temporal Filter | Highlighting / Hiding pixels depending on those changing speed
-pub struct TemporalFilter {
+pub struct TemporalFilter<Branch> {
     threshold: f64,
     filters: RwLock<Vec<FilterIsChanged::<f32>>>,
     proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     debug: bool,
+    branch: PhantomData<Branch>,
 }
 //
 //
-impl TemporalFilter {
+impl<Branch> TemporalFilter<Branch> {
     ///
     /// Returns [TemporalFilter] new instance
     /// - `open_kernel` - Morphology open operation kernel size
@@ -39,18 +41,19 @@ impl TemporalFilter {
             ),
             ctx: Box::new(ctx),
             debug,
+            branch: PhantomData,
         }
     }
 }
 //
 //
-impl Eval<Image, EvalResult> for TemporalFilter {
+impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("TemporalFilter", "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx<Image> = ContextRead::<>::read(&ctx);
+                let result: &ResultCtx<Image> = ctx.read();
                 let frame = &result.val;
                 match frame.mat.data_bytes() {
                     Ok(input) => {
@@ -106,8 +109,16 @@ impl Eval<Image, EvalResult> for TemporalFilter {
                             .map_err(|err| error.pass(err))?;
                         let frame = Image::with(dst);
                         let ctx = if self.debug {
-                            let result = TemporalFilterCtx { frame: frame.clone() };
-                            ctx.write(result).map_err(|err| error.pass(err))?
+                            match TypeId::of::<Branch>() {
+                                typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(TemporalFilterCtx::<FastScanCtx>::new(frame.clone()))
+                                    .map_err(|err| error.pass(err))?,
+                                typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(TemporalFilterCtx::<FineScanCtx>::new(frame.clone()))
+                                    .map_err(|err| error.pass(err))?,
+                                _ => {
+                                    log::warn!("TemporalFilter.eval | Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>());
+                                    ctx
+                                }
+                            }
                         } else {
                             ctx
                         };

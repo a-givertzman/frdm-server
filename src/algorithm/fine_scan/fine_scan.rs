@@ -3,9 +3,10 @@ use sal_core::error::Error;
 use sal_sync::{sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        ContextRead, FineEdges, EvalResult, FineContours, FineScanConf, FineUnion, Initial, InitialCtx, ResultCtx, TemporalFilter,
+        Context, ContextRead, FineEdges, EvalResult, FineContours, FineScanConf, FineUnion, ResultCtx, TemporalFilter,
+        FineScanCtx,
     },
-    domain::{Eval, Image}, Context,
+    domain::{Eval, Image},
 };
 ///
 /// Contour detection algorithms optimized for speed, tradeoff in result quality
@@ -29,12 +30,13 @@ impl FineScan {
     ///
     /// Returns [FineScan] new instance
     #[allow(unused)]
-    pub fn new(conf: FineScanConf, scheduler: Scheduler, debug: bool) -> Self {
+    pub fn new(conf: FineScanConf, scheduler: Scheduler, ctx_gray: impl Eval<Image, EvalResult> + 'static, debug: bool) -> Self {
         let pass_ctx1 = Arc::new(Owner::empty());
         let pass_ctx2 = Arc::new(Owner::empty());
         Self {
             pass_ctx1: pass_ctx1.clone(),
             pass_ctx2: pass_ctx2.clone(),
+            ctx_gray: Box::new(ctx_gray),
             ctx: Box::new(
                 FineEdges::new(
                     conf.fine_edges.otsu_tune,
@@ -42,21 +44,17 @@ impl FineScan {
                     conf.fine_edges.smooth,
                     FineUnion::new(
                         scheduler,
-                        TemporalFilter::new(
+                        TemporalFilter::<FineScanCtx>::new(
                             conf.temporal_filter.gaussian,
                             conf.temporal_filter.open_kernel,
                             conf.temporal_filter.erode_kernel,
                             conf.temporal_filter.threshold,
-                            Initial::new(
-                                InitialCtx::new(),
-                            ),
+                            PassGrayCtx::new(pass_ctx1),
                             debug,
                         ),
                         FineContours::new(
                             conf.fine_contours,
-                            Initial::new(
-                                InitialCtx::new(),
-                            ),
+                            PassGrayCtx::new(pass_ctx2),
                             debug,
                         )
                     ),
@@ -70,16 +68,38 @@ impl FineScan {
 impl Eval<Image, EvalResult> for FineScan {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("FineScan", "eval");
-        match self.ctx.eval(frame) {
+        match self.ctx_gray.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
                 let result: &ResultCtx<Image> = ctx.read();
                 let frame = result.val.clone();
+                self.pass_ctx1.replace(ctx.clone());
+                self.pass_ctx2.replace(ctx);
                 let result = self.ctx.eval(frame).map_err(|err| error.pass(err));
                 log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
                 result
             }
             Err(err) => Err(error.pass(err)),
+        }
+    }
+}
+///
+/// 
+struct PassGrayCtx {
+    ctx: Arc<Owner<Context>>,
+}
+impl PassGrayCtx {
+    fn new(ctx: Arc<Owner<Context>>) -> Self {
+        Self {
+            ctx
+        }
+    }
+}
+impl Eval<Image, EvalResult> for PassGrayCtx {
+    fn eval(&self, _: Image) -> EvalResult {
+        match self.ctx.take() {
+            Some(ctx) => Ok(ctx),
+            None => Err(Error::new("PassGray", "eval").err("Can't take 'Context'")),
         }
     }
 }

@@ -12,10 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx,
-        EdgeDetection, EdgeDetectionCtx, EvalResult, FastContoursCtx, FastScanConf,
-        Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter,
-        TemporalFilterCtx,
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdges, FastEdgesCtx, FastScanConf, FastScanCtx, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilter, TemporalFilterCtx
     }, 
     domain::Error,
 };
@@ -81,11 +78,11 @@ fn eval() {
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = true;
     let temporal_filter = 
-        EdgeDetection::new(
-            conf.edge_detection.otsu_tune,
-            conf.edge_detection.threshold,
-            conf.edge_detection.smooth,
-            TemporalFilter::new(
+        FastEdges::new(
+            conf.fast_edges.otsu_tune,
+            conf.fast_edges.threshold,
+            conf.fast_edges.smooth,
+            TemporalFilter::<FastScanCtx>::new(
                 conf.temporal_filter.gaussian,
                 conf.temporal_filter.open_kernel,
                 conf.temporal_filter.erode_kernel,
@@ -145,12 +142,12 @@ fn eval() {
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
                 let contours: &FastContoursCtx = ctx.read();
-                let edges: &EdgeDetectionCtx = ctx.read();
-                let temp_filter: &TemporalFilterCtx = ctx.read();
+                let edges: &FastEdgesCtx = ctx.read();
+                let temp_filter: &TemporalFilterCtx<FastScanCtx> = ctx.read();
                 // let mut res = crop.result.mat.clone();
                 // let edges_cont = contours.result.mat.clone();
-                let upper = edges.result.get(Side::Upper);
-                let lower = edges.result.get(Side::Lower);
+                let upper = edges.edges.get(Side::Upper);
+                let lower = edges.edges.get(Side::Lower);
                 log::trace!("{dbg}.eval | upper: {:?}", upper);
                 log::trace!("{dbg}.eval | lower: {:?}", lower);
                 for dot in &upper {
@@ -159,14 +156,14 @@ fn eval() {
                 for dot in &lower {
                     *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
                 }
-                let (text, text_color) = match RopeDimensions::new(
+                let (text, text_color) = match RopeDimensions::<FastScanCtx>::new(
                     conf.rope_dimensions.rope_width,
                     conf.rope_dimensions.width_tolerance,
                     conf.rope_dimensions.square_tolerance,
                     FakePassDots::new(edges.clone()),
                 ).eval(frame.clone()) {
                     Ok(ctx) => {
-                        let dimensions: &RopeDimensionsCtx = ctx.read();
+                        let dimensions: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
                         let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_dimensions.rope_width as f64).abs();
                         let square_error = (100.0 - dimensions.square * 100.0 / (conf.rope_dimensions.rope_width * upper.len()) as f64).abs();
                         (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), VecN::from_array([255.0, 0.0, 0.0, 0.0]))
@@ -190,10 +187,10 @@ fn eval() {
 ///
 /// Fake implements `Eval` for testing [RopeDimensions]
 struct FakePassDots {
-    dots: EdgeDetectionCtx,
+    dots: FastEdgesCtx,
 }
 impl FakePassDots{
-    pub fn new(dots: EdgeDetectionCtx) -> Self {
+    pub fn new(dots: FastEdgesCtx) -> Self {
         Self { dots }
     }
 }

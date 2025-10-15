@@ -11,8 +11,8 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, Cropping, CroppingCtx, EdgeDetection, FastContours, FastScanConf, Gray,
-        AutoBrightnessAndContrastCtx, AutoGamma, FastContoursCtx, EdgeDetectionCtx, Initial, InitialCtx, Side,
+        ContextRead, Cropping, CroppingCtx, FastEdges, FastContours, FastScanConf, Gray,
+        AutoBrightnessAndContrastCtx, AutoGamma, FastContoursCtx, FastEdgesCtx, Initial, InitialCtx, Side,
     },
     domain::{Eval, Image}
 };
@@ -82,10 +82,10 @@ fn eval() {
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let scan_rope = 
-        EdgeDetection::new(
-            conf.edge_detection.otsu_tune,
-            conf.edge_detection.threshold,
-            conf.edge_detection.smooth,
+        FastEdges::new(
+            conf.fast_edges.otsu_tune,
+            conf.fast_edges.threshold,
+            conf.fast_edges.smooth,
             FastContours::new(
                 conf.fast_contours,
                 Gray::new(
@@ -161,11 +161,11 @@ fn eval() {
                 // let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &FastContoursCtx = ctx.read();
-                let edges: &EdgeDetectionCtx = ctx.read();
+                let edges: &FastEdgesCtx = ctx.read();
                 let mut res = crop.result.mat.clone();
                 // let edges_cont = contours.result.mat.clone();
-                let upper = edges.result.get(Side::Upper);
-                let lower = edges.result.get(Side::Lower);
+                let upper = edges.edges.get(Side::Upper);
+                let lower = edges.edges.get(Side::Lower);
                 for dot in upper {
                     if dot.x as isize >= 0 && dot.y as isize >= 0 {
                         let x = dot.x as i32;

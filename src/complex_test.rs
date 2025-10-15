@@ -9,10 +9,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, ContextRead, Cropping, FastContours,
-        FastContoursCtx, Gray, Initial, InitialCtx,
-        TemporalFilter, FastScanConf, FineScanConf,
-        FastContoursConf,
+        AutoGamma, ContextRead, Cropping, FastContours, FastContoursConf, FastContoursCtx, FastScanConf, FastScanCtx, FineScanConf, Gray, Initial, InitialCtx, TemporalFilter
     }, conf::Conf, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -111,7 +108,7 @@ fn main() {
         let debug = false;
         let contours_result = FastContours::new(
             FastContoursConf::default(),
-            TemporalFilter::new(
+            TemporalFilter::<FastScanCtx>::new(
                 conf.fast_scan.temporal_filter.gaussian,
                 conf.fast_scan.temporal_filter.open_kernel,
                 conf.fast_scan.temporal_filter.erode_kernel,
@@ -137,7 +134,7 @@ fn main() {
             ),
             debug,
         ).eval(frame.clone()).unwrap();
-        let contours_ctx = ContextRead::<FastContoursCtx>::read(&contours_result);
+        let contours_ctx: &FastContoursCtx = contours_result.read();
         if let Err(e) = opencv::highgui::imshow(window2, &contours_ctx.result.mat) {
             log::error!("Display error: {}", e);
         }
@@ -164,7 +161,7 @@ fn main() {
         // let result = GeometryDefect::new(
         //     conf.fast_scan.geometry_defect_threshold,
         //     *Box::new(Mad::new()),
-        //     EdgeDetection::new(
+        //     FastEdges::new(
         //         FastContours::new(
         //             Initial::new(
         //                 InitialCtx::new(frame),

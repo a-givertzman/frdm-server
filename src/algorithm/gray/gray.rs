@@ -2,7 +2,7 @@ use std::time::Instant;
 use opencv::imgproc;
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, ResultCtx, GrayCtx},
+    algorithm::{ContextRead, ContextWrite, EvalResult, GrayCtx, ResultCtx},
     domain::{Eval, Image},
 };
 ///

@@ -203,6 +203,8 @@ impl Eval<Image, EvalResult> for FineContours {
                 // let result: &ResultCtx = ctx.read();
                 let result: &ResultCtx<Image> = ctx.read();
                 let frame = &result.val;
+                opencv::highgui::imshow("Gray", &frame.mat).unwrap();
+                opencv::highgui::wait_key(0).unwrap();
                 let thresh = self.thresh_ctx.eval(frame.mat.clone())
                     .map_err(|err| error.pass(err))?;
                 // imgproc::gaussian_blur(&frame.mat, &mut dst, Size2i::new(11, 11), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
@@ -322,8 +324,8 @@ impl Eval<Image, EvalResult> for FineContours {
                     //     .map_err(|err| error.pass(err.to_string()))?;
                     // imgproc::fill_convex_poly(&mut thresh, contours, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0)
                     imgproc::fill_poly(&mut dst, &contour_fill, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
-                        .unwrap();
-                        // .map_err(|err| error.pass(err.to_string()))?;
+                        // .unwrap();
+                        .map_err(|err| error.pass(err.to_string()))?;
                 }
                 let frame = Image::with(dst);
                 let ctx = if self.debug {

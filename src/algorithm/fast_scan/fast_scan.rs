@@ -49,7 +49,7 @@ impl FastScan {
                     conf.fast_edges.smooth,
                     FastUnion::new(
                         scheduler,
-                        TemporalFilter::new(
+                        TemporalFilter::<FastScanCtx>::new(
                             conf.temporal_filter.gaussian,
                             conf.temporal_filter.open_kernel,
                             conf.temporal_filter.erode_kernel,
@@ -76,7 +76,7 @@ impl Eval<Image, EvalResult> for FastScan {
         match self.ctx_gray.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx<Image> = ContextRead::<FastScanCtx, _>::read(&ctx);
+                let result: &ResultCtx<Image> = ctx.read();
                 let frame = result.val.clone();
                 self.pass_ctx1.replace(ctx.clone());
                 self.pass_ctx2.replace(ctx);

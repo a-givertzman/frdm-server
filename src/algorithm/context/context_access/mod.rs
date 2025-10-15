@@ -9,15 +9,15 @@ pub use fine_scan_access::*;
 pub use normalized_access::*;
 
 use sal_core::error::Error;
-use crate::Context;
+use crate::algorithm::Context;
 
 ///
 /// Provides restricted write access to the [Context] members
-pub trait ContextWrite<Branch, T> {
+pub trait ContextWrite<T> {
     fn write(self, value: T) -> Result<Context, Error>;
 }
 ///
 /// Provides simple read access to the [Context] members
-pub trait ContextRead<Branch, T> {
+pub trait ContextRead<T> {
     fn read(&self) -> &T;
 }

@@ -61,7 +61,7 @@ impl Eval<Image, EvalResult> for FineUnion {
                 log::debug!("FineUnion.eval | src1: {}x{}", src1_mat.cols(), src1_mat.rows());
                 let src2: &ResultCtx<Image> = ctx2.read();
                 let src2_mat = &src2.val.mat;
-                log::debug!("FineUnion.eval | src1: {}x{}", src2_mat.cols(), src2_mat.rows());
+                log::debug!("FineUnion.eval | src2: {}x{}", src2_mat.cols(), src2_mat.rows());
                 let mut dst = opencv::core::Mat::default();
                 match opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array()) {
                 // match opencv::core::add(src1_mat, src2_mat, &mut dst, &opencv::core::no_array(), -1) {

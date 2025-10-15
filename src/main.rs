@@ -10,8 +10,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Cropping, FastContours, EdgeDetection,
-        GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter, FastScanConf, FineScanConf,
+        AutoGamma, Cropping, FastContours, FastEdges, FastScanConf, FastScanCtx, FineScanConf, GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter
     }, conf::Conf, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -34,16 +33,16 @@ fn main() {
         fine_scan: FineScanConf::default(),
     };
     let debug = false;
-    let scan_rope = GeometryDefect::new(
+    let scan_rope = GeometryDefect::<FastScanCtx>::new(
         conf.fast_scan.geometry_defect_threshold,
         *Box::new(Mad::new()),
-        EdgeDetection::new(
-            conf.fast_scan.edge_detection.otsu_tune,
-            conf.fast_scan.edge_detection.threshold,
-            conf.fast_scan.edge_detection.smooth,
+        FastEdges::new(
+            conf.fast_scan.fast_edges.otsu_tune,
+            conf.fast_scan.fast_edges.threshold,
+            conf.fast_scan.fast_edges.smooth,
             FastContours::new(
                 conf.fast_scan.fast_contours.clone(),
-                TemporalFilter::new(
+                TemporalFilter::<FastScanCtx>::new(
                     conf.fast_scan.temporal_filter.gaussian,
                     conf.fast_scan.temporal_filter.open_kernel,
                     conf.fast_scan.temporal_filter.erode_kernel,

@@ -22,6 +22,6 @@ impl Eval<Image, EvalResult> for Initial {
     fn eval(&self, frame: Image) -> EvalResult {
         // let error = Error::new("Initial", "eval");
         let ctx = Context::new(self.ctx.clone());
-        ContextWrite::<(), _>::write(ctx, ResultCtx { val: frame })
+        ctx.write(ResultCtx { val: frame })
     }
 }

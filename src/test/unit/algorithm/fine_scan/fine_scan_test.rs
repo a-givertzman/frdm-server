@@ -12,10 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, CroppingCtx,
-        EdgeDetectionCtx, EvalResult, FineContoursCtx, FineScan,
-        FineScanConf, FineUnionCtx, Gray, GrayCtx, RopeDimensions,
-        RopeDimensionsCtx, Side, TemporalFilterCtx,
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FineContoursCtx, FineEdgesCtx, FineScan, FineScanConf, FineScanCtx, FineUnionCtx, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilterCtx
     }, 
     domain::{Error, RwLock},
 };
@@ -60,7 +57,7 @@ fn eval() {
                 open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
                 erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
                 threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
-            edge-detection:
+            fine-edges:
                 otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 # threshold: 128        # 0...255, used if otsu-tune is not specified
                 smooth: 36              # Smoothing of edge line factor. The higher the factor the smoother the line.
@@ -75,26 +72,26 @@ fn eval() {
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
     let tp = ThreadPool::new(&dbg, Some(4));
-    let ctx_gray = Gray::new(
-        AutoGamma::new(
-            120.0,
-            Cropping::new(
-                230,
-                1410,
-                300,
-                1000,
-                Initial::new(
-                    InitialCtx::new(),
-                ),
-                debug
-            ),
-            debug,
-        ),
-        debug
-    );
     let fine_scan = FineScan::new(
         conf,
         tp.scheduler(),
+        Gray::new(
+            AutoGamma::new(
+                120.0,
+                Cropping::new(
+                    230,
+                    1410,
+                    300,
+                    1000,
+                    Initial::new(
+                        InitialCtx::new(),
+                    ),
+                    debug
+                ),
+                debug,
+            ),
+            debug
+        ),
         false,
     );
     let w_gray = "Gray";
@@ -125,22 +122,21 @@ fn eval() {
                 // let src = Image::with(rotated);
                 log::debug!("{dbg}.eval | src frame: {} x {}", frame.width, frame.height);
                 // let test = src.clone();
-                let ctx = ctx_gray.eval(frame.clone()).unwrap();
+                let ctx = fine_scan.eval(frame.clone()).unwrap();
                 let gray: &GrayCtx = ctx.read();
                 let crop: &CroppingCtx = ctx.read();    
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
                 let t = Instant::now();
-                let ctx = fine_scan.eval(gray.frame.clone()).unwrap();
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let contours: &FineContoursCtx = ctx.read();
-                let temp_filter: &TemporalFilterCtx = ctx.read();
+                let temp_filter: &TemporalFilterCtx<FineScanCtx> = ctx.read();
                 let union: &FineUnionCtx = ctx.read();
-                let edges: &EdgeDetectionCtx = ctx.read();
+                let edges: &FineEdgesCtx = ctx.read();
                 // let mut res = crop.result.mat.clone();
                 // let edges_cont = contours.result.mat.clone();
-                let upper = edges.result.get(Side::Upper);
-                let lower = edges.result.get(Side::Lower);
+                let upper = edges.edges.get(Side::Upper);
+                let lower = edges.edges.get(Side::Lower);
                 log::trace!("{dbg}.eval | upper: {:?}", upper);
                 log::trace!("{dbg}.eval | lower: {:?}", lower);
                 for dot in &upper {
@@ -149,14 +145,14 @@ fn eval() {
                 for dot in &lower {
                     *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
                 }
-                let (text, text_color) = match RopeDimensions::new(
+                let (text, text_color) = match RopeDimensions::<FineScanCtx>::new(
                     conf.rope_dimensions.rope_width,
                     conf.rope_dimensions.width_tolerance,
                     conf.rope_dimensions.square_tolerance,
                     FakePassCtx::new(ctx.clone()),
                 ).eval(frame.clone()) {
                     Ok(ctx) => {
-                        let dimensions: &RopeDimensionsCtx = ctx.read();
+                        let dimensions: &RopeDimensionsCtx<FineScanCtx> = ctx.read();
                         let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_dimensions.rope_width as f64).abs();
                         let square_error = (100.0 - dimensions.square * 100.0 / (conf.rope_dimensions.rope_width * upper.len()) as f64).abs();
                         (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), VecN::from_array([255.0, 0.0, 0.0, 0.0]))

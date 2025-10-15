@@ -61,9 +61,9 @@ impl FineScanConf {
         let temporal_filter = conf.get("temporal-filter").expect(&format!("{dbg}.new | 'temporal-filter' - not found or wrong configuration"));
         let temporal_filter = TemporalFilterConf::new(&name, temporal_filter);
         log::trace!("{dbg}.new | temporal-filter: {:#?}", temporal_filter);
-        let fine_edges = conf.get("fine-edge").expect(&format!("{dbg}.new | 'fine-edge' - not found or wrong configuration"));
+        let fine_edges = conf.get("fine-edges").expect(&format!("{dbg}.new | 'fine-edges' - not found or wrong configuration"));
         let fine_edges = FineEdgesConf::new(&name, fine_edges);
-        log::trace!("{dbg}.new | fine-edge: {:#?}", fine_edges);
+        log::trace!("{dbg}.new | fine-edges: {:#?}", fine_edges);
         let rope_dimensions = conf.get("rope-dimensions").expect(&format!("{dbg}.new | 'rope-dimensions' - not found or wrong configuration"));
         let rope_dimensions = RopeDimensionsConf::new(&name, rope_dimensions);
         log::trace!("{dbg}.new | rope-dimensions: {:#?}", rope_dimensions);

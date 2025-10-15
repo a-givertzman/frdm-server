@@ -11,7 +11,7 @@ use crate::{
     algorithm::{
         AutoGamma, ContextRead,
         Cropping, CroppingConf, FastContours, FastContoursCtx,
-        EdgeDetectionConf, EdgeDetection, EdgeDetectionCtx, Gray,
+        FastEdgesConf, FastEdges, FastEdgesCtx, Gray,
         Initial, InitialCtx,
         RopeDimensionsConf, Side, TemporalFilterConf, Threshold,
         FastScanConf, FastContoursConf,
@@ -130,9 +130,9 @@ impl UiApp {
                 // Param::new("Contours.temporal-filter.down-speed",           ParamVal::FRange(0.0..255.0),   Value::Double(1.0)),
                 // Param::new("Contours.temporal-filter.threshold",            ParamVal::FRange(0.0..255.0),   Value::Double(64.0)),
 
-                Param::new("EdgeDetection.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(0.0)),
-                Param::new("EdgeDetection.Threshold",                       ParamVal::IRange(0..255),       Value::Int(0)),
-                Param::new("EdgeDetection.Smooth",                          ParamVal::FRange(0.0..255.0),   Value::Double(12.0)),
+                Param::new("FastEdges.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(0.0)),
+                Param::new("FastEdges.Threshold",                       ParamVal::IRange(0..255),       Value::Int(0)),
+                Param::new("FastEdges.Smooth",                          ParamVal::FRange(0.0..255.0),   Value::Double(12.0)),
 
                 Param::new("RopeDimensions.rope-width",                     ParamVal::IRange(1..10000),     Value::Int(100)),
                 Param::new("RopeDimensions.width-tolerance",                ParamVal::FRange(0.0..100.0),   Value::Double(10.0)),
@@ -501,8 +501,8 @@ impl eframe::App for UiApp {
                 let cropping_width = self.params.get("Contours.cropping.width").unwrap().1.as_int() as i32;
                 let cropping_y = self.params.get("Contours.cropping.y").unwrap().1.as_int() as i32;
                 let cropping_height = self.params.get("Contours.cropping.height").unwrap().1.as_int() as i32;
-                let otsu_tune = self.params.get("EdgeDetection.Otsu-tune").unwrap().1.as_double();
-                let threshold = self.params.get("EdgeDetection.Threshold").unwrap().1.as_int() as u8;
+                let otsu_tune = self.params.get("FastEdges.Otsu-tune").unwrap().1.as_double();
+                let threshold = self.params.get("FastEdges.Threshold").unwrap().1.as_int() as u8;
                 let conf = FastScanConf {
                     fast_contours: FastContoursConf {
                         cropping: CroppingConf {
@@ -543,10 +543,10 @@ impl eframe::App for UiApp {
                     //     down_speed: self.params.get("Contours.temporal-filter.down-speed").unwrap().1.as_double(),
                     //     threshold: self.params.get("Contours.temporal-filter.threshold").unwrap().1.as_double(),
                     // },
-                    edge_detection: EdgeDetectionConf {
+                    fast_edges: FastEdgesConf {
                         otsu_tune: (otsu_tune == 0.0).then(|| otsu_tune),
                         threshold: (threshold == 0).then(|| threshold) ,
-                        smooth: Some(self.params.get("EdgeDetection.Smooth").unwrap().1.as_double()),
+                        smooth: Some(self.params.get("FastEdges.Smooth").unwrap().1.as_double()),
                     },
                     rope_dimensions: RopeDimensionsConf {
                         rope_width: self.params.get("RopeDimensions.rope-width").unwrap().1.as_int() as usize,
@@ -557,10 +557,10 @@ impl eframe::App for UiApp {
                 };
                 let t = Instant::now();
                 let debug = false;
-                let result_ctx = EdgeDetection::new(
-                    conf.edge_detection.otsu_tune,
-                    conf.edge_detection.threshold,
-                    conf.edge_detection.smooth,
+                let result_ctx = FastEdges::new(
+                    conf.fast_edges.otsu_tune,
+                    conf.fast_edges.threshold,
+                    conf.fast_edges.smooth,
                     FastContours::new(
                         conf.fast_contours.clone(),
                         Gray::new(
@@ -594,10 +594,10 @@ impl eframe::App for UiApp {
                         self.alg_err = None;
                         let contours_ctx: &FastContoursCtx = result_ctx.read();
                         self.contour_frame = Some(contours_ctx.result.clone());
-                        let edges: &EdgeDetectionCtx = result_ctx.read();
-                        let upper = edges.result.get(Side::Upper);
+                        let edges: &FastEdgesCtx = result_ctx.read();
+                        let upper = edges.edges.get(Side::Upper);
                         let result_img = Self::image_plot(&self.frame, upper, [0, 0, 255], &conf.fast_contours.cropping);
-                        let lower = edges.result.get(Side::Lower);
+                        let lower = edges.edges.get(Side::Lower);
                         let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.fast_contours.cropping);
                         self.result_frame = Some(result_img);
                         // let gamma_ctx: &AutoGammaCtx = result_ctx.read();

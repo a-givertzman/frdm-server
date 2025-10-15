@@ -2,9 +2,7 @@ use std::time::Instant;
 use opencv::core::Mat;
 use sal_core::error::Error;
 use crate::algorithm::{
-    ContextWrite, NormalizedCtx,
-    EvalResult, AutoGammaCtx, ContextRead,
-    ResultCtx,
+    ContextWrite, EvalResult, AutoGammaCtx, ContextRead, ResultCtx,
 };
 use crate::{Eval, domain::Image};
 ///
@@ -42,7 +40,7 @@ impl Eval<Image, EvalResult> for AutoGamma {
                 // build a lookup table mapping the pixel values [0, 255] to
                 // their adjusted gamma values
                 let t = Instant::now();
-                let result: &ResultCtx<Image> = ContextRead::<NormalizedCtx, _>::read(&ctx);
+                let result: &ResultCtx<Image> = ctx.read();
                 let frame = &result.val;
                 let factor = self.factor / 100.0;
                 let mid = 0.5f64;
@@ -73,7 +71,7 @@ impl Eval<Image, EvalResult> for AutoGamma {
                                         };
                                         let result = ResultCtx { val: frame };
                                         log::debug!("AutoGamma.eval | Elapsed: {:?}", t.elapsed());
-                                        ContextWrite::<NormalizedCtx, _>::write(ctx, result)
+                                        ctx.write(result)
                                     }
                                     Err(err) => Err(error.pass(err.to_string())),
                                 }

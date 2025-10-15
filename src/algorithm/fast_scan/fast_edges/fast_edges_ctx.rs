@@ -1,16 +1,16 @@
 use crate::{algorithm::Edges};
 ///
-/// Context store of [EdgeDetection](src/scan/edge_detection.rs)
+/// Context store of [FastEdges](src/scan/edge_detection.rs)
 #[derive(Debug, Clone, PartialEq)]
 pub struct FastEdgesCtx {
-    pub result: Edges<usize>,
+    pub edges: Edges<usize>,
 }
 //
 //
 impl Default for FastEdgesCtx {
     fn default() -> Self {
         Self { 
-            result: Edges::default()
+            edges: Edges::default()
          }
     }
 }

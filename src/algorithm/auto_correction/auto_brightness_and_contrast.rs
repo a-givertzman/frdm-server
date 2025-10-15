@@ -4,7 +4,7 @@ use opencv::imgproc;
 use sal_core::error::Error;
 use crate::algorithm::{
     ContextWrite, ContextRead, AutoBrightnessAndContrastCtx,
-    EvalResult, ResultCtx, NormalizedCtx,
+    EvalResult, ResultCtx,
 };
 use crate::{Eval, domain::Image};
 ///
@@ -41,7 +41,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx<Image> = ContextRead::<NormalizedCtx, _>::read(&ctx);
+                let result: &ResultCtx<Image> = ctx.read();
                 let frame = &result.val;
                 let mut gray = Mat::default();
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
@@ -126,7 +126,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                         };
                                         let result = ResultCtx { val: frame };
                                         log::debug!("AutoBrightnessAndContrast.eval | Elapsed: {:?}", t.elapsed());
-                                        ContextWrite::<NormalizedCtx, _>::write(ctx, result)
+                                        ctx.write(result)
                                     }
                                     Err(err) => Err(error.pass(err.to_string())),
                                 } 

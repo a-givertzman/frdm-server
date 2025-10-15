@@ -1,16 +1,14 @@
-use crate::{
+use crate::
     algorithm::{
         auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
-        CroppingCtx, GrayCtx, ResultCtx,
-    }, Image,
-};
+        CroppingCtx, GrayCtx,
+    }
+;
 
 ///
 /// Normalize algorithms results, cropp, auto gamma, brightness, contast, gray etc...
 #[derive(Debug, Clone)]
 pub struct NormalizedCtx {
-    /// Normalized image
-    pub(super) result: ResultCtx<Image>,
     /// Cropped image
     pub(super) cropping: CroppingCtx,
     /// Gamma-corrected image
@@ -25,7 +23,6 @@ pub struct NormalizedCtx {
 impl Default for NormalizedCtx {
     fn default() -> Self {
         Self {
-            result: ResultCtx::default(),
             cropping: CroppingCtx::default(),
             auto_gamma: AutoGammaCtx::default(),
             auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),

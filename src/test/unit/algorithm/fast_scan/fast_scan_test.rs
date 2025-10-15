@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        Context, ContextRead, ContextWrite, CroppingCtx, EdgeDetectionCtx, EvalResult, FastScan, FastScanConf, FastUnionCtx, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastEdgesCtx, FastScan, FastScanConf, FastScanCtx, FastUnionCtx, Gray, GrayCtx, Initial, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side
     }, 
     domain::Error,
 };
@@ -63,7 +63,7 @@ fn eval() {
                 open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
                 erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
                 threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
-            edge-detection:
+            fast-edges:
                 otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 # threshold: 128        # 0...255, used if otsu-tune is not specified
                 smooth: 36              # Smoothing of edge line factor. The higher the factor the smoother the line.
@@ -79,6 +79,23 @@ fn eval() {
     let fast_scan = FastScan::new(
         conf.clone(),
         tp.scheduler(),
+        Gray::new(
+            AutoGamma::new(
+                120.0,
+                Cropping::new(
+                    230,
+                    1410,
+                    300,
+                    1000,
+                    Initial::new(
+                        InitialCtx::new(),
+                    ),
+                    true,
+                ),
+                true,
+            ),
+            true
+        ),
         false,
     );
     let w_gray = "Gray";
@@ -121,9 +138,9 @@ fn eval() {
                 } else {
                     crop.result.mat.clone()
                 };
-                let edges: &EdgeDetectionCtx = ctx.read();
-                let upper = edges.result.get(Side::Upper);
-                let lower = edges.result.get(Side::Lower);
+                let edges: &FastEdgesCtx = ctx.read();
+                let upper = edges.edges.get(Side::Upper);
+                let lower = edges.edges.get(Side::Lower);
                 log::trace!("{dbg}.eval | upper: {:?}", upper);
                 log::trace!("{dbg}.eval | lower: {:?}", lower);
                 if !crop.empty() {
@@ -134,14 +151,14 @@ fn eval() {
                         *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
                     }
                 }
-                let (text, text_color) = match RopeDimensions::new(
+                let (text, text_color) = match RopeDimensions::<FastScanCtx>::new(
                     conf.rope_dimensions.rope_width,
                     conf.rope_dimensions.width_tolerance,
                     conf.rope_dimensions.square_tolerance,
                     FakePassDots::new(edges.clone()),
                 ).eval(frame.clone()) {
                     Ok(ctx) => {
-                        let dimensions: &RopeDimensionsCtx = ctx.read();
+                        let dimensions: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
                         let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_dimensions.rope_width as f64).abs();
                         let square_error = (100.0 - dimensions.square * 100.0 / (conf.rope_dimensions.rope_width * upper.len()) as f64).abs();
                         (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), VecN::from_array([255.0, 0.0, 0.0, 0.0]))
@@ -164,10 +181,10 @@ fn eval() {
 ///
 /// Fake implements `Eval` for testing [RopeDimensions]
 struct FakePassDots {
-    dots: EdgeDetectionCtx,
+    dots: FastEdgesCtx,
 }
 impl FakePassDots{
-    pub fn new(dots: EdgeDetectionCtx) -> Self {
+    pub fn new(dots: FastEdgesCtx) -> Self {
         Self { dots }
     }
 }
@@ -179,5 +196,21 @@ impl Eval<Image, EvalResult> for FakePassDots {
             InitialCtx::new(),
         );
         ctx.write(self.dots.clone())
+    }
+}
+///
+/// 
+struct PassGrayCtx {}
+impl PassGrayCtx {
+    fn new() -> Self {
+        Self { }
+    }
+}
+impl Eval<Image, EvalResult> for PassGrayCtx {
+    fn eval(&self, frame: Image) -> EvalResult {
+        let ctx = Context::new(
+            InitialCtx::new(),
+        );
+        ctx.write( ResultCtx { val: frame })
     }
 }

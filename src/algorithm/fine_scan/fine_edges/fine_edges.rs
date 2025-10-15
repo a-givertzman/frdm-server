@@ -103,7 +103,7 @@ impl Eval<Image, EvalResult> for FineEdges {
                     }
                 }
                 let result = FineEdgesCtx {
-                    result: Edges::new(upper_edge, lower_edge),
+                    edges: Edges::new(upper_edge, lower_edge),
                 };
                 log::debug!("FineEdges.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)

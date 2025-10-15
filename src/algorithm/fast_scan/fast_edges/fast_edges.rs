@@ -3,7 +3,7 @@ use opencv::{core::{Mat, MatTraitConst, MatTraitConstManual}, imgproc};
 use sal_core::error::Error;
 use crate::{
     algorithm::{
-        ContextRead, ContextWrite, EvalResult, Edges, ResultCtx, FastScanCtx, FastEdgesCtx,
+        ContextRead, ContextWrite, EvalResult, Edges, ResultCtx, FastEdgesCtx,
     },
     domain::{Dot, Eval, Filter, FilterEmpty, FilterSmooth2, Image}
 };
@@ -38,7 +38,7 @@ impl Eval<Image, EvalResult> for FastEdges {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx<Image> = ContextRead::<FastScanCtx, _>::read(&ctx);
+                let result: &ResultCtx<Image> = ctx.read();
                 let frame = &result.val;
                 let threshold = match (self.otsu_tune, self.threshold) {
                     (None, None) => imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap().round() as u8,
@@ -105,7 +105,7 @@ impl Eval<Image, EvalResult> for FastEdges {
                     }
                 }
                 let result = FastEdgesCtx {
-                    result: Edges::new(upper_edge, lower_edge),
+                    edges: Edges::new(upper_edge, lower_edge),
                 };
                 log::debug!("FastEdges.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)

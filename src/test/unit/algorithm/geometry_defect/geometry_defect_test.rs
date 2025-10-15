@@ -14,8 +14,7 @@ mod geometry_defect {
     };
     use crate::{
         algorithm::{
-            GeometryDefect, GeometryDefectCtx, GeometryDefectType, Threshold,
-            WidthEmissions, Context, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, InitialCtx, InitialPoints, Mad,
+            Context, ContextRead, ContextWrite, Edges, EvalResult, FastEdgesCtx, FastScanCtx, GeometryDefect, GeometryDefectCtx, GeometryDefectType, InitialCtx, Mad, Threshold, WidthEmissions
         }, 
         domain::{Dot, Eval, Image},
     };
@@ -48,7 +47,7 @@ mod geometry_defect {
             (
                 1,
                 Threshold(1.1),
-                InitialPoints::new(
+                Edges::new(
                     vec![
                         Dot { x: 10  , y: 100 },
                         Dot { x: 20  , y: 105 },
@@ -105,7 +104,7 @@ mod geometry_defect {
             (
                 2,
                 Threshold(1.1),
-                InitialPoints::new(
+                Edges::new(
                     vec![
                         Dot { x: 10  , y: 100 },
                         Dot { x: 20  , y: 105 },
@@ -140,7 +139,7 @@ mod geometry_defect {
             (
                 3,
                 Threshold(1.1),
-                InitialPoints::new(
+                Edges::new(
                     vec![
                         Dot { x: 10  , y: 100 },
                         Dot { x: 20  , y: 105 },
@@ -174,7 +173,7 @@ mod geometry_defect {
                 ]
             ),
         ];
-        for (step, threshold, initial_points, target) in test_data {
+        for (step, threshold, edges, target) in test_data {
             let mut ctx = MocEval {
                 ctx: Context::new(
                     InitialCtx::new()
@@ -182,19 +181,19 @@ mod geometry_defect {
             };
             ctx.ctx = ctx.ctx
                 .clone()
-                .write(EdgeDetectionCtx{ result: initial_points.clone() })
+                .write(FastEdgesCtx{ edges: edges.clone() })
                 .unwrap();
-            let result = GeometryDefect::new(
+            let result = GeometryDefect::<FastScanCtx>::new(
                 threshold,
                 *Box::new(Mad::new()),
-                WidthEmissions::new(threshold, 
+                WidthEmissions::<FastScanCtx>::new(threshold, 
                     *Box::new(Mad::new()), 
                     ctx
                 ),
             ).eval(Image::default());
             match result {
                 Ok(result) => {
-                    let result = ContextRead::<GeometryDefectCtx>::read(&result)
+                    let result = ContextRead::<GeometryDefectCtx<FastScanCtx>>::read(&result)
                         .result.clone();
                     assert!(
                         result == target, 
