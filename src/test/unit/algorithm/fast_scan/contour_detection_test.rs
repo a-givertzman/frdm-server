@@ -90,12 +90,12 @@ fn eval() {
                 conf.fast_contours,
                 Gray::new(
                     AutoGamma::new(
-                        conf.fast_contours.gamma.factor,
+                        120.0,
                         Cropping::new(
-                            conf.fast_contours.cropping.x,
-                            conf.fast_contours.cropping.width,
-                            conf.fast_contours.cropping.y,
-                            conf.fast_contours.cropping.height,
+                            230,
+                            1410,
+                            300,
+                            1000,
                             Initial::new(
                                 InitialCtx::new(),
                             ),

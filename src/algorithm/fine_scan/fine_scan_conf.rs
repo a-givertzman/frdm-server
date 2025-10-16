@@ -11,10 +11,6 @@ use crate::algorithm::{
 /// ### Example
 /// ```yaml
 /// fine-scan:
-///     add-weighted:               # Combine two images
-///         weight1: 1.0            # Weight of the first array elements.
-///         weight2: 1.0            # Weight of the second array elements.
-///         gamma: 0.0
 ///     fine-contours:
 ///         otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
 ///         merge-distance: 24.0    # Maximum distance between contours to be merged

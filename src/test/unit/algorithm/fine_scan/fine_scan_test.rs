@@ -63,7 +63,7 @@ fn eval() {
                 smooth: 36              # Smoothing of edge line factor. The higher the factor the smoother the line.
             rope-dimensions:        # Verifaing the rope dimensions 
                 rope-width: 380               # Standart rope width, px
-                width-tolerance: 25.0         # Tolerance for rope width, %
+                width-tolerance: 30.0         # Tolerance for rope width, %
                 square-tolerance: 100.0       # Tolerance for rope square, %
             geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
         "#)).unwrap(),

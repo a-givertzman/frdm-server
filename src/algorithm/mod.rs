@@ -1,4 +1,5 @@
 mod auto_correction;
+mod buffer;
 mod context;
 mod cropping;
 pub mod cv;
@@ -17,6 +18,7 @@ mod width_emissions;
 mod edges;
 
 pub use auto_correction::*;
+pub use buffer::*;
 pub use context::*;
 pub use cropping::*;
 pub use detecting_contours::*;

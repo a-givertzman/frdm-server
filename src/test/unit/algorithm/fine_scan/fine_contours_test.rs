@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastScanCtx, FineContours, FineContoursCtx, FineEdges, FineEdgesCtx, FineScanConf, FineScanCtx, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastScanCtx, FineContours, FineEdges, FineEdgesCtx, FineScanConf, FineScanCtx, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side
     }, 
     domain::Error,
 };
@@ -54,9 +54,9 @@ fn eval() {
                 erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
                 threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
             fine-edges:
-                otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                # threshold: 128        # 0...255, used if otsu-tune is not specified
-                smooth: 36              # Smoothing of edge line factor. The higher the factor the smoother the line.
+                # otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
+                threshold: 128        # 0...255, used if otsu-tune is not specified
+                smooth: 16              # Smoothing of edge line factor. The higher the factor the smoother the line.
             rope-dimensions:        # Verifaing the rope dimensions 
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 25.0         # Tolerance for rope width, %
@@ -71,40 +71,37 @@ fn eval() {
         square_tolerance: 100.0,       // Tolerance for rope square, %
     };
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
-    let debug = false;
-    let temporal_filter = 
-        FineEdges::new(
-            Some(1.4),
-            None,
-            Some(16.0),
-            FineContours::new(
-                conf.fine_contours,
-                Gray::new(
-                    AutoGamma::new(
-                        120.0,
-                        Cropping::new(
-                            230,
-                            1410,
-                            300,
-                            1000,
-                            Initial::new(
-                                InitialCtx::new(),
-                            ),
-                            debug,
+    let temporal_filter = FineEdges::new(
+        conf.fine_edges.otsu_tune,
+        conf.fine_edges.threshold,
+        conf.fine_edges.smooth,
+        FineContours::new(
+            conf.fine_contours,
+            Gray::new(
+                AutoGamma::new(
+                    120.0,
+                    Cropping::new(
+                        230,
+                        1410,
+                        300,
+                        1000,
+                        Initial::new(
+                            InitialCtx::new(),
                         ),
-                        debug,
+                        true,
                     ),
-                    debug,
+                    false,
                 ),
-                debug,
+                true,
             ),
-        );
+            true,
+        ),
+    );
     let wgray = "Gray";
     let wcrop = "Cropped";
     let wgamma = "Gamma";
     let wcontours = "Fine Contours";
-    let w_temp_filter = "Temporal Filter";
-    for window in [wgray, wcrop, wgamma, wcontours, w_temp_filter] {
+    for window in [wgray, wcrop, wgamma, wcontours] {
         if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
             log::warn!("{dbg} | Create Window Error: {}", err);
         }
@@ -134,39 +131,40 @@ fn eval() {
                 let crop: &CroppingCtx = ctx.read();    
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
-                let contours: &FineContoursCtx = ctx.read();
+                // let contours: &FineContoursCtx = ctx.read();
                 let result: &ResultCtx<Image> = ctx.read();
-                let edges: &FineEdgesCtx = ctx.read();
-                let upper = edges.edges.get(Side::Upper);
-                let lower = edges.edges.get(Side::Lower);
-                log::trace!("{dbg}.eval | upper: {:?}", upper);
-                log::trace!("{dbg}.eval | lower: {:?}", lower);
-                for dot in &upper {
-                    *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 0, 255]);
-                }
-                for dot in &lower {
-                    *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
-                }
-                let (text, text_color) = match RopeDimensions::<FineScanCtx>::new(
-                    rope_dimensions_conf.rope_width,
-                    rope_dimensions_conf.width_tolerance,
-                    rope_dimensions_conf.square_tolerance,
-                    FakePassDots::new(edges.clone()),
-                ).eval(frame.clone()) {
-                    Ok(ctx) => {
-                        let dimensions: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
-                        let width_error = (100.0 - dimensions.width * 100.0 / rope_dimensions_conf.rope_width as f64).abs();
-                        let square_error = (100.0 - dimensions.square * 100.0 / (rope_dimensions_conf.rope_width * upper.len()) as f64).abs();
-                        (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), VecN::from_array([255.0, 0.0, 0.0, 0.0]))
+                if !crop.empty() {
+                    let edges: &FineEdgesCtx = ctx.read();
+                    let upper = edges.edges.get(Side::Upper);
+                    let lower = edges.edges.get(Side::Lower);
+                    log::trace!("{dbg}.eval | upper: {:?}", upper);
+                    log::trace!("{dbg}.eval | lower: {:?}", lower);
+                    for dot in &upper {
+                        *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 0, 255]);
                     }
-                    Err(err) => (format!("Error: {:?}", err), VecN::from_array([0.0, 0.0, 255.0, 0.0]))
-                };
-                opencv::imgproc::put_text(&mut crop, &text, Point2i::new(10, 30), 1, 2.0, text_color, 2, -1, false).unwrap();
+                    for dot in &lower {
+                        *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
+                    }
+                    let (text, text_color) = match RopeDimensions::<FineScanCtx>::new(
+                        rope_dimensions_conf.rope_width,
+                        rope_dimensions_conf.width_tolerance,
+                        rope_dimensions_conf.square_tolerance,
+                        FakePassDots::new(edges.clone()),
+                    ).eval(frame.clone()) {
+                        Ok(ctx) => {
+                            let dimensions: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
+                            let width_error = (100.0 - dimensions.width * 100.0 / rope_dimensions_conf.rope_width as f64).abs();
+                            let square_error = (100.0 - dimensions.square * 100.0 / (rope_dimensions_conf.rope_width * upper.len()) as f64).abs();
+                            (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), VecN::from_array([255.0, 0.0, 0.0, 0.0]))
+                        }
+                        Err(err) => (format!("Error: {:?}", err), VecN::from_array([0.0, 0.0, 255.0, 0.0]))
+                    };
+                    opencv::imgproc::put_text(&mut crop, &text, Point2i::new(10, 30), 1, 2.0, text_color, 2, -1, false).unwrap();
+                }
                 if !gray.frame.mat.empty() { highgui::imshow(wgray, &gray.frame.mat).unwrap() };
                 if !gamma.result.mat.empty() { highgui::imshow(wgamma, &gamma.result.mat).unwrap() };
-                if !result.val.mat.empty() { highgui::imshow(w_temp_filter, &result.val.mat).unwrap() };
                 if !crop.empty() { highgui::imshow(wcrop, &crop).unwrap() };
-                if !contours.result.mat.empty() { highgui::imshow(wcontours, &contours.result.mat).unwrap() };
+                if !result.val.mat.empty() { highgui::imshow(wcontours, &result.val.mat).unwrap() };
                 highgui::wait_key(0).unwrap();
             },
             _ => continue,

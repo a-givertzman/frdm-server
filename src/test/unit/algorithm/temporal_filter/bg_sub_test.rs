@@ -2,7 +2,6 @@
 use crate::{algorithm::{Initial, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{Mat, MatTraitConst}, highgui, video::BackgroundSubtractorTrait};
-use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
     DebugSession, 
@@ -12,7 +11,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, ContextRead, Cropping, FastContoursConf, Gray, GrayCtx
+        AutoGamma, ContextRead, Cropping, Gray, GrayCtx
     }, 
 };
 ///
@@ -40,77 +39,24 @@ fn eval() {
     log::debug!("\n{}", dbg);
     let test_duration = TestDuration::new(&dbg, Duration::from_secs(1000));
     test_duration.run().unwrap();
-    let conf = ConfTree::new_root(
-        serde_yaml::from_str(&format!(r#"
-            contours:
-                cropping:
-                    x: 230           # new left edge
-                    width: 1410     # new image width
-                    y: 300           # new top edge
-                    height: 1000    # new image height
-                gamma:
-                    factor: 100.0              # percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
-                brightness-contrast:
-                    hist-clip-left: 97.0     # optional histogram clipping from right, default = 0.0 %
-                    hist-clip-right: 0.0    # optional histogram clipping from right, default = 0.0 %
-                temporal-filter:
-                    amplify-factor: 12.0     # factor amplifies the highlighting the oftenly changing pixels
-                    grow-speed: 0.02          # speed of `rate` growing for changed pixels, 1 - default speed, depends on pixel change value
-                    reduce-factor: 72.0      # factor amplifies the hiding the lower changing pixels
-                    down-speed: 2.4          # speed of `rate` reducing for static pixels, 1 - default speed, depends on pixel change value
-                    threshold: 64.0
-                gausian:
-                    blur-size:
-                        width: 11
-                        height: 3
-                    sigma-x: 0.0
-                    sigma-y: 0.0
-                sobel:
-                    kernel-size: 1
-                    scale: 5.0
-                    delta: 0.0
-                overlay:
-                    src1-weight: 1.0
-                    src2-weight: 1.0
-                    gamma: 0.0
-            edge-detection:
-                otsu-tune: 1.40       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                # threshold: 50       # 0...255, used if otsu-tune is not specified
-                smooth: 8             # Smoothing of edge line factor. The higher the factor the smoother the line.
-            fast-scan:
-                geometry-defect-threshold: 1.0      # 1.1..1.3, absolute threshold to detect the geometry deffects
-            fine-scan:
-                no-params: not implemented yet
-        "#)).unwrap(),
-    );
-    let conf = FastContoursConf::new(&dbg, conf);
     let debug = false;
-    let gray = 
-                    Gray::new(
-                        // AutoBrightnessAndContrast::new(
-                        //     conf.brightness_contrast.hist_clip_left,
-                        //     conf.brightness_contrast.hist_clip_right,
-                            AutoGamma::new(
-                                conf.gamma.factor,
-                                Cropping::new(
-                                    conf.cropping.x,
-                                    conf.cropping.width,
-                                    conf.cropping.y,
-                                    conf.cropping.height,
-                                    Initial::new(
-                                        InitialCtx::new(),
-                                    ),
-                                    debug,
-                                ),
-                                debug,
-                            ),
-                            debug,
-                        // ),
-                        // debug,
-                    );
-    //             ),
-    //         ),
-    //     );
+    let gray = Gray::new(
+        AutoGamma::new(
+            120.0,
+            Cropping::new(
+                230,
+                1410,
+                300,
+                1000,
+                Initial::new(
+                    InitialCtx::new(),
+                ),
+                debug,
+            ),
+            debug,
+        ),
+        debug,
+    );
     let wgray = "Gray";
     let wfgmask = "Fg Mask";
     if let Err(err) = opencv::highgui::named_window(wgray, opencv::highgui::WINDOW_NORMAL) {

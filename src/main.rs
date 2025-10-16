@@ -11,7 +11,7 @@ use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
         AutoGamma, Cropping, FastContours, FastEdges, FastScanConf, FastScanCtx, FineScanConf, GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter
-    }, conf::Conf, domain::Eval, infrostructure::camera::{Camera, CameraConf}
+    }, conf::{Conf, NormalizeConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -29,6 +29,7 @@ fn main() {
     }
     opencv::highgui::wait_key(1).unwrap();
     let conf = Conf {
+        normalize: NormalizeConf::default(),
         fast_scan: FastScanConf::default(),
         fine_scan: FineScanConf::default(),
     };
@@ -49,12 +50,12 @@ fn main() {
                     conf.fast_scan.temporal_filter.threshold,
                     Gray::new(
                         AutoGamma::new(
-                            conf.fast_scan.fast_contours.gamma.factor,
+                            conf.normalize.gamma.factor,
                             Cropping::new(
-                                conf.fast_scan.fast_contours.cropping.x,
-                                conf.fast_scan.fast_contours.cropping.width,
-                                conf.fast_scan.fast_contours.cropping.y,
-                                conf.fast_scan.fast_contours.cropping.height,
+                                conf.normalize.cropping.x,
+                                conf.normalize.cropping.width,
+                                conf.normalize.cropping.y,
+                                conf.normalize.cropping.height,
                                 Initial::new(
                                     InitialCtx::new(),
                                 ),

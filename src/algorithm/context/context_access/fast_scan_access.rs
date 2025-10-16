@@ -59,19 +59,6 @@ impl ContextRead<GeometryDefectCtx<FastScanCtx>> for Context {
         &self.fast_scan.defects
     }
 }
-// //
-// //
-// impl ContextWrite<GaussianBlurCtx> for Context {
-//     fn write(mut self, value: GaussianBlurCtx) -> Result<Self, Error> {
-//         self.gaussian_blur = value;
-//         Result::Ok(self)
-//     }
-// }
-// impl ContextRead<GaussianBlurCtx> for Context {
-//     fn read(&self) -> &GaussianBlurCtx {
-//         &self.gaussian_blur
-//     }
-// }
 //
 //
 impl ContextWrite<RopeDimensionsCtx<FastScanCtx>> for Context {

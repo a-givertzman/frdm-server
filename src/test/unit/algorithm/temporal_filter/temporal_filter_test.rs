@@ -48,13 +48,6 @@ fn eval() {
                 weight2: 1.0            # Weight of the second array elements.
                 gamma: 0.0
             fast-contours:
-                cropping:
-                    x: 230              # New left edge
-                    y: 300              # New top edge
-                    width: 1410         # New image width
-                    height: 1000        # New image height
-                gamma:
-                    factor: 120.0       # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 otsu-tune: 0.40
             temporal-filter:
                 gaussian:
@@ -63,7 +56,7 @@ fn eval() {
                 open-kernel: [3, 3]     # Morphology open operation kernel size [w, h], default [5, 5]
                 erode-kernel: [3, 3]    # Morphology erode operation kernel size [w, h], default [5, 5]
                 threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
-            edge-detection:
+            fast-edges:
                 otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 # threshold: 128        # 0...255, used if otsu-tune is not specified
                 smooth: 36              # Smoothing of edge line factor. The higher the factor the smoother the line.
@@ -89,12 +82,12 @@ fn eval() {
                 conf.temporal_filter.threshold,
                 Gray::new(
                     AutoGamma::new(
-                        conf.fast_contours.gamma.factor,
+                        120.0,
                         Cropping::new(
-                            conf.fast_contours.cropping.x,
-                            conf.fast_contours.cropping.width,
-                            conf.fast_contours.cropping.y,
-                            conf.fast_contours.cropping.height,
+                            230,
+                            1410,
+                            300,
+                            1000,
                             Initial::new(
                                 InitialCtx::new(),
                             ),

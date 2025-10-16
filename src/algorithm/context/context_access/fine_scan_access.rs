@@ -32,19 +32,6 @@ impl ContextRead<GeometryDefectCtx<FineScanCtx>> for Context {
         &self.fine_scan.defects
     }
 }
-// //
-// //
-// impl ContextWrite<GaussianBlurCtx> for Context {
-//     fn write(mut self, value: GaussianBlurCtx) -> Result<Self, Error> {
-//         self.gaussian_blur = value;
-//         Result::Ok(self)
-//     }
-// }
-// impl ContextRead<GaussianBlurCtx> for Context {
-//     fn read(&self) -> &GaussianBlurCtx {
-//         &self.gaussian_blur
-//     }
-// }
 //
 //
 impl ContextWrite<RopeDimensionsCtx<FineScanCtx>> for Context {

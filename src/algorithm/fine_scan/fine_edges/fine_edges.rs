@@ -70,31 +70,35 @@ impl Eval<Image, EvalResult> for FineEdges {
                     upper = false;
                     lower = false;
                     for y in 0..rows {
-                        match mat.get((y * cols + x) as usize) {
-                            Some(pixel_value) => {
-                                if !upper && pixel_value >= &threshold {
-                                    if let Some(y) = filter_smooth_upper.add(y) {
-                                        upper_edge.push(Dot {x: x as usize, y: y as usize});
-                                        upper = true;
+                        if !upper {
+                            match mat.get((y * cols + x) as usize) {
+                                Some(pixel_value) => {
+                                    if pixel_value > &threshold {
+                                        if let Some(y) = filter_smooth_upper.add(y) {
+                                            upper_edge.push(Dot {x: x as usize, y: y as usize});
+                                            upper = true;
+                                        }
                                     }
+                                }   
+                                None => {
+                                    return Err(error.err("Input image format error, index out of image range"));
                                 }
-                            }   
-                            None => {
-                                return Err(error.err("Input image format error, index out of image range"));
                             }
                         }
                         let y = rows - y -1;
-                        match mat.get((y * cols + x) as usize) {
-                            Some(pixel_value) => {
-                                if !lower && pixel_value >= &threshold {
-                                    if let Some(y) = filter_smooth_lower.add(y) {
-                                        lower_edge.push(Dot {x: x as usize, y: y as usize});
-                                        lower = true;
+                        if !lower {
+                            match mat.get((y * cols + x) as usize) {
+                                Some(pixel_value) => {
+                                    if pixel_value > &threshold {
+                                        if let Some(y) = filter_smooth_lower.add(y) {
+                                            lower_edge.push(Dot {x: x as usize, y: y as usize});
+                                            lower = true;
+                                        }
                                     }
                                 }
-                            }
-                            None => {
-                                return Err(error.err("Input image format error, index out of image range"));
+                                None => {
+                                    return Err(error.err("Input image format error, index out of image range"));
+                                }
                             }
                         }
                         if upper && lower {

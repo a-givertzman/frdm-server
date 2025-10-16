@@ -9,14 +9,9 @@ use egui::{
 };
 use crate::{
     algorithm::{
-        AutoGamma, ContextRead,
-        Cropping, CroppingConf, FastContours, FastContoursCtx,
-        FastEdgesConf, FastEdges, FastEdgesCtx, Gray,
-        Initial, InitialCtx,
-        RopeDimensionsConf, Side, TemporalFilterConf, Threshold,
-        FastScanConf, FastContoursConf,
+        AutoGamma, ContextRead, Cropping, CroppingConf, FastContours, FastContoursConf, FastContoursCtx, FastEdges, FastEdgesConf, FastEdgesCtx, FastScanConf, FineScanConf, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
     },
-    conf::GammaConf,
+    conf::{Conf, GammaConf, NormalizeConf},
     domain::{Dot, Eval, Image},
 };
 
@@ -503,8 +498,8 @@ impl eframe::App for UiApp {
                 let cropping_height = self.params.get("Contours.cropping.height").unwrap().1.as_int() as i32;
                 let otsu_tune = self.params.get("FastEdges.Otsu-tune").unwrap().1.as_double();
                 let threshold = self.params.get("FastEdges.Threshold").unwrap().1.as_int() as u8;
-                let conf = FastScanConf {
-                    fast_contours: FastContoursConf {
+                let conf = Conf {
+                    normalize: NormalizeConf {
                         cropping: CroppingConf {
                             x: cropping_x,
                             width: if cropping_x + cropping_width <= self.frame.width() {cropping_width} else {self.frame.width() - cropping_x},
@@ -514,66 +509,71 @@ impl eframe::App for UiApp {
                         gamma: GammaConf {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
                         },
-                        otsu_tune: 0.4,
-                        // brightness_contrast: BrightnessContrastConf {
-                        //     hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_double() as f32,
-                        //     hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_double() as f32,
-                        // },
-                        // gausian: GausianConf {
-                        //     blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as usize,
-                        //     blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as usize,
-                        //     sigma_x: self.params.get("Contours.gausian.sigma_x").unwrap().1.as_double(),
-                        //     sigma_y: self.params.get("Contours.gausian.sigma_y").unwrap().1.as_double(),
-                        // },
-                        // sobel: SobelConf {
-                        //     kernel_size: self.params.get("Contours.sobel.kernel_size").unwrap().1.as_int() as i32,
-                        //     scale: self.params.get("Contours.sobel.scale").unwrap().1.as_double(),
-                        //     delta: self.params.get("Contours.sobel.delta").unwrap().1.as_double(),
-                        // },
-                        // overlay: OverlayConf {
-                        //     src1_weight: self.params.get("Contours.overlay.src1_weight").unwrap().1.as_double(),
-                        //     src2_weight: self.params.get("Contours.overlay.src2_weight").unwrap().1.as_double(),
-                        //     gamma: self.params.get("Contours.overlay.gamma").unwrap().1.as_double(),
-                        // },
                     },
-                    temporal_filter: TemporalFilterConf::default(),
-                    //     amplify_factor: self.params.get("Contours.temporal-filter.amplify-factor").unwrap().1.as_double(),
-                    //     grow_speed: self.params.get("Contours.temporal-filter.grow-speed").unwrap().1.as_double(),
-                    //     reduce_factor: self.params.get("Contours.temporal-filter.reduce-factor").unwrap().1.as_double(),
-                    //     down_speed: self.params.get("Contours.temporal-filter.down-speed").unwrap().1.as_double(),
-                    //     threshold: self.params.get("Contours.temporal-filter.threshold").unwrap().1.as_double(),
-                    // },
-                    fast_edges: FastEdgesConf {
-                        otsu_tune: (otsu_tune == 0.0).then(|| otsu_tune),
-                        threshold: (threshold == 0).then(|| threshold) ,
-                        smooth: Some(self.params.get("FastEdges.Smooth").unwrap().1.as_double()),
+                    fast_scan: FastScanConf {
+                        fast_contours: FastContoursConf {
+                            otsu_tune: 0.4,
+                            // brightness_contrast: BrightnessContrastConf {
+                            //     hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_double() as f32,
+                            //     hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_double() as f32,
+                            // },
+                            // gausian: GausianConf {
+                            //     blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as usize,
+                            //     blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as usize,
+                            //     sigma_x: self.params.get("Contours.gausian.sigma_x").unwrap().1.as_double(),
+                            //     sigma_y: self.params.get("Contours.gausian.sigma_y").unwrap().1.as_double(),
+                            // },
+                            // sobel: SobelConf {
+                            //     kernel_size: self.params.get("Contours.sobel.kernel_size").unwrap().1.as_int() as i32,
+                            //     scale: self.params.get("Contours.sobel.scale").unwrap().1.as_double(),
+                            //     delta: self.params.get("Contours.sobel.delta").unwrap().1.as_double(),
+                            // },
+                            // overlay: OverlayConf {
+                            //     src1_weight: self.params.get("Contours.overlay.src1_weight").unwrap().1.as_double(),
+                            //     src2_weight: self.params.get("Contours.overlay.src2_weight").unwrap().1.as_double(),
+                            //     gamma: self.params.get("Contours.overlay.gamma").unwrap().1.as_double(),
+                            // },
+                        },
+                        temporal_filter: TemporalFilterConf::default(),
+                        //     amplify_factor: self.params.get("Contours.temporal-filter.amplify-factor").unwrap().1.as_double(),
+                        //     grow_speed: self.params.get("Contours.temporal-filter.grow-speed").unwrap().1.as_double(),
+                        //     reduce_factor: self.params.get("Contours.temporal-filter.reduce-factor").unwrap().1.as_double(),
+                        //     down_speed: self.params.get("Contours.temporal-filter.down-speed").unwrap().1.as_double(),
+                        //     threshold: self.params.get("Contours.temporal-filter.threshold").unwrap().1.as_double(),
+                        // },
+                        fast_edges: FastEdgesConf {
+                            otsu_tune: (otsu_tune == 0.0).then(|| otsu_tune),
+                            threshold: (threshold == 0).then(|| threshold) ,
+                            smooth: Some(self.params.get("FastEdges.Smooth").unwrap().1.as_double()),
+                        },
+                        rope_dimensions: RopeDimensionsConf {
+                            rope_width: self.params.get("RopeDimensions.rope-width").unwrap().1.as_int() as usize,
+                            width_tolerance: self.params.get("RopeDimensions.width-tolerance").unwrap().1.as_double(),
+                            square_tolerance: self.params.get("RopeDimensions.square-tolerance").unwrap().1.as_double(),
+                        },
+                        geometry_defect_threshold: Threshold(1.1),
                     },
-                    rope_dimensions: RopeDimensionsConf {
-                        rope_width: self.params.get("RopeDimensions.rope-width").unwrap().1.as_int() as usize,
-                        width_tolerance: self.params.get("RopeDimensions.width-tolerance").unwrap().1.as_double(),
-                        square_tolerance: self.params.get("RopeDimensions.square-tolerance").unwrap().1.as_double(),
-                    },
-                    geometry_defect_threshold: Threshold(1.1),
+                    fine_scan: FineScanConf::default(),
                 };
                 let t = Instant::now();
                 let debug = false;
                 let result_ctx = FastEdges::new(
-                    conf.fast_edges.otsu_tune,
-                    conf.fast_edges.threshold,
-                    conf.fast_edges.smooth,
+                    conf.fast_scan.fast_edges.otsu_tune,
+                    conf.fast_scan.fast_edges.threshold,
+                    conf.fast_scan.fast_edges.smooth,
                     FastContours::new(
-                        conf.fast_contours.clone(),
+                        conf.fast_scan.fast_contours,
                         Gray::new(
                             // AutoBrightnessAndContrast::new(
                             //     conf.fast_contours.brightness_contrast.hist_clip_left,
                             //     conf.fast_contours.brightness_contrast.hist_clip_right,
                                 AutoGamma::new(
-                                    conf.fast_contours.gamma.factor,
+                                    conf.normalize.gamma.factor,
                                     Cropping::new(
-                                        conf.fast_contours.cropping.x,
-                                        conf.fast_contours.cropping.width,
-                                        conf.fast_contours.cropping.y,
-                                        conf.fast_contours.cropping.height,
+                                        conf.normalize.cropping.x,
+                                        conf.normalize.cropping.width,
+                                        conf.normalize.cropping.y,
+                                        conf.normalize.cropping.height,
                                         Initial::new(
                                             InitialCtx::new(),
                                         ),
@@ -596,9 +596,9 @@ impl eframe::App for UiApp {
                         self.contour_frame = Some(contours_ctx.result.clone());
                         let edges: &FastEdgesCtx = result_ctx.read();
                         let upper = edges.edges.get(Side::Upper);
-                        let result_img = Self::image_plot(&self.frame, upper, [0, 0, 255], &conf.fast_contours.cropping);
+                        let result_img = Self::image_plot(&self.frame, upper, [0, 0, 255], &conf.normalize.cropping);
                         let lower = edges.edges.get(Side::Lower);
-                        let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.fast_contours.cropping);
+                        let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.normalize.cropping);
                         self.result_frame = Some(result_img);
                         // let gamma_ctx: &AutoGammaCtx = result_ctx.read();
                         // self.hist_frame = Some(Self::display_hist(

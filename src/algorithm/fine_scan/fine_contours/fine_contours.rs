@@ -1,13 +1,10 @@
 use std::collections::VecDeque;
 use std::time::Instant;
-use opencv::core::Mat;
-use opencv::core::MatTraitConst;
-use opencv::core::Point;
-use opencv::core::Point2i;
-use opencv::imgproc;
-use opencv::core;
-use opencv::imgproc::LineTypes;
-use opencv::imgproc::ThresholdTypes;
+use opencv::{
+    core, imgproc,
+    core::{Mat, MatTraitConst, Point, Point2i},
+    imgproc::{LineTypes ,ThresholdTypes},
+};
 use sal_core::error::Error;
 use crate::algorithm::{
     ContextWrite, ContextRead, FineContoursCtx,
@@ -84,11 +81,11 @@ impl FineContours {
         ((pt2.x - pt1.x).pow(2) as f32 + (pt2.y - pt1.y).pow(2)  as f32).sqrt()
     }
     ///
-    /// Returns minimum distance between contours
-    fn min_distance(contour1: &core::Vector<Point>, contour2: &core::Vector<Point>, threshold: f32) -> Result<core::Vector<Point>, Error> {
-        let error = Error::new("FineContours", "min_distance");
+    /// Returns merged contour if distance between passed contours less then `threshold`
+    fn merge(contour1: &core::Vector<Point>, contour2: &core::Vector<Point>, threshold: f32) -> Result<core::Vector<Point>, Error> {
+        let error = Error::new("FineContours", "merge");
         if contour1.len() < 4 || contour2.len() < 4 {
-            log::warn!("FineContours.min_distance | c1[{}], c2[{}]", contour1.len(), contour2.len());
+            log::warn!("FineContours.merge | c1[{}], c2[{}]", contour1.len(), contour2.len());
             return Err(error.err("c1 and c2 can't be length < 3"))
         }
         // let mut dst = Mat::default();
@@ -120,10 +117,10 @@ impl FineContours {
         let mut c2_remove = std::collections::HashSet::new();
         let mut i1 = min.0;
         let mut i2 = min.1;
-        // log::debug!("FineContours.min_distance | pair: {i1}, {i2}");
+        // log::debug!("FineContours.merge | pair: {i1}, {i2}");
         let mut count = [contour1.len(), contour2.len()].iter().min().map(|m| *m).unwrap_or(contour1.len()) / 4;
         while count > 0 {
-            // log::debug!("FineContours.min_distance | pair: {i1}, {i2}");
+            // log::debug!("FineContours.merge | pair: {i1}, {i2}");
             let pt1 = contour1.get(i1).unwrap();
             let pt2 = contour2.get(i2).unwrap();
             if Self::distance(&pt1, &pt2) <= threshold {
@@ -148,11 +145,11 @@ impl FineContours {
         // let mut get = i2;
         let mut i1 = min.0;
         let mut i2 = min.1;
-        // log::debug!("FineContours.min_distance | i1_remove[{}]: {:?}", i1_remove.len(), i1_remove);
-        // log::debug!("FineContours.min_distance | i2_remove[{}]: {:?}", i2_remove.len(), i2_remove);
+        // log::debug!("FineContours.merge | i1_remove[{}]: {:?}", i1_remove.len(), i1_remove);
+        // log::debug!("FineContours.merge | i2_remove[{}]: {:?}", i2_remove.len(), i2_remove);
         let mut count = [contour1.len(), contour2.len()].iter().min().map(|m| *m).unwrap_or(contour1.len()) / 4;
         while count > 0 {
-            // log::debug!("FineContours.min_distance | pair: {i1}, {i2}");
+            // log::debug!("FineContours.merge | pair: {i1}, {i2}");
             let pt1 = contour1.get(i1).unwrap();
             let pt2 = contour2.get(i2).unwrap();
             if Self::distance(&pt1, &pt2) <= threshold {
@@ -174,10 +171,10 @@ impl FineContours {
         let c1_start = Self::inc(i1, contour1.len());
         let c2_end = Self::dec(i2, contour2.len());
 
-        // log::debug!("FineContours.min_distance | i1_remove[{}]: {:?}", i1_remove.len(), i1_remove);
-        // log::debug!("FineContours.min_distance | i2_remove[{}]: {:?}", i2_remove.len(), i2_remove);
-        // log::debug!("FineContours.min_distance | c1: {},  i1_remove: {}", c1.len(), i1_remove.len());
-        // log::debug!("FineContours.min_distance | ins: {ins}");
+        // log::debug!("FineContours.merge | i1_remove[{}]: {:?}", i1_remove.len(), i1_remove);
+        // log::debug!("FineContours.merge | i2_remove[{}]: {:?}", i2_remove.len(), i2_remove);
+        // log::debug!("FineContours.merge | c1: {},  i1_remove: {}", c1.len(), i1_remove.len());
+        // log::debug!("FineContours.merge | ins: {ins}");
         let mut c: core::Vector<Point> = core::Vector::default();
         let mut i = c1_start;
         while i != c1_end {
@@ -191,6 +188,88 @@ impl FineContours {
         }
         Ok(c)
     }
+    ///
+    /// Returns single merged contour
+    /// 
+    /// Merging done for nierby contours with distance between less then `threshold`
+    fn contour(image: &Mat, threshold: f64) -> Result<core::Vector<Point>, Error> {
+        let error = Error::new("FineContours", "max_contour");
+        let mut contours: core::Vector<core::Vector<Point>> = core::Vector::default();
+        log::debug!("FineContours.eval | contours...");
+        imgproc::find_contours(
+            image,
+            &mut contours,
+            imgproc::RetrievalModes::RETR_EXTERNAL as i32,
+            imgproc::ContourApproximationModes::CHAIN_APPROX_SIMPLE as i32,
+            core::Point2i::new(0, 0),
+        ).map_err(|err| error.pass(err.to_string()))?;
+        let mut contours = VecDeque::from_iter(contours.iter().filter(|c| c.len() > 3));
+        let mut count = 1;
+        while count > 0 {
+            let mut found = None;
+            'contour1: for (i1, contour1) in contours.iter().enumerate() {
+                for (i2, contour2) in contours.iter().enumerate().filter(|(i, _)| i1 != *i) {
+                    // log::debug!("FineContours.eval | search nierby segments...");
+                    if let Ok(hull) = Self::merge(&contour1, &contour2, threshold as f32) {
+                        if hull.len() > 0 {
+                        //             let mut hull: core::Vector<Point> = core::Vector::default();
+                                    // imgproc::approx_poly_dp(&hull.clone(), &mut hull, 0.4, true)
+                                    //     .map_err(|err| error.pass(err.to_string()))?;
+                        //             // imgproc::convex_hull(&points, &mut hull, true, true)
+                        //             //     .map_err(|err| error.pass(err.to_string()))?;
+                        //             // log::debug!("FineContours.eval | hull: {:?}", hull);
+                                    // imgproc::polylines(&mut thresh, &hull, true, core::Vec4d::from_array([128.0, 128.0, 128.0, 255.0]), 1, LineTypes::LINE_8 as i32, 0)
+                                    //     .map_err(|err| error.pass(err.to_string()))?;
+                                    // imgproc::fill_convex_poly(&mut thresh, &hull, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0)
+                                    // imgproc::fill_poly(&mut thresh, &hull, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
+                                    //     .map_err(|err| error.pass(err.to_string()))?;
+                                    // opencv::highgui::imshow("Contours", &thresh).unwrap();
+                                    // opencv::highgui::wait_key(0).unwrap();
+                        //             // log::debug!("FineContours.eval | contour: {:?}", contour);
+                                    found = Some((i1, i2, hull));
+                                    break 'contour1;
+                        }
+                    }
+                }
+            }
+            match found {
+                Some((i1, i2, hull)) => {
+                    // log::debug!("FineContours.eval | found: {i1}, {i2}");
+                    contours = contours.into_iter().enumerate().filter_map(|(i, h)| {
+                        match [i1, i2].contains(&i) {
+                            true => None,
+                            false => Some(h),
+                        }
+                    }).collect();
+                    contours.push_front(hull);
+                }
+                None => {
+                    count -= 1;
+                }
+            }
+            // log::debug!("FineContours.eval | count: {}", count);
+            // log::debug!("FineContours.eval | contours: {}", contours.len());
+        }
+        log::debug!("FineContours.eval | contours: {}", contours.len());
+        let contour = contours.into_iter().max_by(|c1, c2| {
+            let area1 = imgproc::contour_area(c1, false).ok();
+            let area2 = imgproc::contour_area(c2, false).ok();
+            // log::debug!("FineContours.eval | area1: {:?},  area2: {:?}", area1, area2);
+            match (area1, area2) {
+                (None, None) => std::cmp::Ordering::Equal,
+                (None, Some(_)) => std::cmp::Ordering::Equal,
+                (Some(_), None) => std::cmp::Ordering::Equal,
+                (Some(area1), Some(area2)) => match area1.partial_cmp(&area2) {
+                    Some(cmp) => cmp,
+                    None => std::cmp::Ordering::Equal,
+                }
+            }
+        });
+        match contour {
+            Some(contour) => Ok(contour),
+            None => Err(error.err("Max contour isn't found")),
+        }
+    }
 }
 //
 //
@@ -203,135 +282,42 @@ impl Eval<Image, EvalResult> for FineContours {
                 // let result: &ResultCtx = ctx.read();
                 let result: &ResultCtx<Image> = ctx.read();
                 let frame = &result.val;
-                opencv::highgui::imshow("Gray", &frame.mat).unwrap();
-                opencv::highgui::wait_key(0).unwrap();
-                let thresh = self.thresh_ctx.eval(frame.mat.clone())
-                    .map_err(|err| error.pass(err))?;
-                // imgproc::gaussian_blur(&frame.mat, &mut dst, Size2i::new(11, 11), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
-                //     .map_err(|err| error.pass(err.to_string()))?;
-                // opencv::imgproc::laplacian(&dst.clone(), &mut dst, opencv::core::CV_8UC1, 5, 1.0, 0.0, opencv::core::BorderTypes::BORDER_REFLECT_101 as i32)
-                //     .map_err(|err| error.pass(err.to_string()))?;
-                // imgproc::gaussian_blur(&dst.clone(), &mut dst, Size2i::new(13, 13), 0.0, 0.0, opencv::core::BORDER_DEFAULT)
-                //     .map_err(|err| error.pass(err.to_string()))?;
-
-                // let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, core::Size2i::new(5, 5), core::Point2i::new(-1, -1)).unwrap();
-                // let mut deleted = core::Mat::default();
-                // opencv::imgproc::morphology_ex(
-                //     &dst,
-                //     &mut deleted,
-                //     opencv::imgproc::MORPH_OPEN,
-                //     &kernel,
-                //     core::Point2i::new(-1, -1),
-                //     2,
-                //     opencv::core::BORDER_CONSTANT,
-                //     opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
-                // ).map_err(|err| error.pass(err.to_string()))?;
-                // let mut thresh = core::Mat::default();
-                // let threshold = opencv::imgproc::threshold(&deleted, &mut thresh, 8.0, 255.0, opencv::imgproc::ThresholdTypes::THRESH_OTSU as i32)
-                //     .map_err(|err| error.pass(err.to_string()))?;
-                // opencv::imgproc::threshold(&deleted, &mut thresh, threshold * 0.4, 255.0, opencv::imgproc::ThresholdTypes::THRESH_BINARY as i32)
-                //     .map_err(|err| error.pass(err.to_string()))?;
-                let mut contours: core::Vector<core::Vector<Point>> = core::Vector::default();
-                log::debug!("FineContours.eval | contours...");
-                imgproc::find_contours(
-                    &thresh,
-                    &mut contours,
-                    imgproc::RetrievalModes::RETR_EXTERNAL as i32,
-                    imgproc::ContourApproximationModes::CHAIN_APPROX_SIMPLE as i32,
-                    core::Point2i::new(0, 0),
-                ).map_err(|err| error.pass(err.to_string()))?;
-                // contours = core::Vector::from_iter([
-                //     core::Vector::from_iter([Point2i::new(10, 10), Point2i::new(500, 10), Point2i::new(500, 500), Point2i::new(10, 500)]),
-                // ]);
-                let mut contours = VecDeque::from_iter(contours.iter().filter(|c| c.len() > 3));
-                let mut count = 1;
-                while count > 0 {
-                    let mut found = None;
-                    'contour1: for (i1, contour1) in contours.iter().enumerate() {
-                        for (i2, contour2) in contours.iter().enumerate().filter(|(i, _)| i1 != *i) {
-                            // log::debug!("FineContours.eval | search nierby segments...");
-                            if let Ok(hull) = Self::min_distance(&contour1, &contour2, self.conf.merge_distance as f32) {
-                                if hull.len() > 0 {
-                                //             let mut hull: core::Vector<Point> = core::Vector::default();
-                                            // imgproc::approx_poly_dp(&hull.clone(), &mut hull, 0.4, true)
-                                            //     .map_err(|err| error.pass(err.to_string()))?;
-                                //             // imgproc::convex_hull(&points, &mut hull, true, true)
-                                //             //     .map_err(|err| error.pass(err.to_string()))?;
-                                //             // log::debug!("FineContours.eval | hull: {:?}", hull);
-                                            // imgproc::polylines(&mut thresh, &hull, true, core::Vec4d::from_array([128.0, 128.0, 128.0, 255.0]), 1, LineTypes::LINE_8 as i32, 0)
-                                            //     .map_err(|err| error.pass(err.to_string()))?;
-                                            // imgproc::fill_convex_poly(&mut thresh, &hull, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0)
-                                            // imgproc::fill_poly(&mut thresh, &hull, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
-                                            //     .map_err(|err| error.pass(err.to_string()))?;
-                                            // opencv::highgui::imshow("Contours", &thresh).unwrap();
-                                            // opencv::highgui::wait_key(0).unwrap();
-                                //             // log::debug!("FineContours.eval | contour: {:?}", contour);
-                                            found = Some((i1, i2, hull));
-                                            break 'contour1;
-                                }
-                            }
-                        }
-                    }
-                    // std::thread::sleep(Duration::from_millis(100));
-                    match found {
-                        Some((i1, i2, hull)) => {
-                            // log::debug!("FineContours.eval | found: {i1}, {i2}");
-                            contours = contours.into_iter().enumerate().filter_map(|(i, h)| {
-                                match [i1, i2].contains(&i) {
-                                    true => None,
-                                    false => Some(h),
-                                }
-                            }).collect();
-                            contours.push_front(hull);
-                        }
-                        None => {
-                            count -= 1;
-                        }
-                    }
-                    // log::debug!("FineContours.eval | count: {}", count);
-                    // log::debug!("FineContours.eval | contours: {}", contours.len());
-                }
-                log::debug!("FineContours.eval | contours: {}", contours.len());
-                let contour = contours.into_iter().max_by(|c1, c2| {
-                    let area1 = imgproc::contour_area(c1, false).ok();
-                    let area2 = imgproc::contour_area(c2, false).ok();
-                    // log::debug!("FineContours.eval | area1: {:?},  area2: {:?}", area1, area2);
-                    match (area1, area2) {
-                        (None, None) => std::cmp::Ordering::Equal,
-                        (None, Some(_)) => std::cmp::Ordering::Equal,
-                        (Some(_), None) => std::cmp::Ordering::Equal,
-                        (Some(area1), Some(area2)) => match area1.partial_cmp(&area2) {
-                            Some(cmp) => cmp,
-                            None => std::cmp::Ordering::Equal,
-                        }
-                    }
-                });
+                let thresh = self.thresh_ctx.eval(frame.mat.clone()).map_err(|err| error.pass(err))?;
+                let contour = Self::contour(&thresh, self.conf.merge_distance).map_err(|err| error.pass(err))?;
                 let mut dst = Mat::default();
-                let mut contour_fill = Mat::default();
-                let mut convex = Mat::new_nd_vec_with_default(&core::Vector::from_slice(&[thresh.rows(), thresh.cols()]), core::CV_8UC1, core::Vec4d::from_array([0.0, 0.0, 0.0, 0.0]))
-                    .map_err(|err| error.pass(err.to_string()))?;
-                if let Some(contour) = contour {
-                    let mut hull: core::Vector<Point> = core::Vector::default();
-                    imgproc::convex_hull(&contour, &mut hull, true, true)
+                // let mut contour_fill = Mat::default();
+                let mut convex_fill = Mat::new_nd_vec_with_default(
+                    &core::Vector::from_slice(&[thresh.rows(), thresh.cols()]),
+                    core::CV_8UC1,
+                    core::Vec4d::from_array([0.0, 0.0, 0.0, 0.0]),
+                ).map_err(|err| error.pass(err.to_string()))?;
+                if !contour.is_empty() {
+                    let mut convex_contour: core::Vector<Point> = core::Vector::default();
+                    imgproc::convex_hull(&contour, &mut convex_contour, true, true)
                         .map_err(|err| error.pass(err.to_string()))?;
-                    imgproc::fill_poly(&mut convex, &hull, core::Vec4d::from_array([255.0, 255.0, 255.0, 255.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
-                        .unwrap();
-                        // .map_err(|err| error.pass(err.to_string()))?;
-
-                    core::bitwise_and(&thresh, &convex, &mut contour_fill, &core::no_array())
+                    imgproc::fill_poly(&mut convex_fill, &convex_contour, core::Vec4d::from_array([255.0, 255.0, 255.0, 255.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
+                        .map_err(|err| error.pass(err.to_string()))?;
+                    // opencv::highgui::imshow("Fine Contours", &thresh).unwrap();
+                    // opencv::highgui::wait_key(0).unwrap();
+                    // opencv::highgui::imshow("Fine Contours", &convex_fill).unwrap();
+                    // opencv::highgui::wait_key(0).unwrap();
+                    core::bitwise_and(&thresh, &convex_fill, &mut dst, &core::no_array())
                         .map_err(|err| error.pass(err.to_string()))?;
                     // imgproc::approx_poly_dp(&contours.clone(), &mut contours, 24.0, true)
                     //     .map_err(|err| error.pass(err.to_string()))?;
                     // imgproc::fill_convex_poly(&mut thresh, contours, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0)
-                    imgproc::fill_poly(&mut dst, &contour_fill, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
-                        // .unwrap();
-                        .map_err(|err| error.pass(err.to_string()))?;
+                    // imgproc::fill_poly(&mut dst, &contour_fill,
+                    //     core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]),
+                    //     LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0),
+                    // )
+                    //     .unwrap();
+                        // .map_err(|err| error.pass(err.to_string()))?;
                 }
                 let frame = Image::with(dst);
                 let ctx = if self.debug {
                     let result = FineContoursCtx {
-                        convex: Image::with(convex),
-                        contour: Image::with(contour_fill),
+                        convex: Image::with(convex_fill),
+                        // contour: Image::default(),
                         result: frame.clone() };
                     ctx.write(result).map_err(|err| error.pass(err))?
                 } else {

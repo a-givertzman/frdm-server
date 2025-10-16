@@ -86,20 +86,6 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                                 None => return Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
                             }
                         }
-                        // if self.proc.read().is_none() {
-                        //     *self.proc.write() = Some(Box::new(
-                        //         cv::Morphology::erode(
-                        //             &self.erode_kernel,
-                        //             cv::Morphology::open(
-                        //                 &self.open_kernel,
-                        //                 cv::GaussianBlur::new(
-                        //                     &self.gaussian.kernel,
-                        //                     PassCvMat::new(),
-                        //                 )
-                        //             ),
-                        //         ),
-                        //     ));
-                        // }
                         log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
                         let dst = cv::CreateMat::gray8(width as i32, height as i32)
                             .filled()
