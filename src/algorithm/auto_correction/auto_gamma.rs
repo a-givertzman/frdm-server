@@ -57,11 +57,8 @@ impl Eval<Image, EvalResult> for AutoGamma {
                                 match opencv::core::lut(&frame.mat, &table_mat, &mut dst){
                                     Ok(_) =>{
                                         let frame = Image {
-                                            width: frame.width,
-                                            height: frame.height,
                                             timestamp: frame.timestamp,
                                             mat: dst,
-                                            bytes: frame.bytes,
                                         };
                                         let ctx = if self.debug {
                                             let result = AutoGammaCtx { result: frame.clone() };

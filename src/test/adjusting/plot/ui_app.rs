@@ -250,7 +250,7 @@ impl UiApp {
                     });
                     // let scale_factor = 1.0 / ctx.zoom_factor();
                     let image = egui::Image::new(&texture_handle)
-                        .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into());
+                        .fit_to_exact_size([(frame.width() as f32) * self.zoom, (frame.height() as f32) * self.zoom].into());
                         // .shrink_to_fit()
                         // .sense(egui::Sense::all());
                         // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
@@ -411,7 +411,7 @@ impl eframe::App for UiApp {
             let head_hight = 34.0;
             let mut path_error = None;
             egui::TopBottomPanel::bottom("StatusBar").exact_height(32.0).show(ctx, |ui| ui.horizontal(|ui| {
-                ui.add(egui::Label::new(format!("Image: {} x {}", self.frame.width, self.frame.height)));
+                ui.add(egui::Label::new(format!("Image: {} x {}", self.frame.width(), self.frame.height())));
                 ui.separator();
                 match self.elapsed {
                     Some(elapsed) => ui.add(egui::Label::new(format!("Elapse: {:?}", elapsed))),
@@ -507,9 +507,9 @@ impl eframe::App for UiApp {
                     fast_contours: FastContoursConf {
                         cropping: CroppingConf {
                             x: cropping_x,
-                            width: if cropping_x + cropping_width <= self.frame.width as i32 {cropping_width} else {self.frame.width as i32 - cropping_x},
+                            width: if cropping_x + cropping_width <= self.frame.width() {cropping_width} else {self.frame.width() - cropping_x},
                             y: cropping_y,
-                            height: if cropping_y + cropping_height <= self.frame.height as i32 {cropping_height} else {self.frame.height as i32 - cropping_y},
+                            height: if cropping_y + cropping_height <= self.frame.height() {cropping_height} else {self.frame.height() - cropping_y},
                         },
                         gamma: GammaConf {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
@@ -651,12 +651,12 @@ impl ExtendedColors for Color32 {
 ///
 /// Returns egui `Image` from `opencv::Mat`
 fn image(frame: &Image) -> ColorImage {
-    let mut pixels: Vec<u8> = Vec::with_capacity(frame.width * frame.height * 4); // For RGBA
+    let mut pixels: Vec<u8> = Vec::with_capacity(frame.width() as usize * frame.height() as usize * 4); // For RGBA
     // Iterate over Mat pixels and convert BGR to RGBA
     // This is a simplified example; error handling and different Mat types need consideration.
     if frame.mat.channels() == 3 {
-        for y in 0..frame.height {
-            for x in 0..frame.width {
+        for y in 0..frame.height() {
+            for x in 0..frame.width() {
                 let pixel = frame.mat.at_2d::<opencv::core::Vec3b>(y as i32, x as i32).unwrap();
                 pixels.push(pixel[2]); // R
                 pixels.push(pixel[1]); // G
@@ -664,10 +664,10 @@ fn image(frame: &Image) -> ColorImage {
                 pixels.push(255);       // A (fully opaque)
             }
         }
-        ColorImage::from_rgba_unmultiplied([frame.width, frame.height], &pixels)
+        ColorImage::from_rgba_unmultiplied([frame.width() as usize, frame.height() as usize], &pixels)
     } else if frame.mat.channels() == 1 {
-        for y in 0..frame.height {
-            for x in 0..frame.width {
+        for y in 0..frame.height() {
+            for x in 0..frame.width() {
                 let pixel = frame.mat.at_2d::<opencv::core::VecN<u8, 1>>(y as i32, x as i32).unwrap();
                 // pixels.push(pixel[2]); // R
                 // pixels.push(pixel[1]); // G
@@ -675,9 +675,9 @@ fn image(frame: &Image) -> ColorImage {
                 // pixels.push(255);       // A (fully opaque)
             }
         }
-        ColorImage::from_gray([frame.width, frame.height], &pixels)//rgba_unmultiplied([frame.width, frame.height], &pixels)
+        ColorImage::from_gray([frame.width() as usize, frame.height() as usize], &pixels)//rgba_unmultiplied([frame.width, frame.height], &pixels)
     } else {
         log::warn!("image | Unsupported image format {} with {} channels", frame.mat.typ(), frame.mat.channels());
-        ColorImage::from_rgba_unmultiplied([frame.width, frame.height], &pixels)
+        ColorImage::from_rgba_unmultiplied([frame.width() as usize, frame.height() as usize], &pixels)
     }
 }

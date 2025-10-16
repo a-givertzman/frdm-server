@@ -3,8 +3,7 @@ use sal_core::error::Error;
 use sal_sync::{sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        Context, ContextRead, FineEdges, EvalResult, FineContours, FineScanConf, FineUnion, ResultCtx, TemporalFilter,
-        FineScanCtx,
+        self, Context, ContextRead, EvalResult, FineContours, FineEdges, FineScanConf, FineScanCtx, FineUnion, ResultCtx, TemporalFilter
     },
     domain::{Eval, Image},
 };
@@ -73,6 +72,17 @@ impl Eval<Image, EvalResult> for FineScan {
                 let t = Instant::now();
                 let result: &ResultCtx<Image> = ctx.read();
                 let frame = result.val.clone();
+                log::debug!("FineScan.eval | ctx size: {:?}", size_of_val(&ctx));
+                log::debug!("FineScan.eval | Image size: {:?}", size_of_val(&Image::default()));
+                log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::InitialCtx>::read(&ctx)));
+                log::debug!("FineScan.eval | NormalizedCtx size: {:?}", size_of_val(ContextRead::<algorithm::NormalizedCtx>::read(&ctx)));
+                log::debug!("FineScan.eval | FastScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
+                log::debug!("FineScan.eval | FineScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FineScanCtx>::read(&ctx)));
+                log::debug!("FineScan.eval | ResultCtx<Vec<GeometryDefectType>> size: {:?}", size_of_val(ContextRead::<algorithm::ResultCtx<Vec<algorithm::GeometryDefectType>>>::read(&ctx)));
+                // log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
+                log::debug!("FineScan.eval | frame size: {:?}", size_of_val(&frame));
+                opencv::highgui::imshow("Gray", &frame.mat).unwrap();
+                opencv::highgui::wait_key(0).unwrap();
                 self.pass_ctx1.replace(ctx.clone());
                 self.pass_ctx2.replace(ctx);
                 let result = self.ctx.eval(frame).map_err(|err| error.pass(err));

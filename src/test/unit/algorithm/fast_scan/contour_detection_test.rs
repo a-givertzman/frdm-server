@@ -152,7 +152,7 @@ fn eval() {
                 let mut rotated = Mat::default();
                 core::rotate(&inp, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 let src_frame = Image::with(rotated);
-                log::warn!("{dbg}.eval | src_frame size: {} x {}", src_frame.width, src_frame.height);
+                log::warn!("{dbg}.eval | src_frame size: {} x {}", src_frame.width(), src_frame.height());
                 // let test = src_frame.clone();
                 let time = Instant::now();
                 let ctx = scan_rope.eval(src_frame).unwrap();

@@ -1,4 +1,3 @@
-use opencv::core::MatTraitConst;
 use opencv::core;
 use opencv::core::Mat;
 use sal_core::error::Error;
@@ -53,11 +52,8 @@ impl Eval<Image, EvalResult> for Cropping {
                 match Mat::roi(&frame.mat, core::Rect { x: self.x,y: self.y,width: self.width,height: self.height,}) {
                         Ok(cropped) => {
                             let frame = Image {
-                                width: cropped.cols() as usize,
-                                height: cropped.rows() as usize,
                                 timestamp: frame.timestamp,
                                 mat: cropped.clone_pointee(),
-                                bytes: frame.bytes,
                             };
                             let ctx = if self.debug {
                                 let result = CroppingCtx { result: frame.clone() };

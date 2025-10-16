@@ -5,11 +5,8 @@ use sal_core::error::Error;
 /// Contains a image with metadata
 #[derive(Debug, Clone)]
 pub struct Image {
-    pub width: usize,
-    pub height: usize,
     pub timestamp: usize,
-    pub mat: opencv::core::Mat,
-    pub bytes: usize,
+    pub mat: Mat,
 }
 //
 //
@@ -23,16 +20,11 @@ impl Image {
     /// - `bytes` - Length of image payload in bytes
     #[allow(unused)]
     pub fn new(
-        width: usize,
-        height: usize,
-        mat: opencv::core::Mat,
+        mat: Mat,
         timestamp: usize,
     ) -> Self {
         Self {
-            width,
-            height,
             timestamp,
-            bytes: mat.total() * mat.elem_size1(),
             mat,
         }
     }
@@ -41,15 +33,26 @@ impl Image {
     /// To simply create [Image] and compare it by matrix
     /// 
     /// Use `Image::new` instead
-    pub fn with(mat: opencv::core::Mat) -> Self {
-        let bytes = mat.total() * mat.elem_size1();
+    pub fn with(mat: Mat) -> Self {
         Self {
-            width: mat.cols() as usize,
-            height: mat.rows() as usize,
             timestamp: 0,
             mat,
-            bytes,
         }
+    }
+    ///
+    /// Returns image width (columns)
+    pub fn width(&self) -> i32 {
+        self.mat.cols()
+    }
+    ///
+    /// Returns image height (rows)
+    pub fn height(&self) -> i32 {
+        self.mat.rows()
+    }
+    ///
+    /// Returns image size in bytes, number of pixels * pixel size
+    pub fn size(&self) -> usize {
+        self.mat.total() * self.mat.elem_size1()
     }
     ///
     /// ## Saves an image to a specified file.
@@ -171,14 +174,10 @@ impl Image {
 //
 impl Default for Image {
     fn default() -> Self {
-        let mat = opencv::core::Mat::default();
-        let bytes = mat.total() * mat.elem_size1();
+        let mat = Mat::default();
         Self {
-            width: mat.cols() as usize,
-            height: mat.rows() as usize,
             timestamp: 0,
             mat,
-            bytes,
         }
     }
 }
@@ -196,15 +195,14 @@ impl PartialEq for Image {
 impl bincode::Encode for Image {
     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), bincode::error::EncodeError> {
         // let error = Error::new("Image", "encode");
-        bincode::Encode::encode(&self.width, encoder)?;
-        bincode::Encode::encode(&self.height, encoder)?;
+        bincode::Encode::encode(&self.width(), encoder)?;
+        bincode::Encode::encode(&self.height(), encoder)?;
         bincode::Encode::encode(&self.mat.channels(), encoder)?;
         bincode::Encode::encode(&self.mat.typ(), encoder)?;
         bincode::Encode::encode(&self.timestamp, encoder)?;
         let mat = self.mat.data_bytes()
             .map_err(|err| bincode::error::EncodeError::OtherString(format!("Image.encode | Get bytes of Mat error: {:?}", err)))?;
         bincode::Encode::encode(mat, encoder)?;
-        bincode::Encode::encode(&self.bytes, encoder)?;
         Ok(())
     }
 }
@@ -213,9 +211,9 @@ impl<Context> bincode::Decode<Context> for Image {
         decoder: &mut D,
     ) -> core::result::Result<Self, bincode::error::DecodeError> {
         // let error = Error::new("Image", "decode");
-        let width = bincode::Decode::decode(decoder).unwrap();
+        let width: i32 = bincode::Decode::decode(decoder).unwrap();
         log::trace!("Image.decode | width: {}", width);
-        let height = bincode::Decode::decode(decoder).unwrap();
+        let height: i32 = bincode::Decode::decode(decoder).unwrap();
         log::trace!("Image.decode | height: {}", height);
         let channels: i32 = bincode::Decode::decode(decoder).unwrap();
         log::trace!("Image.decode | channels: {}", channels);
@@ -225,13 +223,9 @@ impl<Context> bincode::Decode<Context> for Image {
         let data: Vec<u8> = bincode::Decode::decode(decoder).unwrap();
         let mat = mat_from_bytes(typ, channels, height as i32, width as i32, &data)
             .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.decode | Mat from bytes error: {:?}", err)))?;
-        let bytes = bincode::Decode::decode(decoder).unwrap();
         Ok(Self {
-            width,
-            height,
             timestamp,
             mat: mat.clone_pointee(),
-            bytes,
         })
     }
 }
@@ -240,9 +234,9 @@ impl<'de, Context> bincode::BorrowDecode<'de, Context> for Image {
         decoder: &mut D,
     ) -> core::result::Result<Self, bincode::error::DecodeError> {
         // let error = Error::new("Image", "borrow_decode");
-        let width = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        let width: i32 = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         log::trace!("Image.borrow_decode | width: {}", width);
-        let height = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        let height: i32 = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         log::trace!("Image.borrow_decode | height: {}", height);
         let channels: i32 = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         log::trace!("Image.borrow_decode | channels: {}", channels);
@@ -250,15 +244,11 @@ impl<'de, Context> bincode::BorrowDecode<'de, Context> for Image {
         log::trace!("Image.borrow_decode | typ: {}", typ);
         let timestamp = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         let data: Vec<u8> = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
-        let mat = mat_from_bytes(typ, channels, height as i32, width as i32, &data)
+        let mat = mat_from_bytes(typ, channels, height, width, &data)
             .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.borrow_decode | Mat from bytes error: {:?}", err)))?;
-        let bytes = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         Ok(Self {
-            width,
-            height,
             timestamp,
             mat: mat.clone_pointee(),
-            bytes,
         })
     }
 }

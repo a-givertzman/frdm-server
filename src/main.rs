@@ -71,9 +71,7 @@ fn main() {
         ),
     );
     for frame in recv {
-        log::trace!("{} | Frame width : {:?}", dbg, frame.width);
-        log::trace!("{} | Frame height: {:?}", dbg, frame.height);
-        log::trace!("{} | Frame timestamp: {:?}", dbg, frame.timestamp);
+        log::trace!("{dbg} | Frame width: {},  height: {}, timestamp: {}", frame.width(), frame.height(), frame.timestamp);
         if let Err(err) = opencv::highgui::imshow(window, &frame.mat) {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };

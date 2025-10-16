@@ -12,7 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastEdgesCtx, FastScan, FastScanConf, FastScanCtx, FastUnionCtx, Gray, GrayCtx, Initial, ResultCtx, RopeDimensions, RopeDimensionsCtx, Side
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastEdgesCtx, FastScan, FastScanConf, FastScanCtx, FastUnionCtx, Gray, GrayCtx, Initial, RopeDimensions, RopeDimensionsCtx, Side
     }, 
     domain::Error,
 };
@@ -122,7 +122,7 @@ fn eval() {
                 // let mut rotated = Mat::default();
                 // core::rotate(&frame.mat, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 // let src = Image::with(rotated);
-                log::debug!("{dbg}.eval | src frame: {} x {}", frame.width, frame.height);
+                log::debug!("{dbg}.eval | src frame: {} x {}", frame.width(), frame.height());
                 // let test = src.clone();
                 let t = Instant::now();
                 let ctx = fast_scan.eval(frame.clone()).unwrap();
@@ -196,21 +196,5 @@ impl Eval<Image, EvalResult> for FakePassDots {
             InitialCtx::new(),
         );
         ctx.write(self.dots.clone())
-    }
-}
-///
-/// 
-struct PassGrayCtx {}
-impl PassGrayCtx {
-    fn new() -> Self {
-        Self { }
-    }
-}
-impl Eval<Image, EvalResult> for PassGrayCtx {
-    fn eval(&self, frame: Image) -> EvalResult {
-        let ctx = Context::new(
-            InitialCtx::new(),
-        );
-        ctx.write( ResultCtx { val: frame })
     }
 }

@@ -128,7 +128,7 @@ fn eval() {
                 // let mut rotated = Mat::default();
                 // core::rotate(&frame.mat, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 // let src = Image::with(rotated);
-                log::debug!("{dbg}.eval | src frame: {} x {}", frame.width, frame.height);
+                log::debug!("{dbg}.eval | src frame: {} x {}", frame.width(), frame.height());
                 // let test = src.clone();
                 let t = Instant::now();
                 let ctx = temporal_filter.eval(frame.clone()).unwrap();

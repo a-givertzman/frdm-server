@@ -70,7 +70,6 @@ fn eval() {
     );
     let conf = FineScanConf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
-    let debug = false;
     let tp = ThreadPool::new(&dbg, Some(4));
     let fine_scan = FineScan::new(
         conf,
@@ -86,11 +85,11 @@ fn eval() {
                     Initial::new(
                         InitialCtx::new(),
                     ),
-                    debug
+                    false
                 ),
-                debug,
+                false,
             ),
-            debug
+            false
         ),
         false,
     );
@@ -120,7 +119,7 @@ fn eval() {
                 // let mut rotated = Mat::default();
                 // core::rotate(&frame.mat, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 // let src = Image::with(rotated);
-                log::debug!("{dbg}.eval | src frame: {} x {}", frame.width, frame.height);
+                log::debug!("{dbg}.eval | src frame: {} x {}", frame.width(), frame.height());
                 // let test = src.clone();
                 let ctx = fine_scan.eval(frame.clone()).unwrap();
                 let gray: &GrayCtx = ctx.read();

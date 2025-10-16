@@ -1,6 +1,9 @@
+//! 
+//! Read / Write implementations for the root of the [Context]
+//! 
 use crate::{
     algorithm::{
-        GeometryDefectType, InitialCtx, ResultCtx, Context, ContextRead, ContextWrite,
+        GeometryDefectType, InitialCtx, ResultCtx, Context, ContextRead, ContextWrite, NormalizedCtx, FastScanCtx, FineScanCtx
     },
     domain::{Error, Image},
 };
@@ -44,6 +47,46 @@ impl ContextRead<ResultCtx<Vec<GeometryDefectType>>> for Context {
         &self.defects
     }
 }
+//
+//
+impl ContextWrite<NormalizedCtx> for Context {
+    fn write(mut self, value: NormalizedCtx) -> Result<Self, Error> {
+        self.normalized = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<NormalizedCtx> for Context {
+    fn read(&self) -> &NormalizedCtx {
+        &self.normalized
+    }
+}
+//
+//
+impl ContextWrite<FastScanCtx> for Context {
+    fn write(mut self, value: FastScanCtx) -> Result<Self, Error> {
+        self.fast_scan = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<FastScanCtx> for Context {
+    fn read(&self) -> &FastScanCtx {
+        &self.fast_scan
+    }
+}
+//
+//
+impl ContextWrite<FineScanCtx> for Context {
+    fn write(mut self, value: FineScanCtx) -> Result<Self, Error> {
+        self.fine_scan = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<FineScanCtx> for Context {
+    fn read(&self) -> &FineScanCtx {
+        &self.fine_scan
+    }
+}
+
 // //
 // //
 // impl ContextWrite<GaussianBlurCtx> for Context {

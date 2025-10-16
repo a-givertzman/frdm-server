@@ -1,7 +1,6 @@
 use crate::{
     algorithm::{
-        auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx}, CroppingCtx, GrayCtx,
-        Context, ContextRead, ContextWrite,
+        auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx}, Context, ContextRead, ContextWrite, CroppingCtx, GrayCtx,
     }, domain::Error,
 };
 
