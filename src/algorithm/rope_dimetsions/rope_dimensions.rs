@@ -25,8 +25,8 @@ impl<Branch> RopeDimensions<Branch> {
     pub fn new(rope_width: usize, width_tolerance: f64, square_tolerance: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static) -> Self {
         Self {
             rope_width: rope_width as f64,
-            width_tolerance,
-            square_tolerance,
+            width_tolerance: width_tolerance / 100.0,
+            square_tolerance: square_tolerance / 100.0,
             ctx: Box::new(ctx),
             branch: PhantomData,
         }
@@ -67,12 +67,12 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDimensions<Branch> {
                 let rope_width = (upper_average - lower_average).abs();
                 log::debug!("RopeDimensions.eval | Average rope_width: {:?} px", rope_width);
                 log::debug!("RopeDimensions.eval | Rope square: {:?} px", rope_square);
-                let rope_width_error = (100.0 - rope_width * 100.0 / self.rope_width).abs();
+                let rope_width_error = (1.0 - rope_width / self.rope_width).abs();
                 log::debug!("RopeDimensions.eval | Rope width error: {:?} % of {}", rope_width_error, self.width_tolerance);
                 if rope_width_error >= self.width_tolerance {
                     return Err(error.err(format!("Rope width error: {:.3}%, {rope_width} of {}", rope_width_error, self.rope_width)));
                 }
-                let rope_square_error = (100.0 - rope_square * 100.0 / (self.rope_width * upper.len() as f64)).abs();
+                let rope_square_error = (1.0 - rope_square / (self.rope_width * upper.len() as f64)).abs();
                 log::debug!("RopeDimensions.eval | Rope square error: {:?} % of {}", rope_square_error, self.square_tolerance);
                 if rope_square_error >= self.square_tolerance {
                     return Err(error.err(format!("Rope square error: {:.3}%, {rope_square} of {}", rope_square_error, self.rope_width * upper.len() as f64)));

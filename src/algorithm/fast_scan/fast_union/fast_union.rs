@@ -66,9 +66,17 @@ impl Eval<Image, EvalResult> for FastUnion {
                 // match opencv::core::add(src1_mat, src2_mat, &mut dst, &opencv::core::no_array(), -1) {
                 match opencv::core::add_weighted_def(src1_mat, 1.0, src2_mat, 1.0, 0.0, &mut dst) {
                     Ok(_) => {
+                        // let convex1: &FineConvexCtx = ctx1.read();
+                        // let convex2: &FineConvexCtx = ctx2.read();
+                        // let ctx = match (&convex1.convex, &convex2.convex) {
+                        //     (None, None) => ctx1,
+                        //     (None, Some(_)) => ctx2,
+                        //     (Some(_), None) => ctx1,
+                        //     (Some(_), Some(_)) => ctx1,
+                        // };
                         let frame = Image::with(dst);
                         let union = FastUnionCtx { frame: frame.clone() };
-                        let ctx = ctx1.write(union)?;
+                        let ctx = ctx1.write(union).map_err(|err| error.pass(err))?;
                         let result = ResultCtx { val: frame };
                         log::debug!("FastUnion.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)

@@ -3,7 +3,7 @@
 //! 
 use crate::{
     algorithm::{
-        GeometryDefectType, InitialCtx, ResultCtx, Context, ContextRead, ContextWrite, NormalizedCtx, FastScanCtx, FineScanCtx
+        Context, ContextRead, ContextWrite, FastScanCtx, FineScanCtx, GeometryDefectType, InitialCtx, NormalizedCtx, FineConvexCtx, ResultCtx
     },
     domain::{Error, Image},
 };
@@ -86,17 +86,16 @@ impl ContextRead<FineScanCtx> for Context {
         &self.fine_scan
     }
 }
-
-// //
-// //
-// impl ContextWrite<GaussianBlurCtx> for Context {
-//     fn write(mut self, value: GaussianBlurCtx) -> Result<Self, Error> {
-//         self.gaussian_blur = value;
-//         Result::Ok(self)
-//     }
-// }
-// impl ContextRead<GaussianBlurCtx> for Context {
-//     fn read(&self) -> &GaussianBlurCtx {
-//         &self.gaussian_blur
-//     }
-// }
+//
+//
+impl ContextWrite<FineConvexCtx> for Context {
+    fn write(mut self, value: FineConvexCtx) -> Result<Self, Error> {
+        self.convex = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<FineConvexCtx> for Context {
+    fn read(&self) -> &FineConvexCtx {
+        &self.convex
+    }
+}

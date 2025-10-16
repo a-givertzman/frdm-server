@@ -1,6 +1,7 @@
 #[derive(Debug ,Clone, Copy, PartialEq, Eq)]
 ///
 /// The code of type of `Mat`
+#[allow(unused)]
 pub enum MatType {
     Cv8uc1 = opencv::core::CV_8UC1 as isize,
     Cv8uc2 = opencv::core::CV_8UC2 as isize,
@@ -36,6 +37,7 @@ pub enum MatType {
 impl MatType {
     ///
     /// Returns color depth number of bits
+    #[allow(unused)]
     pub fn depth(&self) -> u8 {
         match self {
             Self::Cv8uc1 => 8,
@@ -70,6 +72,7 @@ impl MatType {
     }
     ///
     /// Returns number of color channels
+    #[allow(unused)]
     pub fn channels(&self) -> u8 {
         match self {
             Self::Cv8uc1 => 1,

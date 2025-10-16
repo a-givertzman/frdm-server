@@ -3,9 +3,8 @@ use sal_core::error::Error;
 use sal_sync::{sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        self, Context, ContextRead, EvalResult, FineContours, FineEdges, FineScanConf, FineScanCtx, FineUnion, ResultCtx, TemporalFilter
-    },
-    domain::{Eval, Image},
+        self, Context, ContextRead, ContextWrite, EvalResult, FineContours, FineEdges, FineScanConf, FineScanCtx, FineUnion, FineConvexCtx, TemporalFilter, ResultCtx,
+    }, domain::{Eval, Image},
 };
 ///
 /// Contour detection algorithms optimized for speed, tradeoff in result quality
@@ -81,13 +80,29 @@ impl Eval<Image, EvalResult> for FineScan {
                 log::debug!("FineScan.eval | ResultCtx<Vec<GeometryDefectType>> size: {:?}", size_of_val(ContextRead::<algorithm::ResultCtx<Vec<algorithm::GeometryDefectType>>>::read(&ctx)));
                 // log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
                 log::debug!("FineScan.eval | frame size: {:?}", size_of_val(&frame));
-                opencv::highgui::imshow("Gray", &frame.mat).unwrap();
-                opencv::highgui::wait_key(0).unwrap();
                 self.pass_ctx1.replace(ctx.clone());
                 self.pass_ctx2.replace(ctx);
-                let result = self.ctx.eval(frame).map_err(|err| error.pass(err));
-                log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
-                result
+                match self.ctx.eval(frame) {
+                    Ok(ctx) => {
+                        let convex: &FineConvexCtx = ctx.read();
+                        match &convex.convex {
+                            Some(convex) => {
+                                let result: &ResultCtx<Image> = ctx.read();
+                                let mut dst = opencv::core::Mat::default();
+                                opencv::core::bitwise_and(&result.val.mat, &convex.mat, &mut dst, &opencv::core::no_array())
+                                    .map_err(|err| error.pass(err.to_string()))?;
+                                log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
+                                ctx.write(ResultCtx { val: Image::with(dst) })
+                            }
+                            None => {
+                                log::warn!("FineScan.eval | convex not found");
+                                log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
+                                Ok(ctx)
+                            }
+                        }
+                    }
+                    Err(err) => Err(error.pass(err)),
+                }
             }
             Err(err) => Err(error.pass(err)),
         }

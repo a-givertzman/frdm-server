@@ -6,10 +6,9 @@ use opencv::{
     imgproc::{LineTypes ,ThresholdTypes},
 };
 use sal_core::error::Error;
-use crate::algorithm::{
-    ContextWrite, ContextRead, FineContoursCtx,
-    EvalResult, ResultCtx, cv, FineContoursConf,
-};
+use crate::{algorithm::{
+    cv, ContextRead, ContextWrite, EvalResult, FineContoursConf, FineContoursCtx, FineConvexCtx, ResultCtx,
+}};
 use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
@@ -284,9 +283,9 @@ impl Eval<Image, EvalResult> for FineContours {
                 let frame = &result.val;
                 let thresh = self.thresh_ctx.eval(frame.mat.clone()).map_err(|err| error.pass(err))?;
                 let contour = Self::contour(&thresh, self.conf.merge_distance).map_err(|err| error.pass(err))?;
-                let mut dst = Mat::default();
+                // let mut dst = Mat::default();
                 // let mut contour_fill = Mat::default();
-                let mut convex_fill = Mat::new_nd_vec_with_default(
+                let mut convex = Mat::new_nd_vec_with_default(
                     &core::Vector::from_slice(&[thresh.rows(), thresh.cols()]),
                     core::CV_8UC1,
                     core::Vec4d::from_array([0.0, 0.0, 0.0, 0.0]),
@@ -295,14 +294,16 @@ impl Eval<Image, EvalResult> for FineContours {
                     let mut convex_contour: core::Vector<Point> = core::Vector::default();
                     imgproc::convex_hull(&contour, &mut convex_contour, true, true)
                         .map_err(|err| error.pass(err.to_string()))?;
-                    imgproc::fill_poly(&mut convex_fill, &convex_contour, core::Vec4d::from_array([255.0, 255.0, 255.0, 255.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
+                    imgproc::fill_poly(&mut convex, &convex_contour, core::Vec4d::from_array([255.0, 255.0, 255.0, 255.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
                         .map_err(|err| error.pass(err.to_string()))?;
+                    // imgproc::fill_poly(&mut dst, &contour, core::Vec4d::from_array([255.0, 255.0, 255.0, 255.0]), LineTypes::LINE_8 as i32, 0, Point2i::new(0, 0))
+                    //     .map_err(|err| error.pass(err.to_string()))?;
                     // opencv::highgui::imshow("Fine Contours", &thresh).unwrap();
                     // opencv::highgui::wait_key(0).unwrap();
-                    // opencv::highgui::imshow("Fine Contours", &convex_fill).unwrap();
+                    // opencv::highgui::imshow("Fine Contours", &convex).unwrap();
                     // opencv::highgui::wait_key(0).unwrap();
-                    core::bitwise_and(&thresh, &convex_fill, &mut dst, &core::no_array())
-                        .map_err(|err| error.pass(err.to_string()))?;
+                    // core::bitwise_and(&thresh, &convex, &mut dst, &core::no_array())
+                    //     .map_err(|err| error.pass(err.to_string()))?;
                     // imgproc::approx_poly_dp(&contours.clone(), &mut contours, 24.0, true)
                     //     .map_err(|err| error.pass(err.to_string()))?;
                     // imgproc::fill_convex_poly(&mut thresh, contours, core::Vec4d::from_array([128.0, 128.0, 128.0, 64.0]), LineTypes::LINE_8 as i32, 0)
@@ -313,16 +314,12 @@ impl Eval<Image, EvalResult> for FineContours {
                     //     .unwrap();
                         // .map_err(|err| error.pass(err.to_string()))?;
                 }
-                let frame = Image::with(dst);
-                let ctx = if self.debug {
-                    let result = FineContoursCtx {
-                        convex: Image::with(convex_fill),
-                        // contour: Image::default(),
-                        result: frame.clone() };
-                    ctx.write(result).map_err(|err| error.pass(err))?
-                } else {
-                    ctx
+                let frame = Image::with(thresh);
+                let ctx = match self.debug {
+                    true => ctx.write(FineContoursCtx { result: frame.clone() }).map_err(|err| error.pass(err))?,
+                    false => ctx,
                 };
+                let ctx = ctx.write(FineConvexCtx { convex: Some(Image::with(convex)) }).map_err(|err| error.pass(err))?;
                 let result = ResultCtx { val: frame };
                 log::debug!("FineContours.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)

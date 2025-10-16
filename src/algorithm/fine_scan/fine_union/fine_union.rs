@@ -1,10 +1,10 @@
 use std::{sync::Arc, time::Instant};
-use opencv::core::{MatTraitConst, Point2i, Size2i};
+use opencv::core::MatTraitConst;
 use parking_lot::RwLock;
 use sal_core::error::Error;
 use sal_sync::{services::future::Future, thread_pool::Scheduler};
 use crate::{
-    algorithm::{FineUnionCtx, ContextRead, ContextWrite, EvalResult, ResultCtx},
+    algorithm::{FineUnionCtx, FineConvexCtx, ContextRead, ContextWrite, EvalResult, ResultCtx},
     domain::{Eval, Image},
 };
 ///
@@ -63,25 +63,42 @@ impl Eval<Image, EvalResult> for FineUnion {
                 let src2_mat = &src2.val.mat;
                 log::debug!("FineUnion.eval | src2: {}x{}", src2_mat.cols(), src2_mat.rows());
                 let mut dst = opencv::core::Mat::default();
-                match opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array()) {
-                // match opencv::core::add(src1_mat, src2_mat, &mut dst, &opencv::core::no_array(), -1) {
                 // match opencv::core::add_weighted_def(src1_mat, 0.1, src2_mat, 1.0, 0.0, &mut dst) {
+                // match opencv::core::add(src1_mat, src2_mat, &mut dst, &opencv::core::no_array(), -1) {
+                match opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array()) {
                     Ok(_) => {
-                        let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
-                        let mut out = opencv::core::Mat::default();
-                        opencv::imgproc::morphology_ex(
-                            &dst,
-                            &mut out,
-                            opencv::imgproc::MORPH_OPEN,
-                            &kernel,
-                            Point2i::new(-1, -1),
-                            1,
-                            opencv::core::BORDER_CONSTANT,
-                            opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
-                        ).map_err(|err| error.pass(err.to_string()))?;
-                        let frame = Image::with(out);
+                        // let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
+                        // let mut out = opencv::core::Mat::default();
+                        // opencv::imgproc::morphology_ex(
+                        //     &dst,
+                        //     &mut out,
+                        //     opencv::imgproc::MORPH_OPEN,
+                        //     &kernel,
+                        //     Point2i::new(-1, -1),
+                        //     1,
+                        //     opencv::core::BORDER_CONSTANT,
+                        //     opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
+                        // ).map_err(|err| error.pass(err.to_string()))?;
+                        let convex1: &FineConvexCtx = ctx1.read();
+                        let convex2: &FineConvexCtx = ctx2.read();
+                        let (convex, ctx) = match (&convex1.convex, &convex2.convex) {
+                            (None, None) => Err(error.err("Can't find convex in the context"))?,
+                            (None, Some(convex)) => (Some(convex.clone()), ctx2),
+                            (Some(convex), None) => (Some(convex.clone()), ctx1),
+                            (Some(convex), Some(_)) => (Some(convex.clone()), ctx1),
+                        };
+                        let dst = match convex {
+                            Some(convex) => {
+                                let mut out = opencv::core::Mat::default();
+                                opencv::core::bitwise_and(&dst, &convex.mat, &mut out, &opencv::core::no_array())
+                                    .map_err(|err| error.pass(err.to_string()))?;
+                                out
+                            }
+                            None => dst,
+                        };
+                        let frame = Image::with(dst);
                         let union = FineUnionCtx { frame: frame.clone() };
-                        let ctx = ctx1.write(union)?;
+                        let ctx = ctx.write(union)?;
                         let result = ResultCtx { val: frame };
                         log::debug!("FineUnion.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)
