@@ -70,6 +70,7 @@ fn eval() {
     let fine_scan = FineScan::new(
         conf,
         tp.scheduler(),
+        None::<Box<dyn Fn(&Context) + Send + Sync>>,
         Gray::new(
             AutoGamma::new(
                 120.0,
@@ -117,7 +118,7 @@ fn eval() {
                 // let src = Image::with(rotated);
                 log::debug!("{dbg}.eval | src frame: {} x {}", frame.width(), frame.height());
                 // let test = src.clone();
-                let ctx = fine_scan.eval(frame.clone()).unwrap();
+                let ctx = fine_scan.eval(frame.clone()).wait().unwrap().unwrap();
                 let gray: &GrayCtx = ctx.read();
                 let crop: &CroppingCtx = ctx.read();    
                 let mut crop = crop.result.mat.clone();

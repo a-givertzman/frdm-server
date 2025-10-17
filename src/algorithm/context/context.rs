@@ -1,8 +1,6 @@
 use crate::{
     algorithm::{
-        GeometryDefectType, NormalizedCtx,
-        FastScanCtx, FineScanCtx, InitialCtx,
-        FineConvexCtx, ResultCtx,
+        FastScanCtx, FineConvexCtx, FineScanCtx, InitialCtx, NormalizedCtx, ResultCtx, GeometryDefectCtx,
     },
     domain::Image,
 };
@@ -19,8 +17,6 @@ pub struct Context {
     pub(super) result: ResultCtx<Image>,
     /// Normalize algorithms results, cropp, auto gamma, brightness, contast, gray etc...
     pub(super) normalized: NormalizedCtx,
-    // /// Points that deviate in width from the threshold
-    // pub(super) width_emissions: WidthEmissionsCtx,
     /// `FastScan` algorithm results
     pub(super) fast_scan: FastScanCtx,
     /// `FineScan` algorithm results
@@ -28,7 +24,9 @@ pub struct Context {
     /// Result of `FineScan` convex - solid contour
     pub(super) convex: FineConvexCtx,
     /// Result of detecting [GeometryDefect's](design/theory/geometry_rope_defects.md)
-    pub(super) defects: ResultCtx<Vec<GeometryDefectType>>,
+    // /// Points that deviate in width from the threshold
+    // pub(super) width_emissions: WidthEmissionsCtx,
+    pub(super) defects: GeometryDefectCtx<()>,
     ///
     /// Used for testing only
     #[allow(dead_code)]
@@ -49,7 +47,7 @@ impl Context {
             fast_scan: FastScanCtx::default(),
             fine_scan: FineScanCtx::default(),
             convex: FineConvexCtx::default(),
-            defects: ResultCtx::default(),
+            defects: GeometryDefectCtx::default(),
             testing: None,
         }
     }
