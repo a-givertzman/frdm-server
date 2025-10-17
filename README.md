@@ -87,12 +87,12 @@ Lens focal length | Image width  | Image hight | Field depth    | Image deformat
 bindgen src/infrostructure/arena/wrappers.h -o src/infrostructure/arena/bindings.rs -- "-Ilucid_arena_sdk_include_path"
 ```
 
-## Algorithm description
+## Algorithm descriptions
 
-Ferst frame passed into the `FastScan` algoritm, which very fast will find rope contours and mak it analisys.
-If some defects are detected, then already prepared normalized gray scale image passed into the `FineScan` algorithm.
-`FineScan` is more expensive in calculations but much more precise in rope contours detection.
-By the result we have an arrey of rope defect if found in the frame.
+Ferst frame passed into the `FastScan` algorithm, which very fast (15..17ms for 1936 x 1464 image) will find rope contours and make it analysys.
+If some defects are detected, then already prepared in the `FastScan` normalized gray scale image passed into the `FineScan` algorithm.
+`FineScan` is more expensive in calculations (200..300ms) but much more precise in rope contours detection.
+Finally we have an array of rope defect if found in the frame.
 
 ### FastScan Algorithm
 
