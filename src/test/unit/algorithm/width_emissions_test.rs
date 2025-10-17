@@ -11,8 +11,7 @@ mod width_emissions {
     };
     use crate::{
         algorithm::{
-            Bond, Context, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult,
-            InitialCtx, InitialPoints, Mad, Threshold, WidthEmissions, WidthEmissionsCtx,
+            Bond, Context, ContextRead, ContextWrite, Edges, EvalResult, FastEdgesCtx, FastScanCtx, InitialCtx, Mad, Threshold, WidthEmissions, WidthEmissionsCtx
         },
         domain::{Dot, Eval, Image},
     };
@@ -45,7 +44,7 @@ mod width_emissions {
             (
                 1,
                 Threshold(1.1),
-                InitialPoints::new(
+                Edges::new(
                     vec![
                         Dot { x: 10  , y: 100 },
                         Dot { x: 20  , y: 105 },
@@ -83,7 +82,7 @@ mod width_emissions {
                 ]
             )
         ];
-        for (step, threshold, initial_points, target) in test_data {
+        for (step, threshold, edges, target) in test_data {
             let mut ctx = MocEval {
                 ctx: Context::new(
                     InitialCtx::new()
@@ -91,16 +90,16 @@ mod width_emissions {
             };
             ctx.ctx = ctx.ctx
                 .clone()
-                .write(EdgeDetectionCtx { result: initial_points })
+                .write(FastEdgesCtx { edges })
                 .unwrap();
-            let result = WidthEmissions::new(
+            let result = WidthEmissions::<FastScanCtx>::new(
                 threshold,
                 *Box::new(Mad::new()),
                 ctx,
             ).eval(Image::default());
             match result {
                 Ok(result) => {
-                    let result = ContextRead::<WidthEmissionsCtx>::read(&result)
+                    let result = ContextRead::<WidthEmissionsCtx<FastScanCtx>>::read(&result)
                         .result.clone();
                     assert!(
                         result == target, 

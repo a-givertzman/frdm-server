@@ -1,35 +1,40 @@
+use std::{any::TypeId, marker::PhantomData};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        geometry_defect::{
-            GeometryDefectCtx, GeometryDefectType, Threshold
-        }, mad::{Bond, MadCtx}, width_emissions::WidthEmissionsCtx, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, Side
+        GeometryDefectCtx, GeometryDefectType, Threshold,
+        mad::{Bond, MadCtx}, width_emissions::WidthEmissionsCtx, ContextRead, ContextWrite,
+        FastEdgesCtx, FineEdgesCtx, EvalResult, Side,
+        FastScanCtx, FineScanCtx,
     }, 
     domain::{Error, Eval, Image},
 };
+
 ///
 /// Represents detecting [geometry defect's](design/theory/geometry_rope_defects.md)
-pub struct GeometryDefect {
+pub struct GeometryDefect<Branch> {
     dbg: Dbg,
     threshold: Threshold,
-    mad: Box<dyn Eval<Vec<usize>, MadCtx>>,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send + Sync>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    branch: PhantomData<Branch>,
 }
 //
 //
-impl GeometryDefect {
+impl<Branch> GeometryDefect<Branch> {
     ///
     /// New instance [GeometryDefect]
     pub fn new(
         threshold: Threshold,
-        mad: impl Eval<Vec<usize>, MadCtx> + 'static,
-        ctx: impl Eval<Image, EvalResult> + 'static,
+        mad: impl Eval<Vec<usize>, MadCtx> + Send + Sync + 'static,
+        ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static,
     ) -> Self {
         Self {
             dbg: Dbg::own("GeometryDefect"),
             threshold,
             mad: Box::new(mad),
             ctx: Box::new(ctx),
+            branch: PhantomData,
         }
     }
     ///
@@ -85,33 +90,49 @@ impl GeometryDefect {
 }
 //
 //
-impl Eval<Image, EvalResult> for GeometryDefect {
+impl<Branch: 'static> Eval<Image, EvalResult> for GeometryDefect<Branch> {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new(&self.dbg, "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let mut result: Vec<GeometryDefectType> = Vec::new();
-                let initial_points = ContextRead::<EdgeDetectionCtx>::read(&ctx);
-                let initial_points_upper = initial_points.result.get(Side::Upper);
-                let initial_points_lower = initial_points.result.get(Side::Lower);
-                let width_emissions_result = ContextRead::<WidthEmissionsCtx>::read(&ctx).result.clone();
+                // let width_emissions_result = ContextRead::<WidthEmissionsCtx>::read(&ctx).result.clone();
+                let width_emissions_result = match TypeId::of::<Branch>() {
+                    typ if typ == TypeId::of::<FastScanCtx>() => &ContextRead::<WidthEmissionsCtx<FastScanCtx>>::read(&ctx).result,
+                    typ if typ == TypeId::of::<FineScanCtx>() => &ContextRead::<WidthEmissionsCtx<FineScanCtx>>::read(&ctx).result,
+                    _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>())))?,
+                };
                 if width_emissions_result.is_empty() {
-                    let result = GeometryDefectCtx {
-                        result,
-                    };
                     log::debug!("Frame without defect's");
-                    return ctx.write(result)
+                    return match TypeId::of::<Branch>() {
+                        typ if typ == TypeId::of::<FastScanCtx>() => ContextWrite::<GeometryDefectCtx<FastScanCtx>>::write(
+                            ctx, GeometryDefectCtx::new(result),
+                        ),
+                        typ if typ == TypeId::of::<FineScanCtx>() => ContextWrite::<GeometryDefectCtx<FineScanCtx>>::write(
+                            ctx, GeometryDefectCtx::new(result),
+                        ),
+                        _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
+                    }
                 }
+                // let initial_points = ContextRead::<FastEdgesCtx>::read(&ctx);
+                // let upper = initial_points.result.get(Side::Upper);
+                // let lower = initial_points.result.get(Side::Lower);
+                let (upper, lower) = match TypeId::of::<Branch>() {
+                    typ if typ == TypeId::of::<FastScanCtx>() => {
+                        let edges_ctx: &FastEdgesCtx = ctx.read();
+                        (edges_ctx.edges.get(Side::Upper), edges_ctx.edges.get(Side::Lower))
+                    }
+                    typ if typ == TypeId::of::<FineScanCtx>() => {
+                        let edges_ctx: &FineEdgesCtx = ctx.read();
+                        (edges_ctx.edges.get(Side::Upper), edges_ctx.edges.get(Side::Lower))
+                    }
+                    _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>())))?,
+                };
                 let mad_of_upper_points = self.mad.eval(
-                    initial_points_upper.iter()
-                        .map(|dot| dot.y)
-                        .collect(),
+                    upper.iter().map(|dot| dot.y).collect(),
                 );
                 let mad_of_lower_points = self.mad.eval(
-                    initial_points_lower
-                        .iter()
-                        .map(|dot| dot.y)
-                        .collect()
+                    lower.iter().map(|dot| dot.y).collect()
                 );
                 for i in (0..width_emissions_result.len()-1).step_by(2) {
                     let upper_point = width_emissions_result[i];
@@ -141,10 +162,11 @@ impl Eval<Image, EvalResult> for GeometryDefect {
                     }
                     acc
                 });
-                let result = GeometryDefectCtx {
-                    result,
-                };
-                ctx.write(result)
+                match TypeId::of::<Branch>() {
+                    typ if typ == TypeId::of::<FastScanCtx>() => ContextWrite::<GeometryDefectCtx<FastScanCtx>>::write(ctx, GeometryDefectCtx::new(result)),
+                    typ if typ == TypeId::of::<FineScanCtx>() => ContextWrite::<GeometryDefectCtx<FineScanCtx>>::write(ctx, GeometryDefectCtx::new(result)),
+                    _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
+                }
             },
             Err(err) => Err(error.pass(err)),
         }

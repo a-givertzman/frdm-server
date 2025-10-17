@@ -10,8 +10,8 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, Cropping, DetectingContoursCv, EdgeDetection, GeometryDefect, Gray, Initial, InitialCtx, Mad, RopeDimensionsConf, TemporalFilter, Threshold
-    }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
+        AutoGamma, Cropping, FastContours, FastEdges, FastScanConf, FastScanCtx, FineScanConf, GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter
+    }, conf::{Conf, NormalizeConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -29,55 +29,50 @@ fn main() {
     }
     opencv::highgui::wait_key(1).unwrap();
     let conf = Conf {
-        contours: DetectingContoursConf::default(),
-        edge_detection: EdgeDetectionConf::default(),
-        rope_dimensions: RopeDimensionsConf::default(),
-        fast_scan: FastScanConf {
-            geometry_defect_threshold: Threshold::min(),
-        },
-        fine_scan: FineScanConf {},
+        normalize: NormalizeConf::default(),
+        fast_scan: FastScanConf::default(),
+        fine_scan: FineScanConf::default(),
     };
-    let scan_rope = GeometryDefect::new(
+    let debug = false;
+    let scan_rope = GeometryDefect::<FastScanCtx>::new(
         conf.fast_scan.geometry_defect_threshold,
         *Box::new(Mad::new()),
-        EdgeDetection::new(
-            conf.edge_detection.otsu_tune,
-            conf.edge_detection.threshold,
-            conf.edge_detection.smooth,
-            DetectingContoursCv::new(
-                conf.contours.clone(),
-                TemporalFilter::new(
-                    conf.contours.temporal_filter.amplify_factor,
-                    conf.contours.temporal_filter.grow_speed,
-                    conf.contours.temporal_filter.reduce_factor,
-                    conf.contours.temporal_filter.down_speed,
-                    conf.contours.temporal_filter.threshold,
+        FastEdges::new(
+            conf.fast_scan.fast_edges.otsu_tune,
+            conf.fast_scan.fast_edges.threshold,
+            conf.fast_scan.fast_edges.smooth,
+            FastContours::new(
+                conf.fast_scan.fast_contours.clone(),
+                TemporalFilter::<FastScanCtx>::new(
+                    conf.fast_scan.temporal_filter.gaussian,
+                    conf.fast_scan.temporal_filter.open_kernel,
+                    conf.fast_scan.temporal_filter.erode_kernel,
+                    conf.fast_scan.temporal_filter.threshold,
                     Gray::new(
-                        AutoBrightnessAndContrast::new(
-                            conf.contours.brightness_contrast.hist_clip_left,
-                            conf.contours.brightness_contrast.hist_clip_right,
-                            AutoGamma::new(
-                                conf.contours.gamma.factor,
-                                Cropping::new(
-                                    conf.contours.cropping.x,
-                                    conf.contours.cropping.width,
-                                    conf.contours.cropping.y,
-                                    conf.contours.cropping.height,
-                                    Initial::new(
-                                        InitialCtx::new(),
-                                    ),
+                        AutoGamma::new(
+                            conf.normalize.gamma.factor,
+                            Cropping::new(
+                                conf.normalize.cropping.x,
+                                conf.normalize.cropping.width,
+                                conf.normalize.cropping.y,
+                                conf.normalize.cropping.height,
+                                Initial::new(
+                                    InitialCtx::new(),
                                 ),
+                                debug,
                             ),
+                            debug,
                         ),
+                        debug,
                     ),
-                )
+                    debug,
+                ),
+                debug,
             ),
         ),
     );
     for frame in recv {
-        log::trace!("{} | Frame width : {:?}", dbg, frame.width);
-        log::trace!("{} | Frame height: {:?}", dbg, frame.height);
-        log::trace!("{} | Frame timestamp: {:?}", dbg, frame.timestamp);
+        log::trace!("{dbg} | Frame width: {},  height: {}, timestamp: {}", frame.width(), frame.height(), frame.timestamp);
         if let Err(err) = opencv::highgui::imshow(window, &frame.mat) {
             log::warn!("{}.stream | Display img error: {:?}", dbg, err);
         };

@@ -1,10 +1,8 @@
 use crate::{
     algorithm::{
-        auto_correction::{AutoBrightnessAndContrastCtx, AutoGammaCtx},
-        geometry_defect::GeometryDefectCtx, width_emissions::WidthEmissionsCtx,
-        CroppingCtx, DetectingContoursCvCtx, EdgeDetectionCtx, GrayCtx, GaussianBlurCtx,
-        InitialCtx, ResultCtx, RopeDimensionsCtx,
+        FastScanCtx, FineConvexCtx, FineScanCtx, InitialCtx, NormalizedCtx, ResultCtx, GeometryDefectCtx,
     },
+    domain::Image,
 };
 use super::testing_ctx::TestingCtx;
 ///
@@ -15,30 +13,22 @@ use super::testing_ctx::TestingCtx;
 pub struct Context {
     /// where store source frame
     pub(super) initial: InitialCtx,
-    /// Common result image from current step
-    pub(super) result: ResultCtx,
-    /// Filtered and binarised image
-    pub(super) detecting_contours_cv: DetectingContoursCvCtx,
-    /// Cropped image
-    pub(super) cropping: CroppingCtx,
-    /// Gamma-corrected image
-    pub(super) auto_gamma: AutoGammaCtx,
-    /// Image with corrected brightness and contrast
-    pub(super) auto_brightness_and_contrast: AutoBrightnessAndContrastCtx,
-    /// Gray scale image
-    pub(super) gray: GrayCtx,
-    /// Gaussian blur result image
-    pub(super) gaussian_blur: GaussianBlurCtx,
-    /// points of rope perimeter
-    pub(super) edge_detection: EdgeDetectionCtx,
-    /// Rope calculated dimensions
-    pub(super) rope_dimensions: RopeDimensionsCtx,
-    /// points that deviate in width from the threshold
-    pub(super) width_emissions: WidthEmissionsCtx,
-    /// result of detecting [GeometryDefect's](design/theory/geometry_rope_defects.md)
-    pub(super) geometry_defect: GeometryDefectCtx,
+    /// Result of last evaluated step
+    pub(super) result: ResultCtx<Image>,
+    /// Normalize algorithms results, cropp, auto gamma, brightness, contast, gray etc...
+    pub(super) normalized: NormalizedCtx,
+    /// `FastScan` algorithm results
+    pub(super) fast_scan: FastScanCtx,
+    /// `FineScan` algorithm results
+    pub(super) fine_scan: FineScanCtx,
+    /// Result of `FineScan` convex - solid contour
+    pub(super) convex: FineConvexCtx,
+    /// Result of detecting [GeometryDefect's](design/theory/geometry_rope_defects.md)
+    // /// Points that deviate in width from the threshold
+    // pub(super) width_emissions: WidthEmissionsCtx,
+    pub(super) defects: GeometryDefectCtx<()>,
     ///
-    /// Uset for testing only
+    /// Used for testing only
     #[allow(dead_code)]
     pub testing: Option<TestingCtx>,
 }
@@ -52,16 +42,12 @@ impl Context {
         Self {
             initial,
             result: ResultCtx::default(),
-            detecting_contours_cv: DetectingContoursCvCtx::default(),
-            cropping: CroppingCtx::default(),
-            auto_gamma: AutoGammaCtx::default(),
-            auto_brightness_and_contrast: AutoBrightnessAndContrastCtx::default(),
-            gray: GrayCtx::default(),
-            gaussian_blur: GaussianBlurCtx::default(),
-            edge_detection: EdgeDetectionCtx::default(),
-            rope_dimensions: RopeDimensionsCtx::default(),
-            width_emissions: WidthEmissionsCtx::default(),
-            geometry_defect: GeometryDefectCtx::default(),
+            normalized: NormalizedCtx::default(),
+            // width_emissions: WidthEmissionsCtx::default(),
+            fast_scan: FastScanCtx::default(),
+            fine_scan: FineScanCtx::default(),
+            convex: FineConvexCtx::default(),
+            defects: GeometryDefectCtx::default(),
             testing: None,
         }
     }

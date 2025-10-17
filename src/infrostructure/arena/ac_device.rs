@@ -359,8 +359,8 @@ impl AcDevice {
                                                                                 log::debug!(
                                                                                     "{}.read | {}x{}, {:.2} MB, {} FPS{UP}{CLEARLN}{UP}\r",
                                                                                     dbg, 
-                                                                                    img.width, img.height, 
-                                                                                    (img.bytes as f64) / 1048576.0,
+                                                                                    img.width(), img.height(), 
+                                                                                    (img.size() as f64) / 1048576.0,
                                                                                     fps,
                                                                                 );
                                                                                 (on_event)(img)

@@ -9,9 +9,9 @@ use egui::{
 };
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, CroppingConf, DetectingContoursCv, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
+        AutoGamma, ContextRead, Cropping, CroppingConf, FastContours, FastContoursConf, FastContoursCtx, FastEdges, FastEdgesConf, FastEdgesCtx, FastScanConf, FineScanConf, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
     },
-    conf::{BrightnessContrastConf, Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf, GammaConf, GausianConf, OverlayConf, SobelConf},
+    conf::{Conf, GammaConf, NormalizeConf},
     domain::{Dot, Eval, Image},
 };
 
@@ -20,6 +20,7 @@ use crate::{
 static START: Once = Once::new();
 ///
 /// Variant of parameter value
+#[allow(unused)]
 enum ParamVal {
     IRange(std::ops::Range<i64>),
     FRange(std::ops::Range<f64>),
@@ -48,8 +49,8 @@ pub struct UiApp {
     conf: Vec<Param>,
     params: FxIndexMap<String, (String, Value)>,
     zoom: f32,
-    start_pos: egui::Pos2,
-    end_pos: egui::Pos2,
+    // start_pos: egui::Pos2,
+    // end_pos: egui::Pos2,
     origin: Image,
     frame: Image,
     hist_frame: Option<Image>,
@@ -124,9 +125,9 @@ impl UiApp {
                 // Param::new("Contours.temporal-filter.down-speed",           ParamVal::FRange(0.0..255.0),   Value::Double(1.0)),
                 // Param::new("Contours.temporal-filter.threshold",            ParamVal::FRange(0.0..255.0),   Value::Double(64.0)),
 
-                Param::new("EdgeDetection.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(0.0)),
-                Param::new("EdgeDetection.Threshold",                       ParamVal::IRange(0..255),       Value::Int(0)),
-                Param::new("EdgeDetection.Smooth",                          ParamVal::FRange(0.0..255.0),   Value::Double(12.0)),
+                Param::new("FastEdges.Otsu-tune",                       ParamVal::FRange(0.0..255.0),   Value::Double(0.0)),
+                Param::new("FastEdges.Threshold",                       ParamVal::IRange(0..255),       Value::Int(0)),
+                Param::new("FastEdges.Smooth",                          ParamVal::FRange(0.0..255.0),   Value::Double(12.0)),
 
                 Param::new("RopeDimensions.rope-width",                     ParamVal::IRange(1..10000),     Value::Int(100)),
                 Param::new("RopeDimensions.width-tolerance",                ParamVal::FRange(0.0..100.0),   Value::Double(10.0)),
@@ -136,8 +137,8 @@ impl UiApp {
             ],
             params: FxIndexMap::default(),
             zoom: 1.0,
-            start_pos: egui::pos2(0.0, 0.0),
-            end_pos: egui::pos2(100.0, 100.0),
+            // start_pos: egui::pos2(0.0, 0.0),
+            // end_pos: egui::pos2(100.0, 100.0),
             origin,
             frame,
             hist_frame: None,
@@ -239,12 +240,12 @@ impl UiApp {
                     }
                     // log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
                     let texture_handle: TextureHandle = ui.ctx().load_texture(title, image(&frame), TextureOptions::LINEAR);
-                    let mut scene_rect = ctx.input(|x| {
+                    let scene_rect = ctx.input(|x| {
                         x.viewport().inner_rect.unwrap_or(egui::Rect::ZERO)
                     });
-                    let scale_factor = 1.0 / ctx.zoom_factor();
+                    // let scale_factor = 1.0 / ctx.zoom_factor();
                     let image = egui::Image::new(&texture_handle)
-                        .fit_to_exact_size([(frame.width as f32) * self.zoom, (frame.height as f32) * self.zoom].into());
+                        .fit_to_exact_size([(frame.width() as f32) * self.zoom, (frame.height() as f32) * self.zoom].into());
                         // .shrink_to_fit()
                         // .sense(egui::Sense::all());
                         // .fit_to_fraction(egui::Vec2::new(1.0, 1.0))
@@ -395,7 +396,7 @@ impl UiApp {
 impl eframe::App for UiApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let window_origin = "Orgin";
-        let window_contours = "DetectingContoursCv";
+        let window_contours = "CvContours";
         let window_hist = "Hist";
         let window_result = "Result";
         START.call_once(|| {
@@ -405,7 +406,7 @@ impl eframe::App for UiApp {
             let head_hight = 34.0;
             let mut path_error = None;
             egui::TopBottomPanel::bottom("StatusBar").exact_height(32.0).show(ctx, |ui| ui.horizontal(|ui| {
-                ui.add(egui::Label::new(format!("Image: {} x {}", self.frame.width, self.frame.height)));
+                ui.add(egui::Label::new(format!("Image: {} x {}", self.frame.width(), self.frame.height())));
                 ui.separator();
                 match self.elapsed {
                     Some(elapsed) => ui.add(egui::Label::new(format!("Elapse: {:?}", elapsed))),
@@ -495,22 +496,43 @@ impl eframe::App for UiApp {
                 let cropping_width = self.params.get("Contours.cropping.width").unwrap().1.as_int() as i32;
                 let cropping_y = self.params.get("Contours.cropping.y").unwrap().1.as_int() as i32;
                 let cropping_height = self.params.get("Contours.cropping.height").unwrap().1.as_int() as i32;
-                let otsu_tune = self.params.get("EdgeDetection.Otsu-tune").unwrap().1.as_double();
-                let threshold = self.params.get("EdgeDetection.Threshold").unwrap().1.as_int() as u8;
+                let otsu_tune = self.params.get("FastEdges.Otsu-tune").unwrap().1.as_double();
+                let threshold = self.params.get("FastEdges.Threshold").unwrap().1.as_int() as u8;
                 let conf = Conf {
-                    contours: DetectingContoursConf {
+                    normalize: NormalizeConf {
                         cropping: CroppingConf {
                             x: cropping_x,
-                            width: if cropping_x + cropping_width <= self.frame.width as i32 {cropping_width} else {self.frame.width as i32 - cropping_x},
+                            width: if cropping_x + cropping_width <= self.frame.width() {cropping_width} else {self.frame.width() - cropping_x},
                             y: cropping_y,
-                            height: if cropping_y + cropping_height <= self.frame.height as i32 {cropping_height} else {self.frame.height as i32 - cropping_y},
+                            height: if cropping_y + cropping_height <= self.frame.height() {cropping_height} else {self.frame.height() - cropping_y},
                         },
                         gamma: GammaConf {
                             factor: self.params.get("Contours.gamma.factor").unwrap().1.as_double(),
                         },
-                        brightness_contrast: BrightnessContrastConf {
-                            hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_double() as f32,
-                            hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_double() as f32,
+                    },
+                    fast_scan: FastScanConf {
+                        fast_contours: FastContoursConf {
+                            otsu_tune: 0.4,
+                            // brightness_contrast: BrightnessContrastConf {
+                            //     hist_clip_left: self.params.get("BrightnessContrast.Clip-left").unwrap().1.as_double() as f32,
+                            //     hist_clip_right: self.params.get("BrightnessContrast.Clip-right").unwrap().1.as_double() as f32,
+                            // },
+                            // gausian: GausianConf {
+                            //     blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as usize,
+                            //     blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as usize,
+                            //     sigma_x: self.params.get("Contours.gausian.sigma_x").unwrap().1.as_double(),
+                            //     sigma_y: self.params.get("Contours.gausian.sigma_y").unwrap().1.as_double(),
+                            // },
+                            // sobel: SobelConf {
+                            //     kernel_size: self.params.get("Contours.sobel.kernel_size").unwrap().1.as_int() as i32,
+                            //     scale: self.params.get("Contours.sobel.scale").unwrap().1.as_double(),
+                            //     delta: self.params.get("Contours.sobel.delta").unwrap().1.as_double(),
+                            // },
+                            // overlay: OverlayConf {
+                            //     src1_weight: self.params.get("Contours.overlay.src1_weight").unwrap().1.as_double(),
+                            //     src2_weight: self.params.get("Contours.overlay.src2_weight").unwrap().1.as_double(),
+                            //     gamma: self.params.get("Contours.overlay.gamma").unwrap().1.as_double(),
+                            // },
                         },
                         temporal_filter: TemporalFilterConf::default(),
                         //     amplify_factor: self.params.get("Contours.temporal-filter.amplify-factor").unwrap().1.as_double(),
@@ -519,83 +541,71 @@ impl eframe::App for UiApp {
                         //     down_speed: self.params.get("Contours.temporal-filter.down-speed").unwrap().1.as_double(),
                         //     threshold: self.params.get("Contours.temporal-filter.threshold").unwrap().1.as_double(),
                         // },
-                        gausian: GausianConf {
-                            blur_w: self.params.get("Contours.gausian.blur_w").unwrap().1.as_int() as usize,
-                            blur_h: self.params.get("Contours.gausian.blur_h").unwrap().1.as_int() as usize,
-                            sigma_x: self.params.get("Contours.gausian.sigma_x").unwrap().1.as_double(),
-                            sigma_y: self.params.get("Contours.gausian.sigma_y").unwrap().1.as_double(),
+                        fast_edges: FastEdgesConf {
+                            otsu_tune: (otsu_tune == 0.0).then(|| otsu_tune),
+                            threshold: (threshold == 0).then(|| threshold) ,
+                            smooth: Some(self.params.get("FastEdges.Smooth").unwrap().1.as_double()),
                         },
-                        sobel: SobelConf {
-                            kernel_size: self.params.get("Contours.sobel.kernel_size").unwrap().1.as_int() as i32,
-                            scale: self.params.get("Contours.sobel.scale").unwrap().1.as_double(),
-                            delta: self.params.get("Contours.sobel.delta").unwrap().1.as_double(),
+                        rope_dimensions: RopeDimensionsConf {
+                            rope_width: self.params.get("RopeDimensions.rope-width").unwrap().1.as_int() as usize,
+                            width_tolerance: self.params.get("RopeDimensions.width-tolerance").unwrap().1.as_double(),
+                            square_tolerance: self.params.get("RopeDimensions.square-tolerance").unwrap().1.as_double(),
                         },
-                        overlay: OverlayConf {
-                            src1_weight: self.params.get("Contours.overlay.src1_weight").unwrap().1.as_double(),
-                            src2_weight: self.params.get("Contours.overlay.src2_weight").unwrap().1.as_double(),
-                            gamma: self.params.get("Contours.overlay.gamma").unwrap().1.as_double(),
-                        },
-                    },
-                    edge_detection: EdgeDetectionConf {
-                        otsu_tune: (otsu_tune == 0.0).then(|| otsu_tune),
-                        threshold: (threshold == 0).then(|| threshold) ,
-                        smooth: Some(self.params.get("EdgeDetection.Smooth").unwrap().1.as_double()),
-                    },
-                    rope_dimensions: RopeDimensionsConf {
-                        rope_width: self.params.get("RopeDimensions.rope-width").unwrap().1.as_int() as usize,
-                        width_tolerance: self.params.get("RopeDimensions.width-tolerance").unwrap().1.as_double(),
-                        square_tolerance: self.params.get("RopeDimensions.square-tolerance").unwrap().1.as_double(),
-                    },
-                    fast_scan: FastScanConf {
-                        geometry_defect_threshold: Threshold(self.params.get("FastScan.Threshold").unwrap().1.as_double()),
+                        geometry_defect_threshold: Threshold(1.1),
                     },
                     fine_scan: FineScanConf::default(),
                 };
                 let t = Instant::now();
-                let result_ctx = EdgeDetection::new(
-                    conf.edge_detection.otsu_tune,
-                    conf.edge_detection.threshold,
-                    conf.edge_detection.smooth,
-                    DetectingContoursCv::new(
-                        conf.contours.clone(),
+                let debug = false;
+                let result_ctx = FastEdges::new(
+                    conf.fast_scan.fast_edges.otsu_tune,
+                    conf.fast_scan.fast_edges.threshold,
+                    conf.fast_scan.fast_edges.smooth,
+                    FastContours::new(
+                        conf.fast_scan.fast_contours,
                         Gray::new(
-                            AutoBrightnessAndContrast::new(
-                                conf.contours.brightness_contrast.hist_clip_left,
-                                conf.contours.brightness_contrast.hist_clip_right,
+                            // AutoBrightnessAndContrast::new(
+                            //     conf.fast_contours.brightness_contrast.hist_clip_left,
+                            //     conf.fast_contours.brightness_contrast.hist_clip_right,
                                 AutoGamma::new(
-                                    conf.contours.gamma.factor,
+                                    conf.normalize.gamma.factor,
                                     Cropping::new(
-                                        conf.contours.cropping.x,
-                                        conf.contours.cropping.width,
-                                        conf.contours.cropping.y,
-                                        conf.contours.cropping.height,
+                                        conf.normalize.cropping.x,
+                                        conf.normalize.cropping.width,
+                                        conf.normalize.cropping.y,
+                                        conf.normalize.cropping.height,
                                         Initial::new(
                                             InitialCtx::new(),
                                         ),
+                                        debug,
                                     ),
+                                    debug,
                                 ),
-                            ),
+                                debug,
+                            // ),
+                            // debug,
                         ),
+                        debug,
                     ),
                 ).eval(self.frame.clone());
                 match result_ctx {
                     Ok(result_ctx) => {
                         self.elapsed = Some(t.elapsed());
                         self.alg_err = None;
-                        let contours_ctx: &DetectingContoursCvCtx = result_ctx.read();
+                        let contours_ctx: &FastContoursCtx = result_ctx.read();
                         self.contour_frame = Some(contours_ctx.result.clone());
-                        let edges: &EdgeDetectionCtx = result_ctx.read();
-                        let upper = edges.result.get(Side::Upper);
-                        let result_img = Self::image_plot(&self.frame, upper, [0, 0, 255], &conf.contours.cropping);
-                        let lower = edges.result.get(Side::Lower);
-                        let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.contours.cropping);
+                        let edges: &FastEdgesCtx = result_ctx.read();
+                        let upper = edges.edges.get(Side::Upper);
+                        let result_img = Self::image_plot(&self.frame, upper, [0, 0, 255], &conf.normalize.cropping);
+                        let lower = edges.edges.get(Side::Lower);
+                        let result_img = Self::image_plot(&result_img, lower, [0, 255, 0], &conf.normalize.cropping);
                         self.result_frame = Some(result_img);
                         // let gamma_ctx: &AutoGammaCtx = result_ctx.read();
-                        self.hist_frame = Some(Self::display_hist(
-                            &contours_ctx.result,
-                            conf.contours.brightness_contrast.hist_clip_left,
-                            conf.contours.brightness_contrast.hist_clip_right,
-                        ));
+                        // self.hist_frame = Some(Self::display_hist(
+                        //     &contours_ctx.result,
+                        //     conf.cv_contours.brightness_contrast.hist_clip_left,
+                        //     conf.cv_contours.brightness_contrast.hist_clip_right,
+                        // ));
                     }
                     Err(err) => {
                         self.alg_err = Some(format!("Error in the algorithms: {err}"));
@@ -641,12 +651,12 @@ impl ExtendedColors for Color32 {
 ///
 /// Returns egui `Image` from `opencv::Mat`
 fn image(frame: &Image) -> ColorImage {
-    let mut pixels: Vec<u8> = Vec::with_capacity(frame.width * frame.height * 4); // For RGBA
+    let mut pixels: Vec<u8> = Vec::with_capacity(frame.width() as usize * frame.height() as usize * 4); // For RGBA
     // Iterate over Mat pixels and convert BGR to RGBA
     // This is a simplified example; error handling and different Mat types need consideration.
     if frame.mat.channels() == 3 {
-        for y in 0..frame.height {
-            for x in 0..frame.width {
+        for y in 0..frame.height() {
+            for x in 0..frame.width() {
                 let pixel = frame.mat.at_2d::<opencv::core::Vec3b>(y as i32, x as i32).unwrap();
                 pixels.push(pixel[2]); // R
                 pixels.push(pixel[1]); // G
@@ -654,10 +664,10 @@ fn image(frame: &Image) -> ColorImage {
                 pixels.push(255);       // A (fully opaque)
             }
         }
-        ColorImage::from_rgba_unmultiplied([frame.width, frame.height], &pixels)
+        ColorImage::from_rgba_unmultiplied([frame.width() as usize, frame.height() as usize], &pixels)
     } else if frame.mat.channels() == 1 {
-        for y in 0..frame.height {
-            for x in 0..frame.width {
+        for y in 0..frame.height() {
+            for x in 0..frame.width() {
                 let pixel = frame.mat.at_2d::<opencv::core::VecN<u8, 1>>(y as i32, x as i32).unwrap();
                 // pixels.push(pixel[2]); // R
                 // pixels.push(pixel[1]); // G
@@ -665,9 +675,9 @@ fn image(frame: &Image) -> ColorImage {
                 // pixels.push(255);       // A (fully opaque)
             }
         }
-        ColorImage::from_gray([frame.width, frame.height], &pixels)//rgba_unmultiplied([frame.width, frame.height], &pixels)
+        ColorImage::from_gray([frame.width() as usize, frame.height() as usize], &pixels)//rgba_unmultiplied([frame.width, frame.height], &pixels)
     } else {
         log::warn!("image | Unsupported image format {} with {} channels", frame.mat.typ(), frame.mat.channels());
-        ColorImage::from_rgba_unmultiplied([frame.width, frame.height], &pixels)
+        ColorImage::from_rgba_unmultiplied([frame.width() as usize, frame.height() as usize], &pixels)
     }
 }

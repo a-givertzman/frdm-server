@@ -2,30 +2,28 @@ use std::time::Instant;
 use opencv::{core::{Mat, Size}, imgproc};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, GaussianBlurCtx, ResultCtx},
+    algorithm::{ContextRead, ContextWrite, EvalResult, ResultCtx},
     domain::{Eval, Image},
 };
 ///
 /// Apply Gaussian blur to the input image
 pub struct GaussianBlur {
-    width: i32,
-    height: i32,
-    sigma_x: f64,
-    sigma_y: f64,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    kernel: [i32; 2],
+    sigma: [f64; 2],
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 //
 //
 impl GaussianBlur {
     ///
     /// Returns [GaussianBlur] new instance
-    pub fn new(width: usize, height: usize, sigma_x: f64, sigma_y: f64, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(kernel: [i32; 2], sigma: [f64; 2], ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self {
-            width: width as i32,
-            height: height as i32,
-            sigma_x,
-            sigma_y,
+            kernel,
+            sigma,
             ctx: Box::new(ctx),
+            debug,
         }
     }
 }
@@ -37,16 +35,25 @@ impl Eval<Image, EvalResult> for GaussianBlur {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ctx.read();
+                let frame = &result.val;
                 let mut blurred = Mat::default();
-                let kernel_size = Size::new(self.width, self.height);
-                match imgproc::gaussian_blur(&frame.mat, &mut blurred, kernel_size, self.sigma_x, self.sigma_y, opencv::core::BORDER_DEFAULT) {
+                match imgproc::gaussian_blur(
+                    &frame.mat,
+                    &mut blurred,
+                    Size::new(self.kernel[0], self.kernel[1]),
+                    self.sigma[0], self.sigma[1],
+                    opencv::core::BORDER_DEFAULT,
+                ) {
                     Ok(_) => {
                         let frame = Image::with(blurred);
-                        let blurred = GaussianBlurCtx { frame: frame.clone() };
-                        let ctx = ctx.write(blurred)?;
-                        let result = ResultCtx { frame };
+                        // let ctx = if self.debug {
+                        //     let result = GaussianBlurCtx { frame: frame.clone() };
+                        //     ctx.write(result).map_err(|err| error.pass(err))?
+                        // } else {
+                        //     ctx
+                        // };
+                        let result = ResultCtx { val: frame };
                         log::debug!("GaussianBlur.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)
                     }

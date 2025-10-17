@@ -29,6 +29,7 @@ pub struct Exposure {
 impl Exposure {
     ///
     /// Returns [Exposure] new instance
+    #[allow(unused)]
     pub fn new(auto: ExposureAuto, time: f64) -> Self {
         Self {
             auto,

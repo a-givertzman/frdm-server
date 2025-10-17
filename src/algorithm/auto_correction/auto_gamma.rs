@@ -2,11 +2,8 @@ use std::time::Instant;
 use opencv::core::Mat;
 use sal_core::error::Error;
 use crate::algorithm::{
-    ContextWrite,
-    EvalResult,
-    ResultCtx,
+    ContextWrite, EvalResult, AutoGammaCtx, ContextRead, ResultCtx,
 };
-use crate::algorithm::{auto_correction::AutoGammaCtx, ContextRead};
 use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
@@ -15,7 +12,8 @@ use crate::{Eval, domain::Image};
 /// Reference: [Automatic contrast and brightness adjustment of a color photo of a sheet of paper with OpenCV](https://stackoverflow.com/questions/56905592/automatic-contrast-and-brightness-adjustment-of-a-color-photo-of-a-sheet-of-pape)
 pub struct AutoGamma {
     factor: f64,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 impl AutoGamma {
     ///
@@ -24,10 +22,11 @@ impl AutoGamma {
     ///     bigger the value more the effect of [AutoGamma] algorythm
     ///     - exposure 35: beatter percent - 60 %
     ///     - exposure 95: beatter percent - 95 %
-    pub fn new(factor: f64, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(factor: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
             factor: factor,
             ctx: Box::new(ctx),
+            debug,
         }
     }
 }
@@ -41,8 +40,8 @@ impl Eval<Image, EvalResult> for AutoGamma {
                 // build a lookup table mapping the pixel values [0, 255] to
                 // their adjusted gamma values
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ctx.read();
+                let frame = &result.val;
                 let factor = self.factor / 100.0;
                 let mid = 0.5f64;
                 match opencv::core::mean(&frame.mat, &Mat::default()){
@@ -58,15 +57,16 @@ impl Eval<Image, EvalResult> for AutoGamma {
                                 match opencv::core::lut(&frame.mat, &table_mat, &mut dst){
                                     Ok(_) =>{
                                         let frame = Image {
-                                            width: frame.width,
-                                            height: frame.height,
                                             timestamp: frame.timestamp,
                                             mat: dst,
-                                            bytes: frame.bytes,
                                         };
-                                        let result = AutoGammaCtx { result: frame.clone() };
-                                        let ctx = ctx.write(result)?;
-                                        let result = ResultCtx { frame };
+                                        let ctx = if self.debug {
+                                            let result = AutoGammaCtx { result: frame.clone() };
+                                            ctx.write(result).map_err(|err| error.pass(err))?
+                                        } else {
+                                            ctx
+                                        };
+                                        let result = ResultCtx { val: frame };
                                         log::debug!("AutoGamma.eval | Elapsed: {:?}", t.elapsed());
                                         ctx.write(result)
                                     }

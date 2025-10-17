@@ -5,7 +5,7 @@ use opencv::{core::{Mat, MatTrait, Vec3b}, highgui, imgcodecs, imgproc};
 use sal_core::{dbg::Dbg, error::Error};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-use crate::{algorithm::{Context, ContextRead, ContextWrite, DetectingContoursCvCtx, EdgeDetection, EdgeDetectionCtx, InitialCtx, InitialPoints, Side}, domain::{Dot, Eval, Image}};
+use crate::{algorithm::{Context, ContextRead, ContextWrite, FastContoursCtx, FastEdges, FastEdgesCtx, InitialCtx, Edges, Side}, domain::{Dot, Eval, Image}};
 ///
 ///
 static INIT: Once = Once::new();
@@ -22,27 +22,28 @@ fn init_once() {
 fn init_each() -> () {}
 ///
 /// Visualize upper and lower edges on test image
+#[allow(unused)]
 fn edge_visualization_img() {
     let path = "src/test/unit/scan/edge_detection/test_photo2.png";
     let img = imgcodecs::imread(
         path,
         imgcodecs::IMREAD_GRAYSCALE,
     ).unwrap();
-    let ctx = EdgeDetection::new(None, Some(1), None, FakePassImg::new()).eval(Image::with(img.clone())).unwrap();
-    let edges: &EdgeDetectionCtx = ctx.read();
+    let ctx = FastEdges::new(None, Some(1), None, FakePassImg::new()).eval(Image::with(img.clone())).unwrap();
+    let edges: &FastEdgesCtx = ctx.read();
     let mut img_of_edges = imgcodecs::imread(
         path,
         imgcodecs::IMREAD_COLOR,
     ).unwrap();
-    for dot in edges.result.get(Side::Upper) {
-        if dot.x >= 0 && dot.y >= 0 {
+    for dot in edges.edges.get(Side::Upper) {
+        if dot.x as i32 >= 0 && dot.y as i32 >= 0 {
             let x = dot.x as i32;
             let y = dot.y as i32;
             *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
         }
     }
-    for dot in edges.result.get(Side::Lower) {
-        if dot.x >= 0 && dot.y >= 0 {
+    for dot in edges.edges.get(Side::Lower) {
+        if dot.x as i32 >= 0 && dot.y as i32 >= 0 {
             let x = dot.x as i32;
             let y = dot.y as i32;
             *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
@@ -62,17 +63,17 @@ fn edge_visualization_matrix(matrix: [[u8; 6]; 6]) {
     let img = Mat::from_slice_2d(&matrix).unwrap();
     let mut img_of_edges = Mat::default();
     imgproc::cvt_color(&img, &mut img_of_edges, imgproc::COLOR_GRAY2BGR, 0).unwrap();
-    let ctx = EdgeDetection::new(None, Some(1), None, FakePassImg::new()).eval(Image::with(img)).unwrap();
-    let edges: &EdgeDetectionCtx = ctx.read();
-    for dot in edges.result.get(Side::Upper) {
-        if dot.x >= 0 && dot.y >= 0 {
+    let ctx = FastEdges::new(None, Some(1), None, FakePassImg::new()).eval(Image::with(img)).unwrap();
+    let edges: &FastEdgesCtx = ctx.read();
+    for dot in edges.edges.get(Side::Upper) {
+        if dot.x as i32 >= 0 && dot.y as i32 >= 0 {
             let x = dot.x as i32;
             let y = dot.y as i32;
             *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 0, 255]);
         }
     }
-    for dot in edges.result.get(Side::Lower) {
-        if dot.x >= 0 && dot.y >= 0 {
+    for dot in edges.edges.get(Side::Lower) {
+        if dot.x as i32 >= 0 && dot.y as i32 >= 0 {
             let x = dot.x as i32;
             let y = dot.y as i32;
             *img_of_edges.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
@@ -84,7 +85,7 @@ fn edge_visualization_matrix(matrix: [[u8; 6]; 6]) {
     highgui::destroy_all_windows().unwrap();
 }
 ///
-/// Testing EdgeDetection.eval
+/// Testing FastEdges.eval
 #[test]
 fn edge_detection() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
@@ -100,12 +101,12 @@ fn edge_detection() {
     fn into_dots(dots: &[usize]) -> Vec<Dot<usize>> {
         dots.chunks(2).map(|d| d.into()).collect()
     }
-    let test_data: [(i32, Image, Result<EdgeDetectionCtx, Error>); 2] = [
+    let test_data: [(i32, Image, Result<FastEdgesCtx, Error>); 2] = [
         (
             1,
             Image::with( Mat::from_slice_2d(&MATRIX1).unwrap()),
-            Ok(EdgeDetectionCtx {
-                result: InitialPoints::new(
+            Ok(FastEdgesCtx {
+                edges: Edges::new(
                     into_dots(&[0,1, 1,0, 2,0, 3,1, 4,0, 5,0]),
                     into_dots(&[0,5, 1,4, 2,5, 3,5, 4,5, 5,4]),
                 )
@@ -114,8 +115,8 @@ fn edge_detection() {
         (
             2,
             Image::with( Mat::from_slice_2d(&MATRIX2).unwrap()),
-            Ok(EdgeDetectionCtx {
-                result: InitialPoints::new(
+            Ok(FastEdgesCtx {
+                edges: Edges::new(
                     into_dots(&[0,2, 1,1, 2,0, 3,1, 4,0, 5,1]),
                     into_dots(&[0,3, 1,4, 2,4, 3,5, 4,4, 5,3]),
                 )
@@ -123,7 +124,7 @@ fn edge_detection() {
         )
     ];
     for (step, img, target) in test_data {
-        let result = EdgeDetection::new(
+        let result = FastEdges::new(
             None,
             Some(1),
             None,
@@ -131,7 +132,7 @@ fn edge_detection() {
         )
         .eval(img)
         .map(|ctx| {
-            let result: &EdgeDetectionCtx = ctx.read();
+            let result: &FastEdgesCtx = ctx.read();
             result.to_owned()
         });
         match (result, target) {
@@ -165,7 +166,7 @@ fn edge_detection() {
     ];
 }
 ///
-/// Fake implements `Eval` for testing [EdgeDetection]
+/// Fake implements `Eval` for testing [FastEdges]
 struct FakePassImg {}
 impl FakePassImg{
     pub fn new() -> Self {
@@ -179,6 +180,6 @@ impl Eval<Image, Result<Context, Error>> for FakePassImg {
         let ctx = Context::new(
             InitialCtx::new(),
         );
-        ctx.write(DetectingContoursCvCtx { result: frame })
+        ctx.write(FastContoursCtx { result: frame })
     }
 }

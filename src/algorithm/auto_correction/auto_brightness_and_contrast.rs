@@ -3,12 +3,9 @@ use opencv::core::{Mat, MatTraitConst, Vector};
 use opencv::imgproc;
 use sal_core::error::Error;
 use crate::algorithm::{
-    ContextWrite, ContextRead,
-    AutoGammaCtx,
-    EvalResult,
-    ResultCtx,
+    ContextWrite, ContextRead, AutoBrightnessAndContrastCtx,
+    EvalResult, ResultCtx,
 };
-use crate::algorithm::auto_correction::AutoBrightnessAndContrastCtx;
 use crate::{Eval, domain::Image};
 ///
 /// Takes source [Image]
@@ -19,18 +16,20 @@ use crate::{Eval, domain::Image};
 pub struct AutoBrightnessAndContrast {
     clip_left: f32,
     clip_right: f32,
-    ctx: Box<dyn Eval<Image, EvalResult>>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    debug: bool,
 }
 impl AutoBrightnessAndContrast {
     ///
     /// Returns [AutoBrightnessAndContrast] new instance
     /// - `clip_left` - optional histogram clipping from left (dark pixels), default = 0 %
     /// - `clip_right` - optional histogram clipping from right (light pixels), default = 0 %
-    pub fn new(clip_left: f32, clip_right: f32, ctx: impl Eval<Image, EvalResult> + 'static) -> Self {
+    pub fn new(clip_left: f32, clip_right: f32, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
             clip_left,
             clip_right,
             ctx: Box::new(ctx),
+            debug,
         }
     }
 }
@@ -42,8 +41,8 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx = ctx.read();
-                let frame = &result.frame;
+                let result: &ResultCtx<Image> = ctx.read();
+                let frame = &result.val;
                 let mut gray = Mat::default();
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
@@ -113,15 +112,16 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                 match opencv::core::convert_scale_abs(&frame.mat, &mut dst, alpha * 1.99, beta) {
                                     Ok(_) => {
                                         let frame = Image {
-                                            width: frame.width,
-                                            height: frame.height,
                                             timestamp: frame.timestamp,
                                             mat: dst,
-                                            bytes: frame.bytes,
                                         };
-                                        let result = AutoBrightnessAndContrastCtx { result: frame.clone() };
-                                        let ctx = ctx.write(result)?;
-                                        let result = ResultCtx { frame };
+                                        let ctx = if self.debug {
+                                            let result = AutoBrightnessAndContrastCtx { result: frame.clone() };
+                                            ctx.write(result).map_err(|err| error.pass(err))?
+                                        } else {
+                                            ctx
+                                        };
+                                        let result = ResultCtx { val: frame };
                                         log::debug!("AutoBrightnessAndContrast.eval | Elapsed: {:?}", t.elapsed());
                                         ctx.write(result)
                                     }

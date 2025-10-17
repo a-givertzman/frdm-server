@@ -1,42 +1,40 @@
+use std::{any::TypeId, marker::PhantomData};
+
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-            geometry_defect::Threshold, mad::{
-                Bond, 
-                MadCtx
-            }, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, Side
-        }, 
-    domain::{
-            Dot, 
-            Error, 
-            Eval, 
-            Image,
-        }
-    };
+        geometry_defect::Threshold, mad::{Bond, MadCtx},
+        ContextRead, ContextWrite, FastEdgesCtx, FineEdgesCtx, EvalResult, Side,
+        FastScanCtx, FineScanCtx,
+    },
+    domain::{Dot, Error, Eval, Image}
+};
 use super::WidthEmissionsCtx;
 ///
 /// Finding width emissions the rope
-pub struct WidthEmissions {
+pub struct WidthEmissions<Branch> {
     dbg: Dbg,
     threshold: Threshold,
-    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send>,
-    ctx: Box<dyn Eval<(), EvalResult> + Send>,
+    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send + Sync>,
+    ctx: Box<dyn Eval<(), EvalResult> + Send + Sync>,
+    branch: PhantomData<Branch>,
 }
 //
 //
-impl WidthEmissions {
+impl<Branch> WidthEmissions<Branch> {
     ///
     /// New instance [WidthEmissions]
     pub fn new(
         threshold: Threshold,
-        mad: impl Eval<Vec<usize>, MadCtx> + Send + 'static,
-        ctx: impl Eval<(), EvalResult> + Send + 'static,
+        mad: impl Eval<Vec<usize>, MadCtx> + Send + Sync + 'static,
+        ctx: impl Eval<(), EvalResult> + Send + Sync + 'static,
     ) -> Self {
         Self {
             dbg: Dbg::own("WidthEmissions"),
             threshold,
             mad: Box::new(mad),
             ctx: Box::new(ctx),
+            branch: PhantomData,
         }
     }
     ///
@@ -81,30 +79,43 @@ impl WidthEmissions {
 }
 //
 //
-impl Eval<Image, EvalResult> for WidthEmissions {
+impl<Branch: 'static> Eval<Image, EvalResult> for WidthEmissions<Branch> {
     fn eval(&self, _: Image) -> EvalResult {
         let error = Error::new(&self.dbg, "eval");
         match self.ctx.eval(()) {
             Ok(ctx) => {
-                let edge_detection_ctx = ContextRead::<EdgeDetectionCtx>::read(&ctx);
-                let initial_points_upper = edge_detection_ctx.result.get(Side::Upper);
-                let initial_points_lower = edge_detection_ctx.result.get(Side::Lower);
+                let (upper, lower) = match TypeId::of::<Branch>() {
+                    typ if typ == TypeId::of::<FastScanCtx>() => {
+                        let edges_ctx: &FastEdgesCtx = ctx.read();
+                        (edges_ctx.edges.get(Side::Upper), edges_ctx.edges.get(Side::Lower))
+                    }
+                    typ if typ == TypeId::of::<FineScanCtx>() => {
+                        let edges_ctx: &FineEdgesCtx = ctx.read();
+                        (edges_ctx.edges.get(Side::Upper), edges_ctx.edges.get(Side::Lower))
+                    }
+                    _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>())))?,
+                };
+                // let edge_detection_ctx = ContextRead::<FastEdgesCtx>::read(&ctx);
+                // let upper = edge_detection_ctx.result.get(Side::Upper);
+                // let lower = edge_detection_ctx.result.get(Side::Lower);
                 let mad_result = self.mad.eval(
                     Self::points_width(
-                            initial_points_upper.clone(),
-                            initial_points_lower.clone(),
+                            upper.clone(),
+                            lower.clone(),
                     )
                 );
-                let result = WidthEmissionsCtx {
-                    result: Self::emissions(
-                                initial_points_upper.clone(),
-                                initial_points_lower.clone(),
-                                mad_result.median,
-                                mad_result.mad,
-                                self.threshold.0
-                            ),
-                };
-                ctx.write(result)
+                let result =  Self::emissions(
+                    upper.clone(),
+                    lower.clone(),
+                    mad_result.median,
+                    mad_result.mad,
+                    self.threshold.0,
+                );
+                match TypeId::of::<Branch>() {
+                    typ if typ == TypeId::of::<FastScanCtx>() => ContextWrite::<WidthEmissionsCtx<FastScanCtx>>::write(ctx, WidthEmissionsCtx::new(result)),
+                    typ if typ == TypeId::of::<FineScanCtx>() => ContextWrite::<WidthEmissionsCtx<FastScanCtx>>::write(ctx, WidthEmissionsCtx::new(result)),
+                    _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
+                }
             },
             Err(err) => Err(error.pass(err)),
         }

@@ -13,6 +13,7 @@ impl<T: Copy, const N: usize> FilterLowPass<N, T> {
     ///
     /// Creates new FilterLowPass<const N: usize, T>
     /// - `T` - Type of the Filter Item
+    #[allow(unused)]
     pub fn new(initial: Option<T>) -> Self {
         let mut buffer = CircularBuffer::<N, T>::new();
         initial.map(|initial| {

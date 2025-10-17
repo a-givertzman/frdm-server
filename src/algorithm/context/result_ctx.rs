@@ -1,16 +1,15 @@
-use crate::domain::Image;
 ///
-/// Common result image from current step
+/// Common result from the step
 #[derive(Debug, Clone)]
-pub struct ResultCtx {
-    pub frame: Image,
+pub struct ResultCtx<T> {
+    pub val: T,
 }
 //
 //
-impl Default for ResultCtx {
+impl<T: Default> Default for ResultCtx<T> {
     fn default() -> Self {
         Self { 
-            frame: Image::default()
+            val: T::default()
          }
     }
 }

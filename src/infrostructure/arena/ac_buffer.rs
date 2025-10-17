@@ -104,7 +104,7 @@ impl AcBuffer {
     }
     ///
     /// Converts image format and color space from Arena SDK to OpenCv Mat
-    fn convert(&self, len: usize, width: usize, height: usize, timestamp: usize, data: *mut std::ffi::c_void) -> Result<Image, Error>{
+    fn convert(&self, width: usize, height: usize, timestamp: usize, data: *mut std::ffi::c_void) -> Result<Image, Error>{
         let error = Error::new(&self.name, "convert");
         let src = unsafe { opencv::core::Mat::new_rows_cols_with_data_unsafe(
             height as i32,
@@ -127,11 +127,11 @@ impl AcBuffer {
                         opencv::imgproc::COLOR_BayerRG2RGB,
                         3,
                     ) {
-                        Ok(_) => Ok(Image { width, height, timestamp: timestamp, mat: dst, bytes: len }),
+                        Ok(_) => Ok(Image { timestamp: timestamp, mat: dst }),
                         Err(err) => Err(error.pass_with("OpenCv COLOR_BayerRG2RGB conversion Error", err.to_string())),
                     }
                 }
-                _ => Ok(Image { width, height, timestamp, mat: src, bytes: len })
+                _ => Ok(Image { timestamp, mat: src })
             }
             Err(err) => Err(error.pass_with("Create OpenCv Mat Error", err.to_string())),
         }
@@ -144,7 +144,7 @@ impl AcBuffer {
     /// similar to a deep copy but with an uncompressed pixel format.
     pub fn image(&mut self) -> Result<Image, Error> {
         let error = Error::new(&self.name, "image");
-        let (buffer, len) = match self.pixel_format {
+        let (buffer, _) = match self.pixel_format {
             PixelFormat::QoiBayerRG8 | PixelFormat::QoiMono8 |
             PixelFormat::QoiRGB8 | PixelFormat::QoiBGR8 |
             PixelFormat::QoiYCbCr8 => {
@@ -167,7 +167,7 @@ impl AcBuffer {
             self.timestamp(buffer)?,
             self.image_data(buffer)?,
         );
-        self.convert(len, width, height, timestamp, data as _)
+        self.convert(width, height, timestamp, data as _)
     }
 }
 //

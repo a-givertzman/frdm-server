@@ -3,14 +3,15 @@ mod algorithm;
 mod conf;
 mod domain;
 mod infrostructure;
-use std::fs;
+use std::{fs, sync::Arc, time::Duration};
 use crossterm::event::{KeyEventKind, KeyEventState};
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
-use sal_core::dbg::Dbg;
+use sal_core::{dbg::Dbg, error::Error};
+use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
 use crate::{
     algorithm::{
-        AutoBrightnessAndContrast, AutoGamma, ContextRead, Cropping, DetectingContoursCv, DetectingContoursCvCtx, Gray, Initial, InitialCtx, RopeDimensionsConf, TemporalFilter, Threshold
-    }, conf::{Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
+        AutoGamma, Context, ContextRead, Cropping, EvalResult, FastContours, FastContoursConf, FastContoursCtx, FastScan, FastScanConf, FastScanCtx, FineScan, FineScanConf, Gray, Initial, InitialCtx, TemporalFilter
+    }, conf::{Conf, NormalizeConf}, domain::{channel_bounded, Eval, Image}, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -24,15 +25,15 @@ use crate::{
 ///     `clear && cargo run --bin complex-test --release -- --nocapture --cam-pause`
 fn main() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
-    let dbg = Dbg::own("main");
+    let dbg = Dbg::own("complex-test");
     let path = "./config.yaml";
     let conf = CameraConf::read(&dbg, path);
-    let mut camera = Camera::new(conf);
-    let recv = camera.stream();
     let mut handles = vec![];
+    let mut camera = Camera::new(conf);
     handles.push(
         camera.read().unwrap()
     );
+    let camera_stream = camera.stream();
     println!(r#"
         Add '--cam-pause' argumet to the cli commad to anable Pause / Resume for the Camera
             Then press a key:
@@ -94,54 +95,45 @@ fn main() {
         log::warn!("{}.stream | Create Window Error: {}", dbg, err);
     }
     opencv::highgui::wait_key(1).unwrap();
-    let conf = Conf {
-        contours: DetectingContoursConf::default(),
-        edge_detection: EdgeDetectionConf::default(),
-        rope_dimensions: RopeDimensionsConf::default(),
-        fast_scan: FastScanConf {
-            geometry_defect_threshold: Threshold::min(),
-        },
-        fine_scan: FineScanConf {},
-    };
-    for frame in recv {
-        log::trace!("{} | Frame width : {:?}", dbg, frame.width);
-        log::trace!("{} | Frame height: {:?}", dbg, frame.height);
-        log::trace!("{} | Frame timestamp: {:?}", dbg, frame.timestamp);
-        if let Err(err) = opencv::highgui::imshow(window, &frame.mat) {
-            log::warn!("{}.stream | Display img error: {:?}", dbg, err);
-        };
-        let contours_result = DetectingContoursCv::new(
-            DetectingContoursConf::default(),
-            TemporalFilter::new(
-                conf.contours.temporal_filter.amplify_factor,
-                conf.contours.temporal_filter.grow_speed,
-                conf.contours.temporal_filter.reduce_factor,
-                conf.contours.temporal_filter.down_speed,
-                conf.contours.temporal_filter.threshold,
-                Gray::new(
-                    AutoBrightnessAndContrast::new(
-                        conf.contours.brightness_contrast.hist_clip_left,
-                        conf.contours.brightness_contrast.hist_clip_right,
-                        AutoGamma::new(
-                            conf.contours.gamma.factor,
-                            Cropping::new(
-                                conf.contours.cropping.x,
-                                conf.contours.cropping.width,
-                                conf.contours.cropping.y,
-                                conf.contours.cropping.height,
-                                Initial::new(
-                                    InitialCtx::new(),
-                                ),
-                            ),
+    let conf = std::fs::OpenOptions::new().read(true).open("config.yaml").unwrap();
+    let conf = ConfTree::new_root(serde_yaml::from_reader(conf).unwrap());
+    let conf = Conf::new(&dbg, conf);
+    let tp = ThreadPool::new(&dbg, Some(8));
+    let dbg1 = dbg.clone();
+    let fine_scan = FineScan::new(
+        conf.fine_scan,
+        tp.scheduler(),
+        None::<Box<dyn Fn(&Context) + Send + Sync>>,
+        FastScan::new(
+            conf.fast_scan,
+            tp.scheduler(),
+            Gray::new(
+                AutoGamma::new(
+                    120.0,
+                    Cropping::new(
+                        230,
+                        1410,
+                        300,
+                        1000,
+                        Initial::new(
+                            InitialCtx::new(),
                         ),
+                        true,
                     ),
+                    true,
                 ),
+                true
             ),
-        ).eval(frame.clone()).unwrap();
-        let contours_ctx = ContextRead::<DetectingContoursCvCtx>::read(&contours_result);
-        if let Err(e) = opencv::highgui::imshow(window2, &contours_ctx.result.mat) {
-            log::error!("Display error: {}", e);
-        }
+            true,
+        ),
+        true,
+    );
+    for frame in camera_stream {
+        log::trace!("{dbg} | Frame width: {},  height: {}, timestamp: {}", frame.width(), frame.height(), frame.timestamp);
+        opencv::highgui::imshow(window, &frame.mat).unwrap();
+        let ctx = fine_scan.eval(frame.clone()).wait().unwrap().unwrap();
+        let contours_ctx: &FastContoursCtx = ctx.read();
+        opencv::highgui::imshow(window2, &contours_ctx.result.mat).unwrap();
         if counter == 5{
             //_2lightAngle45_600rpm_
             let path_retr = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/retrived/", exposure);
@@ -156,25 +148,6 @@ fn main() {
         }
         counter = counter + 1;
         opencv::highgui::wait_key(1).unwrap();
-        // let conf = Conf {
-        //     fast_scan: FastScanConf {
-        //         geometry_defect_threshold: Threshold::min(),
-        //     },
-        //     fine_scan: FineScanConf {},
-        // };
-        // let result = GeometryDefect::new(
-        //     conf.fast_scan.geometry_defect_threshold,
-        //     *Box::new(Mad::new()),
-        //     EdgeDetection::new(
-        //         DetectingContoursCv::new(
-        //             Initial::new(
-        //                 InitialCtx::new(frame),
-        //             ),
-        //         ),
-        //     ),
-        // )
-        // .eval(());
-        // _ = result;
     }
     let _: Vec<()> = handles.into_iter().map(|h| h.join().unwrap()).collect();
 }

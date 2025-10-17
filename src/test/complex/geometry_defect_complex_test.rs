@@ -11,11 +11,9 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, DetectingContoursCv, EdgeDetection, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, Threshold
+        ContextRead, FastEdgesConf, FastEdges, FastContours, FastContoursConf, FastScanConf, FastScanCtx,
+        GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, TemporalFilterConf, Threshold
     }, 
-    conf::{
-        Conf, DetectingContoursConf, EdgeDetectionConf, FastScanConf, FineScanConf
-    },
 };
 ///
 ///
@@ -50,25 +48,24 @@ fn eval() {
             vec![]
         )
     ];
-    let conf = Conf {
-        contours: DetectingContoursConf::default(),
-        edge_detection: EdgeDetectionConf::default(),
+    let conf = FastScanConf {
+        fast_contours: FastContoursConf::default(),
+        temporal_filter: TemporalFilterConf::default(),
+        fast_edges: FastEdgesConf::default(),
         rope_dimensions: RopeDimensionsConf::default(),
-        fast_scan: FastScanConf {
-            geometry_defect_threshold: Threshold::min(),
-        },
-        fine_scan: FineScanConf {},
+        geometry_defect_threshold: Threshold(1.1),
     };
-    let geometry_defect = GeometryDefect::new(
-        conf.fast_scan.geometry_defect_threshold,
+    let geometry_defect = GeometryDefect::<FastScanCtx>::new(
+        conf.geometry_defect_threshold,
         *Box::new(Mad::new()),
-        EdgeDetection::new(
-            conf.edge_detection.otsu_tune,
-            conf.edge_detection.threshold,
-            conf.edge_detection.smooth,
-            DetectingContoursCv::new(
-                conf.contours,
+        FastEdges::new(
+            conf.fast_edges.otsu_tune,
+            conf.fast_edges.threshold,
+            conf.fast_edges.smooth,
+            FastContours::new(
+                conf.fast_contours,
                 FakePassImg::new(),
+                false,
             ),
         ),
     );
@@ -81,7 +78,7 @@ fn eval() {
         let result = geometry_defect.eval(src_frame);
         match result {
             Ok(result) => {
-                let result = ContextRead::<GeometryDefectCtx>::read(&result)
+                let result = ContextRead::<GeometryDefectCtx<FastScanCtx>>::read(&result)
                     .result.clone();
                 assert!(
                     result == target, 
@@ -97,7 +94,7 @@ fn eval() {
     test_duration.exit();
 }
 ///
-/// Fake implements `Eval` for testing [EdgeDetection]
+/// Fake implements `Eval` for testing [FastEdges]
 struct FakePassImg {}
 impl FakePassImg{
     pub fn new() -> Self {
@@ -107,10 +104,10 @@ impl FakePassImg{
 //
 //
 impl Eval<Image, EvalResult> for FakePassImg {
-    fn eval(&self, frame: Image) -> EvalResult {
+    fn eval(&self, val: Image) -> EvalResult {
         let ctx = Context::new(
             InitialCtx::new()
         );
-        ctx.write(ResultCtx { frame })
+        ctx.write(ResultCtx { val })
     }
 }

@@ -6,7 +6,7 @@ use sal_sync::math::AproxEq;
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
 use crate::{
-    algorithm::{Context, ContextRead, ContextWrite, EdgeDetectionCtx, EvalResult, InitialCtx, InitialPoints, RopeDimensions, RopeDimensionsCtx},
+    algorithm::{Context, ContextRead, ContextWrite, FastEdgesCtx, EvalResult, InitialCtx, Edges, RopeDimensions, RopeDimensionsCtx, FastScanCtx},
     domain::{Dot, Eval, Image},
 };
 ///
@@ -37,11 +37,11 @@ fn eval() {
     fn into_dots(dots: &[usize]) -> Vec<Dot<usize>> {
         dots.chunks(2).map(|d| d.into()).collect()
     }
-    let test_data: &[(usize, EdgeDetectionCtx, Result<(f64, f64), ()>)] = &[
+    let test_data: &[(usize, FastEdgesCtx, Result<(f64, f64), ()>)] = &[
         (
             1,
-            EdgeDetectionCtx {
-                result: InitialPoints::new(
+            FastEdgesCtx {
+                edges: Edges::new(
                     into_dots(&[0,0, 1,0, 2,0, 3,0, 4,0, 5,0]),
                     into_dots(&[0,5, 1,5, 2,5, 3,5, 4,5, 5,5]),
                 )
@@ -50,8 +50,8 @@ fn eval() {
         ),
         (
             2,
-            EdgeDetectionCtx {
-                result: InitialPoints::new(
+            FastEdgesCtx {
+                edges: Edges::new(
                     into_dots(&[0,1, 1,0, 2,0, 3,1, 4,0, 5,0]),
                     into_dots(&[0,5, 1,4, 2,5, 3,5, 4,5, 5,4]),
                 )
@@ -60,8 +60,8 @@ fn eval() {
         ),
         (
             3,
-            EdgeDetectionCtx {
-                result: InitialPoints::new(
+            FastEdgesCtx {
+                edges: Edges::new(
                     into_dots(&[0,0, 1,0, 2,0, 3,0, 4,0, 5,0]),
                     into_dots(&[0,5, 1,5, 2,5, 3,5, 4,5, 5,4]),
                 )
@@ -70,8 +70,8 @@ fn eval() {
         ),
         (
             3,
-            EdgeDetectionCtx {
-                result: InitialPoints::new(
+            FastEdgesCtx {
+                edges: Edges::new(
                     into_dots(&[0,1, 1,0, 2,0, 3,0, 4,0, 5,0]),
                     into_dots(&[0,5, 1,5, 2,5, 3,5, 4,5, 5,5]),
                 )
@@ -80,7 +80,7 @@ fn eval() {
         ),
     ];
     for (step, dots, target) in test_data {
-        let result = RopeDimensions::new(
+        let result = RopeDimensions::<FastScanCtx>::new(
             5,
             5.0,
             3.5,
@@ -88,7 +88,7 @@ fn eval() {
         )
         .eval(Image::default())
         .map(|ctx| {
-            let result: &RopeDimensionsCtx = ctx.read();
+            let result: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
             result.to_owned()
         });
         match (result, target) {
@@ -108,10 +108,10 @@ fn eval() {
 ///
 /// Fake implements `Eval` for testing [RopeDimensions]
 struct FakePassDots {
-    dots: EdgeDetectionCtx,
+    dots: FastEdgesCtx,
 }
 impl FakePassDots{
-    pub fn new(dots: EdgeDetectionCtx) -> Self {
+    pub fn new(dots: FastEdgesCtx) -> Self {
         Self { dots }
     }
 }
