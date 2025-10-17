@@ -1,5 +1,4 @@
 use std::{any::TypeId, marker::PhantomData};
-
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
@@ -10,12 +9,13 @@ use crate::{
     }, 
     domain::{Error, Eval, Image},
 };
+
 ///
 /// Represents detecting [geometry defect's](design/theory/geometry_rope_defects.md)
 pub struct GeometryDefect<Branch> {
     dbg: Dbg,
     threshold: Threshold,
-    mad: Box<dyn Eval<Vec<usize>, MadCtx>>,
+    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send + Sync>,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     branch: PhantomData<Branch>,
 }
@@ -26,7 +26,7 @@ impl<Branch> GeometryDefect<Branch> {
     /// New instance [GeometryDefect]
     pub fn new(
         threshold: Threshold,
-        mad: impl Eval<Vec<usize>, MadCtx> + 'static,
+        mad: impl Eval<Vec<usize>, MadCtx> + Send + Sync + 'static,
         ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static,
     ) -> Self {
         Self {

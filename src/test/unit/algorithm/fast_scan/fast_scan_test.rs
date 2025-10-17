@@ -48,13 +48,6 @@ fn eval() {
                 weight2: 1.0            # Weight of the second array elements.
                 gamma: 0.0
             fast-contours:
-                cropping:
-                    x: 230              # New left edge
-                    y: 300              # New top edge
-                    width: 1410         # New image width
-                    height: 1000        # New image height
-                gamma:
-                    factor: 120.0       # Percent of influence of [AutoGamma] algorythm bigger the value more the effect of [AutoGamma] algorythm, %
                 otsu-tune: 0.40
             temporal-filter:
                 gaussian:
