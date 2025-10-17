@@ -3,15 +3,15 @@ mod algorithm;
 mod conf;
 mod domain;
 mod infrostructure;
-use std::{fs, sync::Arc, time::Duration};
+use std::fs;
 use crossterm::event::{KeyEventKind, KeyEventState};
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
-use sal_core::{dbg::Dbg, error::Error};
-use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
+use sal_core::dbg::Dbg;
+use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, EvalResult, FastContours, FastContoursConf, FastContoursCtx, FastScan, FastScanConf, FastScanCtx, FineScan, FineScanConf, Gray, Initial, InitialCtx, TemporalFilter
-    }, conf::{Conf, NormalizeConf}, domain::{channel_bounded, Eval, Image}, infrostructure::camera::{Camera, CameraConf}
+        AutoGamma, Context, ContextRead, Cropping, FastContoursCtx, FastScan, FineScan, Gray, Initial, InitialCtx,
+    }, conf::Conf, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
 /// Application entry point
@@ -99,7 +99,6 @@ fn main() {
     let conf = ConfTree::new_root(serde_yaml::from_reader(conf).unwrap());
     let conf = Conf::new(&dbg, conf);
     let tp = ThreadPool::new(&dbg, Some(8));
-    let dbg1 = dbg.clone();
     let fine_scan = FineScan::new(
         conf.fine_scan,
         tp.scheduler(),
