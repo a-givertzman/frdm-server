@@ -86,3 +86,41 @@ Lens focal length | Image width  | Image hight | Field depth    | Image deformat
 ```bash
 bindgen src/infrostructure/arena/wrappers.h -o src/infrostructure/arena/bindings.rs -- "-Ilucid_arena_sdk_include_path"
 ```
+
+## Algorithm description
+
+Ferst frame passed into the `FastScan` algoritm, which very fast will find rope contours and mak it analisys.
+If some defects are detected, then already prepared normalized gray scale image passed into the `FineScan` algorithm.
+`FineScan` is more expensive in calculations but much more precise in rope contours detection.
+By the result we have an arrey of rope defect if found in the frame.
+
+### FastScan Algorithm
+
+#### Contour detection algorithms optimized for speed, tradeoff in result quality
+
+- Convert into gray scale
+- Apply autogamma
+- First way (execute in the separate thread)
+   - Find contours based on the sharpness (sopel gradient or laplacian)
+- Second way (execute in the separate thread)
+   - Find contours based on the moving objhect (diff of same pixel betwee current and previouse frame)
+- Union contours of two ways using bitwise/add_weighted operation
+
+### FineScan Algorithm
+
+#### Basic futures
+
+Contour detection algorithms optimized for quality, tradeoff in result speed
+
+- Gray scale image expected from `context.normalized.gray`
+- First way (execute in the separate thread)
+   - Threshold based on the sharpness (sobel gradient or laplacian)
+   - Find contours (polilines) around white (using threshold) areas
+   - Compose nierby areas by distance between
+   - Find biggest area
+   - Make a convex hall around found biggest area
+   - Store convex hall to be used by future steps
+- Second way (execute in the separate thread)
+   - Find contours based on the moving objhect (diff of same pixel betwee current and previouse frame)
+- Union contours of two ways using bitwise/add_weighted operation
+- Crop outside convex hall

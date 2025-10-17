@@ -8,15 +8,15 @@ use crate::{
     domain::{Eval, Image},
 };
 ///
-/// Contour detection algorithms optimized for speed, tradeoff in result quality
+/// ## Contour detection algorithms optimized for speed, tradeoff in result quality
 /// 
 /// - Convert into gray scale
 /// - Apply autogamma
-/// - First way
+/// - First way (execute in the separate thread)
 ///    - Find contours based on the sharpness (sopel gradient or laplacian)
-/// - Second way
+/// - Second way (execute in the separate thread)
 ///    - Find contours based on the moving objhect (diff of same pixel betwee current and previouse frame)
-/// - Union contours of two ways using bitwise operation
+/// - Union contours of two ways using bitwise/add_weighted operation
 pub struct FastScan {
     pass_ctx1: Arc<Owner<Context>>,
     pass_ctx2: Arc<Owner<Context>>,

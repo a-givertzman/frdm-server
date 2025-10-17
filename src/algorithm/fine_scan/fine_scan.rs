@@ -9,15 +9,20 @@ use crate::{
     }, domain::{Eval, Image},
 };
 ///
-/// Contour detection algorithms optimized for speed, tradeoff in result quality
-/// 
-/// - Convert into gray scale
-/// - Apply autogamma
-/// - First way
-///    - Find contours based on the sharpness (sopel gradient or laplacian)
-/// - Second way
+/// ## Contour detection algorithms optimized for quality, tradeoff in result speed
+///
+/// - Gray scale image expected from `context.normalized.gray`
+/// - First way (execute in the separate thread)
+///    - Threshold based on the sharpness (sobel gradient or laplacian)
+///    - Find contours (polilines) around white (using threshold) areas
+///    - Compose nierby areas by distance between
+///    - Find biggest area
+///    - Make a convex hall around found biggest area
+///    - Store convex hall to be used by future steps
+/// - Second way (execute in the separate thread)
 ///    - Find contours based on the moving objhect (diff of same pixel betwee current and previouse frame)
-/// - Union contours of two ways using bitwise operation
+/// - Union contours of two ways using bitwise/add_weighted operation
+/// - Crop outside convex hall
 pub struct FineScan {
     pass_ctx1: Arc<Owner<Context>>,
     pass_ctx2: Arc<Owner<Context>>,
