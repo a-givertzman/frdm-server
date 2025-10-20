@@ -87,7 +87,6 @@ fn eval() {
                     ),
                     debug,
                 ),
-                debug,
             ),
             true,
         ),

@@ -3,9 +3,9 @@ use sal_core::error::Error;
 use sal_sync::{services::future::Future, sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        self, Context, ContextRead, ContextWrite, EvalResult, FineContours,
-        FineConvexCtx, FineEdges, FineScanConf, FineScanCtx, FineUnion,
-        GrayCtx, GeometryDefectCtx, ResultCtx, TemporalFilter,
+        self, Context, ContextRead, EvalResult, FineContours,
+        FineEdges, FineScanConf, FineScanCtx, FineUnion,
+        GrayCtx, GeometryDefectCtx, TemporalFilter,
     }, domain::{Eval, Image},
 };
 ///
@@ -109,49 +109,29 @@ impl Eval<Image, Future<Result<Context, Error>>> for FineScan {
                 let defects = self.defects.clone();
                 let handle = self.scheduler.spawn(move || {
                     let error = Error::new("FineScan", "eval");
-                    let ctx = match ctx_eval.eval(frame) {
+                    match ctx_eval.eval(frame) {
                         Ok(ctx) => {
-                            let convex: &FineConvexCtx = ctx.read();
-                            match &convex.convex {
-                                Some(convex) => {
-                                    let result: &ResultCtx<Image> = ctx.read();
-                                    let mut dst = opencv::core::Mat::default();
-                                    match opencv::core::bitwise_and(&result.val.mat, &convex.mat, &mut dst, &opencv::core::no_array()) {
-                                        Ok(_) => {
-                                            log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
-                                            if let Some(defects) = defects {
-                                                let defects_ctx: &GeometryDefectCtx<()> = ctx.read();
-                                                if !defects_ctx.result.is_empty() {
-                                                    (defects)(&ctx)
-                                                }
-                                            }
-                                            ctx.write(ResultCtx { val: Image::with(dst) })
-                                        }
-                                        Err(err) => Err(error.pass(err.to_string())),
-                                    }
+                            log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
+                            if let Some(defects) = defects {
+                                let defects_ctx: &GeometryDefectCtx<()> = ctx.read();
+                                if !defects_ctx.result.is_empty() {
+                                    (defects)(&ctx)
                                 }
-                                None => Err(error.err("Can't get convex from context")),
                             }
+                            sink1.add(Ok(ctx));
                         }
-                        Err(err) => Err(error.pass(err)),
-                    };
-                    match ctx {
-                        Ok(ctx) => sink1.add(Ok(ctx)),
-                        Err(err) => sink1.add(Err(err)),
-                    };
+                        Err(err) => sink1.add(Err(error.pass(err))),
+                    }
                     Ok(())
                 });
                 handle.map_err(|err| error.pass(err))
             }
             Err(err) => Err(error.pass(err)),
         };
-        match result {
-            Ok(_) => future,
-            Err(err) => {
-                sink.add(Err(error.pass(err)));
-                future
-            }
+        if let Err(err) = result {
+            sink.add(Err(error.pass(err)));
         }
+        future
     }
 }
 ///

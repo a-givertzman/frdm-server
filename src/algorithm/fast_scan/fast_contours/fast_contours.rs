@@ -80,13 +80,9 @@ impl Eval<Image, EvalResult> for FastContours {
                 let frame = &result.val;
                 let mat = self.proc.eval(frame.mat.clone())
                     .map_err(|err| error.pass(err))?;
-                let frame = Image {
-                    timestamp: frame.timestamp,
-                    mat: mat,
-                };
+                let frame = Image {mat, timestamp: frame.timestamp};
                 let ctx = if self.debug {
-                    let result = FastContoursCtx { result: frame.clone() };
-                    ctx.write(result)?
+                    ctx.write(FastContoursCtx { result: frame.clone() }).map_err(|err| error.pass(err))?
                 } else {
                     ctx
                 };

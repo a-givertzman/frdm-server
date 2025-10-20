@@ -63,7 +63,6 @@ fn main() {
                             ),
                             debug,
                         ),
-                        debug,
                     ),
                     debug,
                 ),

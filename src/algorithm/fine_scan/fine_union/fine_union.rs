@@ -60,13 +60,11 @@ impl Eval<Image, EvalResult> for FineUnion {
                 let t = Instant::now();
                 let src1: &ResultCtx<Image> = ctx1.read();
                 let src1_mat = &src1.val.mat;
-                log::debug!("FineUnion.eval | src1: {}x{}", src1_mat.cols(), src1_mat.rows());
+                log::trace!("FineUnion.eval | src1: {}x{}", src1_mat.cols(), src1_mat.rows());
                 let src2: &ResultCtx<Image> = ctx2.read();
                 let src2_mat = &src2.val.mat;
-                log::debug!("FineUnion.eval | src2: {}x{}", src2_mat.cols(), src2_mat.rows());
+                log::trace!("FineUnion.eval | src2: {}x{}", src2_mat.cols(), src2_mat.rows());
                 let mut dst = opencv::core::Mat::default();
-                // match opencv::core::add_weighted_def(src1_mat, 0.1, src2_mat, 1.0, 0.0, &mut dst) {
-                // match opencv::core::add(src1_mat, src2_mat, &mut dst, &opencv::core::no_array(), -1) {
                 match (self.conf.add_weighted, self.conf.bitwise_and) {
                     (None, Some(_)) => opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array())
                         .map_err(|err| error.pass(err.to_string()))?,

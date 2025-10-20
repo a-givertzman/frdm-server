@@ -61,14 +61,14 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                         let width = frame.mat.cols() as usize;
                         let pixels = width * height * frame.mat.channels() as usize;
                         let mut dst = vec![0u8; pixels];
-                        log::debug!("TemporalFilter.eval | pixels: {:?}", pixels);
+                        // log::debug!("TemporalFilter.eval | pixels: {:?}", pixels);
                         if self.filters.read().is_empty() {
                             *self.filters.write() = (0..pixels).map(|_| {
                                 FilterIsChanged::<f32>::new(None, self.threshold)
                             }).collect();
                         }
-                        log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
-                        log::debug!("TemporalFilter.eval | mat.channels: {:?}", frame.mat.channels());
+                        // log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
+                        // log::debug!("TemporalFilter.eval | mat.channels: {:?}", frame.mat.channels());
                         let mut filters = self.filters.write();
                         for i in 0..pixels {
                             match input.get(i) {
@@ -86,7 +86,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                                 None => return Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
                             }
                         }
-                        log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
+                        // log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
                         let dst = cv::CreateMat::gray8(width as i32, height as i32)
                             .filled()
                             .eval(&dst)

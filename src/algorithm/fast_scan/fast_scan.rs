@@ -64,6 +64,7 @@ impl FastScan {
                                 PassGrayCtx::new(pass_ctx2),
                                 debug,
                             ),
+                            debug,
                         ),
                     ),
                 ),

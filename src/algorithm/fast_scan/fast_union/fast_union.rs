@@ -12,6 +12,7 @@ pub struct FastUnion {
     scheduler: Scheduler,
     ctx1: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
     ctx2: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
+    debug: bool,
 }
 //
 //
@@ -23,12 +24,14 @@ impl FastUnion {
         scheduler: Scheduler,
         ctx1: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
         ctx2: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
+        debug: bool,
     ) -> Self {
         Self {
             conf,
             scheduler,
             ctx1: Arc::new(RwLock::new(Box::new(ctx1))),
             ctx2: Arc::new(RwLock::new(Box::new(ctx2))),
+            debug,
         }
     }
 }
@@ -64,7 +67,6 @@ impl Eval<Image, EvalResult> for FastUnion {
                 let src2_mat = &src2.val.mat;
                 log::debug!("FastUnion.eval | src1: {}x{}", src2_mat.cols(), src2_mat.rows());
                 let mut dst = opencv::core::Mat::default();
-                // match opencv::core::add(src1_mat, src2_mat, &mut dst, &opencv::core::no_array(), -1) {
                 match (self.conf.add_weighted, self.conf.bitwise_and) {
                     (None, Some(_)) => opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array())
                         .map_err(|err| error.pass(err.to_string()))?,
@@ -72,20 +74,15 @@ impl Eval<Image, EvalResult> for FastUnion {
                         .map_err(|err| error.pass(err.to_string()))?,
                     _ => return Err(error.err(format!("Both: 'add-weighted' and `bitwise-and` - are specified, please use one of"))),
                 }
-                // let convex1: &FineConvexCtx = ctx1.read();
-                // let convex2: &FineConvexCtx = ctx2.read();
-                // let ctx = match (&convex1.convex, &convex2.convex) {
-                //     (None, None) => ctx1,
-                //     (None, Some(_)) => ctx2,
-                //     (Some(_), None) => ctx1,
-                //     (Some(_), Some(_)) => ctx1,
-                // };
                 let frame = Image::with(dst);
-                let union = FastUnionCtx { frame: frame.clone() };
-                let ctx = ctx1.write(union).map_err(|err| error.pass(err))?;
-                let result = ResultCtx { val: frame };
+                let ctx = if self.debug {
+                    let union = FastUnionCtx { frame: frame.clone() };
+                    ctx1.write(union).map_err(|err| error.pass(err))?
+                } else {
+                    ctx1
+                };
                 log::debug!("FastUnion.eval | Elapsed: {:?}", t.elapsed());
-                ctx.write(result)
+                ctx.write( ResultCtx { val: frame } )
             }
             (Ok(_), Err(err)) => Err(error.pass(err)),
             (Err(err), Ok(_)) => Err(error.pass(err)),

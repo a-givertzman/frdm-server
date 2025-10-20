@@ -55,7 +55,6 @@ fn eval() {
             ),
             debug,
         ),
-        debug,
     );
     let wgray = "Gray";
     let wfgmask = "Fg Mask";

@@ -565,9 +565,6 @@ impl eframe::App for UiApp {
                     FastContours::new(
                         conf.fast_scan.fast_contours,
                         Gray::new(
-                            // AutoBrightnessAndContrast::new(
-                            //     conf.fast_contours.brightness_contrast.hist_clip_left,
-                            //     conf.fast_contours.brightness_contrast.hist_clip_right,
                                 AutoGamma::new(
                                     conf.normalize.gamma.factor,
                                     Cropping::new(
@@ -582,9 +579,6 @@ impl eframe::App for UiApp {
                                     ),
                                     debug,
                                 ),
-                                debug,
-                            // ),
-                            // debug,
                         ),
                         debug,
                     ),

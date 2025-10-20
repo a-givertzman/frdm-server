@@ -105,12 +105,8 @@ impl<Branch: 'static> Eval<Image, EvalResult> for GeometryDefect<Branch> {
                 if width_emissions_result.is_empty() {
                     log::debug!("Frame without defect's");
                     return match TypeId::of::<Branch>() {
-                        typ if typ == TypeId::of::<FastScanCtx>() => ContextWrite::<GeometryDefectCtx<FastScanCtx>>::write(
-                            ctx, GeometryDefectCtx::new(result),
-                        ),
-                        typ if typ == TypeId::of::<FineScanCtx>() => ContextWrite::<GeometryDefectCtx<FineScanCtx>>::write(
-                            ctx, GeometryDefectCtx::new(result),
-                        ),
+                        typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(GeometryDefectCtx::<FastScanCtx>::new(result)),
+                        typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(GeometryDefectCtx::<FineScanCtx>::new(result)),
                         _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
                     }
                 }
@@ -163,8 +159,8 @@ impl<Branch: 'static> Eval<Image, EvalResult> for GeometryDefect<Branch> {
                     acc
                 });
                 match TypeId::of::<Branch>() {
-                    typ if typ == TypeId::of::<FastScanCtx>() => ContextWrite::<GeometryDefectCtx<FastScanCtx>>::write(ctx, GeometryDefectCtx::new(result)),
-                    typ if typ == TypeId::of::<FineScanCtx>() => ContextWrite::<GeometryDefectCtx<FineScanCtx>>::write(ctx, GeometryDefectCtx::new(result)),
+                    typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(GeometryDefectCtx::<FastScanCtx>::new(result)),
+                    typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(GeometryDefectCtx::<FineScanCtx>::new(result)),
                     _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
                 }
             },
