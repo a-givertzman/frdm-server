@@ -49,6 +49,7 @@ impl FastScan {
                         conf.fast_edges.threshold,
                         conf.fast_edges.smooth,
                         FastUnion::new(
+                            conf.union,
                             scheduler,
                             TemporalFilter::<FastScanCtx>::new(
                                 conf.temporal_filter.gaussian,

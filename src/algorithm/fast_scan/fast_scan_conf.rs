@@ -1,6 +1,6 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::{algorithm::{FastEdgesConf, FastContoursConf, RopeDimensionsConf, TemporalFilterConf, Threshold}};
+use crate::{algorithm::{FastContoursConf, FastEdgesConf, RopeDimensionsConf, TemporalFilterConf, Threshold}, conf::UnionConf};
 
 ///
 /// `FastScan` algorithm configuration
@@ -8,10 +8,6 @@ use crate::{algorithm::{FastEdgesConf, FastContoursConf, RopeDimensionsConf, Tem
 /// ### Example
 /// ```yaml
 /// fast-scan:
-///     add-weighted:               # Combine two images
-///         weight1: 1.0            # Weight of the first array elements.
-///         weight2: 1.0            # Weight of the second array elements.
-///         gamma: 0.0
 ///     fast-contours:
 ///         otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
 ///     temporal-filter:
@@ -25,6 +21,11 @@ use crate::{algorithm::{FastEdgesConf, FastContoursConf, RopeDimensionsConf, Tem
 ///         otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
 ///         # threshold: 128        # 0...255, used if otsu-tune is not specified
 ///         smooth: 36              # Smoothing of edge line factor. The higher the factor the smoother the line.
+///     union:
+///         add-weighted:               # Combine two images
+///             weight1: 1.0            # Weight of the first array elements.
+///             weight2: 1.0            # Weight of the second array elements.
+///             gamma: 0.0              # Scalar added to the result, default 0.0
 ///     rope-dimensions:        # Verifaing the rope dimensions 
 ///         rope-width: 380               # Standart rope width, px
 ///         width-tolerance: 25.0         # Tolerance for rope width, %
@@ -37,6 +38,7 @@ pub struct FastScanConf {
     /// Configuration for `Temporal Filter`
     pub temporal_filter: TemporalFilterConf,
     pub fast_edges: FastEdgesConf,
+    pub union: UnionConf,
     pub rope_dimensions: RopeDimensionsConf,
     pub geometry_defect_threshold: Threshold,
 }
@@ -60,6 +62,9 @@ impl FastScanConf {
         let fast_edges = conf.get("fast-edges").expect(&format!("{dbg}.new | 'fast-edges' - not found or wrong configuration"));
         let fast_edges = FastEdgesConf::new(&name, fast_edges);
         log::trace!("{dbg}.new | fast-edges: {:#?}", fast_edges);
+        let union = conf.get("union").expect(&format!("{dbg}.new | 'union' - not found or wrong configuration"));
+        let union = UnionConf::new(&name, union);
+        log::trace!("{dbg}.new | union: {:#?}", union);
         let rope_dimensions = conf.get("rope-dimensions").expect(&format!("{dbg}.new | 'rope-dimensions' - not found or wrong configuration"));
         let rope_dimensions = RopeDimensionsConf::new(&name, rope_dimensions);
         log::trace!("{dbg}.new | rope-dimensions: {:#?}", rope_dimensions);
@@ -70,6 +75,7 @@ impl FastScanConf {
             fast_contours,
             temporal_filter,
             fast_edges,
+            union,
             rope_dimensions,
             geometry_defect_threshold,
         }
@@ -83,6 +89,7 @@ impl Default for FastScanConf {
             fast_contours: Default::default(),
             temporal_filter: Default::default(),
             fast_edges: Default::default(),
+            union: UnionConf::default(),
             rope_dimensions: Default::default(),
             geometry_defect_threshold: Default::default(),
         }

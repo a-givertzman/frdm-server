@@ -11,9 +11,8 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, FastEdgesConf, FastEdges, FastContours, FastContoursConf, FastScanConf, FastScanCtx,
-        GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, TemporalFilterConf, Threshold
-    }, 
+        ContextRead, FastContours, FastContoursConf, FastEdges, FastEdgesConf, FastScanConf, FastScanCtx, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, TemporalFilterConf, Threshold
+    }, conf::UnionConf, 
 };
 ///
 ///
@@ -52,6 +51,7 @@ fn eval() {
         fast_contours: FastContoursConf::default(),
         temporal_filter: TemporalFilterConf::default(),
         fast_edges: FastEdgesConf::default(),
+        union: UnionConf::default(),
         rope_dimensions: RopeDimensionsConf::default(),
         geometry_defect_threshold: Threshold(1.1),
     };

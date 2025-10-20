@@ -11,7 +11,7 @@ use crate::{
     algorithm::{
         AutoGamma, ContextRead, Cropping, CroppingConf, FastContours, FastContoursConf, FastContoursCtx, FastEdges, FastEdgesConf, FastEdgesCtx, FastScanConf, FineScanConf, Gray, Initial, InitialCtx, RopeDimensionsConf, Side, TemporalFilterConf, Threshold
     },
-    conf::{Conf, GammaConf, NormalizeConf},
+    conf::{Conf, GammaConf, NormalizeConf, UnionConf},
     domain::{Dot, Eval, Image},
 };
 
@@ -546,6 +546,7 @@ impl eframe::App for UiApp {
                             threshold: (threshold == 0).then(|| threshold) ,
                             smooth: Some(self.params.get("FastEdges.Smooth").unwrap().1.as_double()),
                         },
+                        union: UnionConf::default(),
                         rope_dimensions: RopeDimensionsConf {
                             rope_width: self.params.get("RopeDimensions.rope-width").unwrap().1.as_int() as usize,
                             width_tolerance: self.params.get("RopeDimensions.width-tolerance").unwrap().1.as_double(),

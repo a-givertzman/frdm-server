@@ -1,9 +1,8 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::algorithm::{
-    FineEdgesConf, FineContoursConf,
-    RopeDimensionsConf, TemporalFilterConf, Threshold,
-};
+use crate::{algorithm::{
+    FineContoursConf, FineEdgesConf, RopeDimensionsConf, TemporalFilterConf, Threshold
+}, conf::UnionConf};
 
 ///
 /// `FineScan` algorithm configuration
@@ -25,6 +24,11 @@ use crate::algorithm::{
 ///         otsu-tune: 1.40             # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
 ///         # threshold: 128            # 0...255, used if otsu-tune is not specified
 ///         smooth: 36                  # Smoothing of edge line factor. The higher the factor the smoother the line.
+///     union:
+///         add-weighted:               # Combine two images
+///             weight1: 1.0            # Weight of the first array elements.
+///             weight2: 1.0            # Weight of the second array elements.
+///             gamma: 0.0              # Scalar added to the result, default 0.0
 ///     rope-dimensions:            # Verifaing the rope dimensions 
 ///         rope-width: 380               # Standart rope width, px
 ///         width-tolerance: 25.0         # Tolerance for rope width, %
@@ -36,6 +40,7 @@ pub struct FineScanConf {
     pub fine_contours: FineContoursConf,
     pub temporal_filter: TemporalFilterConf,
     pub fine_edges: FineEdgesConf,
+    pub union: UnionConf,
     pub rope_dimensions: RopeDimensionsConf,
     pub geometry_defect_threshold: Threshold,
 }
@@ -60,6 +65,9 @@ impl FineScanConf {
         let fine_edges = conf.get("fine-edges").expect(&format!("{dbg}.new | 'fine-edges' - not found or wrong configuration"));
         let fine_edges = FineEdgesConf::new(&name, fine_edges);
         log::trace!("{dbg}.new | fine-edges: {:#?}", fine_edges);
+        let union = conf.get("union").expect(&format!("{dbg}.new | 'union' - not found or wrong configuration"));
+        let union = UnionConf::new(&name, union);
+        log::trace!("{dbg}.new | union: {:#?}", union);
         let rope_dimensions = conf.get("rope-dimensions").expect(&format!("{dbg}.new | 'rope-dimensions' - not found or wrong configuration"));
         let rope_dimensions = RopeDimensionsConf::new(&name, rope_dimensions);
         log::trace!("{dbg}.new | rope-dimensions: {:#?}", rope_dimensions);
@@ -70,6 +78,7 @@ impl FineScanConf {
             fine_contours,
             temporal_filter,
             fine_edges,
+            union,
             rope_dimensions,
             geometry_defect_threshold,
         }
@@ -83,6 +92,7 @@ impl Default for FineScanConf {
             fine_contours: FineContoursConf::default(),
             temporal_filter: TemporalFilterConf::default(),
             fine_edges: FineEdgesConf::default(),
+            union: UnionConf::default(),
             rope_dimensions: RopeDimensionsConf::default(),
             geometry_defect_threshold: Threshold::default(),
         }

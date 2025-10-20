@@ -57,6 +57,9 @@ fn eval() {
                 # otsu-tune: 1.40       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 threshold: 16           # 0...255, used if otsu-tune is not specified
                 smooth: 16              # Smoothing of edge line factor. The higher the factor the smoother the line.
+            union:
+                bitwise-and:
+                    no-params: ~
             rope-dimensions:        # Verifaing the rope dimensions 
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 30.0         # Tolerance for rope width, %
