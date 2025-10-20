@@ -43,10 +43,6 @@ fn eval() {
     test_duration.run().unwrap();
     let conf = ConfTree::new_root(
         serde_yaml::from_str(&format!(r#"
-            add-weighted:
-                weight1: 1.0            # Weight of the first array elements.
-                weight2: 1.0            # Weight of the second array elements.
-                gamma: 0.0
             fast-contours:
                 otsu-tune: 0.40
             temporal-filter:
@@ -60,6 +56,10 @@ fn eval() {
                 otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
                 # threshold: 128        # 0...255, used if otsu-tune is not specified
                 smooth: 36              # Smoothing of edge line factor. The higher the factor the smoother the line.
+            union:
+                add-weighted:
+                    weight1: 1.0            # Weight of the first array elements.
+                    weight2: 1.0            # Weight of the second array elements.
             rope-dimensions:        # Verifaing the rope dimensions 
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 50.0         # Tolerance for rope width, %

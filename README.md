@@ -110,7 +110,7 @@ Finally we have an array of rope defect if found in the frame.
 
 #### Basic futures
 
-Contour detection algorithms optimized for quality, tradeoff in result speed
+Contour detection algorithms optimized for quality, tradeoff in speed
 
 - Gray scale image expected from `context.normalized.gray`
 - First way (execute in the separate thread)

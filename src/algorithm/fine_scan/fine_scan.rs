@@ -5,11 +5,11 @@ use crate::{
     algorithm::{
         self, Context, ContextRead, ContextWrite, EvalResult, FineContours,
         FineConvexCtx, FineEdges, FineScanConf, FineScanCtx, FineUnion,
-        GeometryDefectCtx, ResultCtx, TemporalFilter,
+        GrayCtx, GeometryDefectCtx, ResultCtx, TemporalFilter,
     }, domain::{Eval, Image},
 };
 ///
-/// ## Contour detection algorithms optimized for quality, tradeoff in result speed
+/// ## Contour detection algorithms optimized for quality, tradeoff in speed
 ///
 /// - Gray scale image expected from `context.normalized.gray`
 /// - First way (execute in the separate thread)
@@ -60,6 +60,7 @@ impl FineScan {
                     conf.fine_edges.threshold,
                     conf.fine_edges.smooth,
                     FineUnion::new(
+                        conf.union,
                         scheduler.clone(),
                         TemporalFilter::<FineScanCtx>::new(
                             conf.temporal_filter.gaussian,
@@ -91,8 +92,8 @@ impl Eval<Image, Future<Result<Context, Error>>> for FineScan {
         let result = match self.ctx_gray.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &ResultCtx<Image> = ctx.read();
-                let frame = result.val.clone();
+                let result: &GrayCtx = ctx.read();
+                let frame = result.frame.clone();
                 log::debug!("FineScan.eval | ctx size: {:?}", size_of_val(&ctx));
                 log::debug!("FineScan.eval | Image size: {:?}", size_of_val(&Image::default()));
                 log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::InitialCtx>::read(&ctx)));
