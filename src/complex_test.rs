@@ -95,7 +95,7 @@ fn main() {
         log::warn!("{}.stream | Create Window Error: {}", dbg, err);
     }
     opencv::highgui::wait_key(1).unwrap();
-    let conf = std::fs::OpenOptions::new().read(true).open("config.yaml").unwrap();
+    let conf = std::fs::OpenOptions::new().read(true).open("src/complex-test.yaml").unwrap();
     let conf = ConfTree::new_root(serde_yaml::from_reader(conf).unwrap());
     let conf = Conf::new(&dbg, conf);
     let tp = ThreadPool::new(&dbg, Some(8));
