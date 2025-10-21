@@ -47,11 +47,11 @@ fine-scan:
         threshold: 16           # 0...255, used if otsu-tune is not specified
         smooth: 16              # Smoothing of edge line factor. The higher the factor the smoother the line.
     union:
-        add-weighted:
-            weight1: 1.0            # Weight of the first array elements.
-            weight2: 1.0            # Weight of the second array elements.
-        # bitwise-and:
-        #     no-params: ~
+        # add-weighted:
+        #     weight1: 1.0            # Weight of the first array elements.
+        #     weight2: 1.0            # Weight of the second array elements.
+        bitwise-and:
+            no-params: ~
     rope-dimensions:        # Verifaing the rope dimensions 
         rope-width: 380               # Standart rope width, px
         width-tolerance: 30.0         # Tolerance for rope width, %

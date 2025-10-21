@@ -65,15 +65,15 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDimensions<Branch> {
                 upper_average = upper_average / upper.len() as f64;
                 lower_average = lower_average / lower.len() as f64;
                 let rope_width = (upper_average - lower_average).abs();
-                log::debug!("RopeDimensions.eval | Average rope_width: {:?} px", rope_width);
-                log::debug!("RopeDimensions.eval | Rope square: {:?} px", rope_square);
+                // log::debug!("RopeDimensions.eval | Average rope_width: {:?} px", rope_width);
+                // log::debug!("RopeDimensions.eval | Rope square: {:?} px", rope_square);
                 let rope_width_error = (1.0 - rope_width / self.rope_width).abs();
-                log::debug!("RopeDimensions.eval | Rope width error: {:?} % of {}", rope_width_error, self.width_tolerance);
+                // log::debug!("RopeDimensions.eval | Rope width error: {:?} % of {}", rope_width_error, self.width_tolerance);
                 if rope_width_error >= self.width_tolerance {
                     return Err(error.err(format!("Rope width error: {:.3}%, {rope_width} of {}", rope_width_error, self.rope_width)));
                 }
                 let rope_square_error = (1.0 - rope_square / (self.rope_width * upper.len() as f64)).abs();
-                log::debug!("RopeDimensions.eval | Rope square error: {:?} % of {}", rope_square_error, self.square_tolerance);
+                // log::debug!("RopeDimensions.eval | Rope square error: {:?} % of {}", rope_square_error, self.square_tolerance);
                 if rope_square_error >= self.square_tolerance {
                     return Err(error.err(format!("Rope square error: {:.3}%, {rope_square} of {}", rope_square_error, self.rope_width * upper.len() as f64)));
                 }

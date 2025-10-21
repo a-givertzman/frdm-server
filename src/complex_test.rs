@@ -3,17 +3,76 @@ mod algorithm;
 mod conf;
 mod domain;
 mod infrostructure;
-use std::fs;
+use std::any::TypeId;
+
 use crossterm::event::{KeyEventKind, KeyEventState};
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
-use opencv::core::MatTraitConst;
-use sal_core::dbg::Dbg;
-use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
+use opencv::core::{Mat, MatTrait, MatTraitConst, Point2i, Vec3b};
+use sal_core::{dbg::Dbg, error::Error};
+use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, FastContoursCtx, FastScan, FastScanCtx, FineScan, FineScanCtx, Gray, GrayCtx, Initial, InitialCtx
-    }, conf::Conf, domain::{Eval, Image}, infrostructure::camera::{Camera, CameraConf}
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx,
+        FastEdgesCtx, FastScan, FastScanCtx, FineEdgesCtx, FineScan, FineScanCtx, FineContoursCtx,
+        Gray, GrayCtx, Initial, InitialCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side,
+    }, conf::Conf, domain::{Color, ColorProps, Eval, Image}, infrostructure::camera::{Camera, CameraConf}
 };
+///
+/// Drawing the edges points on the image
+fn draw_dots<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) -> Result<Mat, Error> {
+    let (upper, lower) = match TypeId::of::<Branch>() {
+        typ if typ == TypeId::of::<FastScanCtx>() => {
+            let edges: &FastEdgesCtx = ctx.read();
+            (edges.edges.get(Side::Upper), edges.edges.get(Side::Lower))
+        }
+        typ if typ == TypeId::of::<FineScanCtx>() => {
+            let edges: &FineEdgesCtx = ctx.read();
+            (edges.edges.get(Side::Upper), edges.edges.get(Side::Lower))
+        }
+        _ => {
+            return  Err(Error::new(dbg, "draw_dots").err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>())));
+        }
+    };
+    log::trace!("{dbg}.eval | upper: {:?}", upper);
+    log::trace!("{dbg}.eval | lower: {:?}", lower);
+    if !img.empty() {
+        for (upper, lower) in upper.iter().zip(lower) {
+            *img.at_2d_mut::<Vec3b>(upper.y as i32, upper.x as i32).unwrap() = Color::Blue.bgr().into();
+            *img.at_2d_mut::<Vec3b>(lower.y as i32, lower.x as i32).unwrap() = Color::Green.bgr().into();
+        }
+    }
+    Ok(img)
+}
+///
+/// Drawing Rope dimensions verification result
+fn draw_rope_dimensions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context, conf: &RopeDimensionsConf) -> Result<Mat, Error> {
+    let error = Error::new(dbg, "draw_dots");
+    let (text, text_color) = match RopeDimensions::<Branch>::new(
+        conf.rope_width,
+        conf.width_tolerance,
+        conf.square_tolerance,
+        FakePassCtx::new(ctx.clone()),
+    ).eval(Image::with(img.clone())) {
+        Ok(ctx) => {
+            let dimensions: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
+            let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_width as f64).abs();
+            let square_error = (100.0 - dimensions.square * 100.0 / (conf.rope_width as f64 * img.cols() as f64)).abs();
+            (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), Color::SkyBlue)
+        }
+        Err(err) => (format!("Error: {:?}", err), Color::Red)
+    };
+    opencv::imgproc::put_text(
+        &mut img, &text,
+        Point2i::new(10, 30),
+        1,
+        2.0,
+        text_color.bgra(0.0).into(),
+        2,
+        -1,
+        false,
+    ).map_err(|err| error.pass(err.to_string()))?;
+    Ok(img)
+}
 ///
 /// Application entry point
 /// 
@@ -109,12 +168,12 @@ fn main() {
     };
     let w_source = "Source";
     let w_crop = "Cropped";
-    let w_gamma = "Auto Gamma";
     let w_gray = "Gray";
+    let w_fast_contours = "Fast Contours";
+    let w_fine_contours = "Fine Contours";
     let w_fast = "Fast Scan";
     let w_fine = "Fine Scan";
-    let w_contours = "Contours";
-    for window in [w_source, w_crop, w_gamma, w_gray, w_fast, w_fine, w_contours] {
+    for window in [w_source, w_crop, w_gray, w_fast_contours, w_fine_contours, w_fast, w_fine] {
         if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
             log::warn!("{dbg} | Create Window Error: {}", err);
         }
@@ -158,15 +217,25 @@ fn main() {
         let ctx = fine_scan.eval(frame.clone()).wait().unwrap().unwrap();
         let gray: &GrayCtx = ctx.read();
         let crop: &CroppingCtx = ctx.read();
+        let fast_contours_ctx: &FastContoursCtx = ctx.read();
+        let fine_contours_ctx: &FineContoursCtx = ctx.read();
         let fast_ctx: &FastScanCtx = ctx.read();
         let fine_ctx: &FineScanCtx = ctx.read();
-        let contours_ctx: &FastContoursCtx = ctx.read();
-        if !crop.result.mat.empty() { opencv::highgui::imshow(w_crop, &crop.result.mat).unwrap(); }
+        let crop = if crop.result.mat.empty() {
+            let mut dst = opencv::core::Mat::default();
+            opencv::imgproc::cvt_color(&gray.frame.mat, &mut dst, opencv::imgproc::COLOR_GRAY2BGR, 3).unwrap();
+            dst
+        } else {
+            crop.result.mat.clone()
+        };
+        let crop = draw_dots::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
+        let crop = draw_rope_dimensions::<FineScanCtx>(&dbg, crop, &ctx, &conf.fine_scan.rope_dimensions).unwrap();
+        if !crop.empty() { opencv::highgui::imshow(w_crop, &crop).unwrap(); }
         if !gray.frame.mat.empty() { opencv::highgui::imshow(w_gray, &gray.frame.mat).unwrap(); }
+        if !fast_contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_fast_contours, &fast_contours_ctx.result.mat).unwrap(); }
+        if !fine_contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_fine_contours, &fine_contours_ctx.result.mat).unwrap(); }
         if !fast_ctx.union.frame.mat.empty() { opencv::highgui::imshow(w_fast, &fast_ctx.union.frame.mat).unwrap(); }
         if !fine_ctx.union.frame.mat.empty() { opencv::highgui::imshow(w_fine, &fine_ctx.union.frame.mat).unwrap(); }
-        if !contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_contours, &contours_ctx.result.mat).unwrap(); }
-        if !contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_contours, &contours_ctx.result.mat).unwrap(); }
         if counter == 5{
             //_2lightAngle45_600rpm_
             // let path_retr = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/retrived/", exposure);
@@ -189,4 +258,21 @@ fn main() {
 enum Source<'a> {
     Path(&'a str),
     Camera(&'a str),
+}
+///
+/// Fake implements `Eval` for testing [RopeDimensions]
+struct FakePassCtx {
+    ctx: Owner<Context>,
+}
+impl FakePassCtx{
+    pub fn new(ctx: Context) -> Self {
+        Self { ctx: Owner::new(ctx) }
+    }
+}
+//
+//
+impl Eval<Image, EvalResult> for FakePassCtx {
+    fn eval(&self, _: Image) -> Result<Context, Error> {
+        self.ctx.take().ok_or(Error::new("FakePassCtx", "eval").err("Can't get Context"))
+    }
 }

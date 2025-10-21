@@ -1,7 +1,7 @@
 #[cfg(test)]
-use crate::{algorithm::{AutoGammaCtx, Initial, InitialCtx}, domain::{Eval, Image}};
-use std::{sync::Once, time::{Duration, Instant}};
-use opencv::{core::{MatTrait, MatTraitConst, Point2i, Vec3b, VecN}, highgui};
+use crate::{algorithm::{Initial, InitialCtx}, domain::{Eval, Image}};
+use std::{any::TypeId, sync::Once, time::{Duration, Instant}};
+use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Vec3b}, highgui};
 use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
@@ -12,9 +12,11 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FineContoursCtx, FineEdgesCtx, FineScan, FineScanConf, FineScanCtx, FineUnionCtx, Gray, GrayCtx, RopeDimensions, RopeDimensionsCtx, Side, TemporalFilterCtx
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastScanCtx, FineContoursCtx,
+        FineEdgesCtx, FineScan, FineScanConf, FineScanCtx, FineUnionCtx, Gray, GrayCtx, RopeDimensions,
+        RopeDimensionsConf, RopeDimensionsCtx, Side, FastEdgesCtx,
     }, 
-    domain::Error,
+    domain::{Color, ColorProps, Error},
 };
 ///
 ///
@@ -30,6 +32,61 @@ fn init_once() {
 /// returns:
 ///  - ...
 fn init_each() -> () {}
+///
+/// Drawing the edges points on the image
+fn draw_dots<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) -> Result<Mat, Error> {
+    let (upper, lower) = match TypeId::of::<Branch>() {
+        typ if typ == TypeId::of::<FastScanCtx>() => {
+            let edges: &FastEdgesCtx = ctx.read();
+            (edges.edges.get(Side::Upper), edges.edges.get(Side::Lower))
+        }
+        typ if typ == TypeId::of::<FineScanCtx>() => {
+            let edges: &FineEdgesCtx = ctx.read();
+            (edges.edges.get(Side::Upper), edges.edges.get(Side::Lower))
+        }
+        _ => {
+            return  Err(Error::new(dbg, "draw_dots").err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>())));
+        }
+    };
+    log::trace!("{dbg}.eval | upper: {:?}", upper);
+    log::trace!("{dbg}.eval | lower: {:?}", lower);
+    if !img.empty() {
+        for (upper, lower) in upper.iter().zip(lower) {
+            *img.at_2d_mut::<Vec3b>(upper.y as i32, upper.x as i32).unwrap() = Color::Blue.bgr().into();
+            *img.at_2d_mut::<Vec3b>(lower.y as i32, lower.x as i32).unwrap() = Color::Green.bgr().into();
+        }
+    }
+    Ok(img)
+}
+///
+/// Drawing Rope dimensions verification result
+fn draw_rope_dimensions<Branch: 'static>(mut img: Mat, ctx: &Context, conf: &RopeDimensionsConf) -> Mat {
+    let (text, text_color) = match RopeDimensions::<Branch>::new(
+        conf.rope_width,
+        conf.width_tolerance,
+        conf.square_tolerance,
+        FakePassCtx::new(ctx.clone()),
+    ).eval(Image::with(img.clone())) {
+        Ok(ctx) => {
+            let dimensions: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
+            let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_width as f64).abs();
+            let square_error = (100.0 - dimensions.square * 100.0 / (conf.rope_width as f64 * img.cols() as f64)).abs();
+            (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), Color::SkyBlue)
+        }
+        Err(err) => (format!("Error: {:?}", err), Color::Red)
+    };
+    opencv::imgproc::put_text(
+        &mut img, &text,
+        Point2i::new(10, 30),
+        1,
+        2.0,
+        text_color.bgra(255.0).into(),
+        2,
+        -1,
+        false,
+    ).unwrap();
+    img
+}
 ///
 /// Testing 'TemporalFilter.eval'
 #[test]
@@ -60,6 +117,9 @@ fn eval() {
             union:
                 bitwise-and:
                     no-params: ~
+                # add-weighted:
+                #     weight1: 1.0            # Weight of the first array elements.
+                #     weight2: 1.0            # Weight of the second array elements.
             rope-dimensions:        # Verifaing the rope dimensions 
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 30.0         # Tolerance for rope width, %
@@ -94,11 +154,10 @@ fn eval() {
     );
     let w_gray = "Gray";
     let w_crop = "Cropped";
-    let w_gamma = "Gamma";
     let w_contours = "Fine Contours";
     let w_union = "Union";
-    let w_temp_filter = "Temporal Filter";
-    for window in [w_gray, w_crop, w_gamma, w_contours, w_union, w_temp_filter] {
+    // let w_temp_filter = "Temporal Filter";
+    for window in [w_gray, w_crop, w_contours, w_union] {
         if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
             log::warn!("{dbg} | Create Window Error: {}", err);
         }
@@ -119,51 +178,29 @@ fn eval() {
                 // core::rotate(&frame.mat, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 // let src = Image::with(rotated);
                 log::debug!("{dbg}.eval | src frame: {} x {}", frame.width(), frame.height());
+                let t = Instant::now();
                 // let test = src.clone();
                 let ctx = fine_scan.eval(frame.clone()).wait().unwrap().unwrap();
                 let gray: &GrayCtx = ctx.read();
                 let crop: &CroppingCtx = ctx.read();    
-                let mut crop = crop.result.mat.clone();
-                let gamma: &AutoGammaCtx = ctx.read();
-                let t = Instant::now();
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let contours: &FineContoursCtx = ctx.read();
-                let temp_filter: &TemporalFilterCtx<FineScanCtx> = ctx.read();
+                // let temp_filter: &TemporalFilterCtx<FineScanCtx> = ctx.read();
+                let crop = if crop.result.mat.empty() {
+                    let mut dst = opencv::core::Mat::default();
+                    opencv::imgproc::cvt_color(&gray.frame.mat, &mut dst, opencv::imgproc::COLOR_GRAY2BGR, 3).unwrap();
+                    dst
+                } else {
+                    crop.result.mat.clone()
+                };
                 let union: &FineUnionCtx = ctx.read();
-                let edges: &FineEdgesCtx = ctx.read();
-                let upper = edges.edges.get(Side::Upper);
-                let lower = edges.edges.get(Side::Lower);
-                log::trace!("{dbg}.eval | upper: {:?}", upper);
-                log::trace!("{dbg}.eval | lower: {:?}", lower);
-                if !crop.empty() {
-                    for dot in &upper {
-                        *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 0, 255]);
-                    }
-                    for dot in &lower {
-                        *crop.at_2d_mut::<Vec3b>(dot.y as i32, dot.x as i32).unwrap() = Vec3b::from_array([0, 255, 0]);
-                    }
-                    let (text, text_color) = match RopeDimensions::<FineScanCtx>::new(
-                        conf.rope_dimensions.rope_width,
-                        conf.rope_dimensions.width_tolerance,
-                        conf.rope_dimensions.square_tolerance,
-                        FakePassCtx::new(ctx.clone()),
-                    ).eval(frame.clone()) {
-                        Ok(ctx) => {
-                            let dimensions: &RopeDimensionsCtx<FineScanCtx> = ctx.read();
-                            let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_dimensions.rope_width as f64).abs();
-                            let square_error = (100.0 - dimensions.square * 100.0 / (conf.rope_dimensions.rope_width * upper.len()) as f64).abs();
-                            (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), VecN::from_array([255.0, 0.0, 0.0, 0.0]))
-                        }
-                        Err(err) => (format!("Error: {:?}", err), VecN::from_array([0.0, 0.0, 255.0, 0.0]))
-                    };
-                    opencv::imgproc::put_text(&mut crop, &text, Point2i::new(10, 30), 1, 2.0, text_color, 2, -1, false).unwrap();
-                }
+                let crop = draw_dots::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
+                let crop = draw_rope_dimensions::<FineScanCtx>(crop, &ctx, &conf.rope_dimensions);
                 if !gray.frame.mat.empty() { highgui::imshow(w_gray, &gray.frame.mat).unwrap() };
-                if !gamma.result.mat.empty() { highgui::imshow(w_gamma, &gamma.result.mat).unwrap() };
                 if !contours.result.mat.empty() { highgui::imshow(w_contours, &contours.result.mat).unwrap() };
                 if !union.frame.mat.empty() { highgui::imshow(w_union, &union.frame.mat).unwrap() };
                 if !crop.empty() { highgui::imshow(w_crop, &crop).unwrap() };
-                if !temp_filter.frame.mat.empty() { highgui::imshow(w_temp_filter, &temp_filter.frame.mat).unwrap() };
+                // if !temp_filter.frame.mat.empty() { highgui::imshow(w_temp_filter, &temp_filter.frame.mat).unwrap() };
                 highgui::wait_key(0).unwrap();
             },
             _ => continue,
