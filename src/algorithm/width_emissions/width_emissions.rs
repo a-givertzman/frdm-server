@@ -95,26 +95,23 @@ impl<Branch: 'static> Eval<Image, EvalResult> for WidthEmissions<Branch> {
                     }
                     _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>())))?,
                 };
-                let result = if upper.is_empty() || lower.is_empty() {
-                    vec![]
+                let (result, mad) = if upper.is_empty() || lower.is_empty() {
+                    (vec![], MadCtx::default())
                 } else {
-                    let mad_result = self.mad.eval(
-                        Self::points_width(
-                                upper.clone(),
-                                lower.clone(),
-                        )
-                    ).map_err(|err| error.pass(err))?;
-                    Self::emissions(
-                        upper.clone(),
-                        lower.clone(),
-                        mad_result.median,
-                        mad_result.mad,
-                        self.threshold.0,
-                    )
+                    let mad = self.mad.eval(Self::points_width(upper.clone(), lower.clone())).map_err(|err| error.pass(err))?;
+                    (Self::emissions(upper, lower, mad.median, mad.mad, self.threshold.0), mad)
                 };
                 match TypeId::of::<Branch>() {
-                    typ if typ == TypeId::of::<FastScanCtx>() => ContextWrite::<WidthEmissionsCtx<FastScanCtx>>::write(ctx, WidthEmissionsCtx::new(result)),
-                    typ if typ == TypeId::of::<FineScanCtx>() => ContextWrite::<WidthEmissionsCtx<FastScanCtx>>::write(ctx, WidthEmissionsCtx::new(result)),
+                    typ if typ == TypeId::of::<FastScanCtx>() => {
+                        log::debug!("WidthEmissions<FastScanCtx>.eval | mad: {:?}", mad);
+                        log::debug!("WidthEmissions<FastScanCtx>.eval | defects: {:?}", result);
+                        ctx.write(WidthEmissionsCtx::<FastScanCtx>::new(result))
+                    }
+                    typ if typ == TypeId::of::<FineScanCtx>() => {
+                        log::debug!("WidthEmissions<FastScanCtx>.eval | mad: {:?}", mad);
+                        log::debug!("WidthEmissions<FineScanCtx>.eval | defects: {:?}", result);
+                        ctx.write(WidthEmissionsCtx::<FineScanCtx>::new(result))
+                    }
                     _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
                 }
             },
