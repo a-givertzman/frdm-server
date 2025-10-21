@@ -61,9 +61,7 @@ mod mad {
             )
         ];
         for (step, sample, target) in test_data {
-            let result = Mad::new()
-                .eval(sample)
-            .mad;
+            let result = Mad::new().eval(sample).unwrap().mad;
             assert!(
                 result == target, 
                 "step {} \nresult: {:?}\ntarget: {:?}", 

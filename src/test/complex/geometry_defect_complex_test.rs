@@ -11,7 +11,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        ContextRead, FastContours, FastContoursConf, FastEdges, FastEdgesConf, FastScanConf, FastScanCtx, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, TemporalFilterConf, Threshold
+        ContextRead, FastContours, FastContoursConf, FastEdges, FastEdgesConf, FastScanConf, FastScanCtx, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, TemporalFilterConf, Threshold, WidthEmissions
     }, conf::UnionConf, 
 };
 ///
@@ -58,14 +58,18 @@ fn eval() {
     let geometry_defect = GeometryDefect::<FastScanCtx>::new(
         conf.geometry_defect_threshold,
         *Box::new(Mad::new()),
-        FastEdges::new(
-            conf.fast_edges.otsu_tune,
-            conf.fast_edges.threshold,
-            conf.fast_edges.smooth,
-            FastContours::new(
-                conf.fast_contours,
-                FakePassImg::new(),
-                false,
+        WidthEmissions::new(
+            conf.geometry_defect_threshold,
+            *Box::new(Mad::new()),
+            FastEdges::new(
+                conf.fast_edges.otsu_tune,
+                conf.fast_edges.threshold,
+                conf.fast_edges.smooth,
+                FastContours::new(
+                    conf.fast_contours,
+                    FakePassImg::new(),
+                    false,
+                ),
             ),
         ),
     );

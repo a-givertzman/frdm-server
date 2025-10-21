@@ -3,7 +3,7 @@ use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
         GeometryDefectCtx, GeometryDefectType, Threshold,
-        mad::{Bond, MadCtx}, width_emissions::WidthEmissionsCtx, ContextRead, ContextWrite,
+        mad::{Bond, MadCtx}, WidthEmissions, WidthEmissionsCtx, ContextRead, ContextWrite,
         FastEdgesCtx, FineEdgesCtx, EvalResult, Side,
         FastScanCtx, FineScanCtx,
     }, 
@@ -15,8 +15,8 @@ use crate::{
 pub struct GeometryDefect<Branch> {
     dbg: Dbg,
     threshold: Threshold,
-    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send + Sync>,
-    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
+    mad: Box<dyn Eval<Vec<usize>, Result<MadCtx, Error>> + Send + Sync>,
+    ctx: WidthEmissions<Branch>,
     branch: PhantomData<Branch>,
 }
 //
@@ -26,14 +26,14 @@ impl<Branch> GeometryDefect<Branch> {
     /// New instance [GeometryDefect]
     pub fn new(
         threshold: Threshold,
-        mad: impl Eval<Vec<usize>, MadCtx> + Send + Sync + 'static,
-        ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static,
+        mad: impl Eval<Vec<usize>, Result<MadCtx, Error>> + Send + Sync + 'static,
+        ctx: WidthEmissions<Branch>,
     ) -> Self {
         Self {
             dbg: Dbg::own("GeometryDefect"),
             threshold,
             mad: Box::new(mad),
-            ctx: Box::new(ctx),
+            ctx,
             branch: PhantomData,
         }
     }
@@ -126,10 +126,10 @@ impl<Branch: 'static> Eval<Image, EvalResult> for GeometryDefect<Branch> {
                 };
                 let mad_of_upper_points = self.mad.eval(
                     upper.iter().map(|dot| dot.y).collect(),
-                );
+                ).map_err(|err| error.pass(err))?;
                 let mad_of_lower_points = self.mad.eval(
                     lower.iter().map(|dot| dot.y).collect()
-                );
+                ).map_err(|err| error.pass(err))?;
                 for i in (0..width_emissions_result.len()-1).step_by(2) {
                     let upper_point = width_emissions_result[i];
                     let lower_point = width_emissions_result[i+1];

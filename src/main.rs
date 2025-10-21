@@ -10,7 +10,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Cropping, FastContours, FastEdges, FastScanConf, FastScanCtx, FineScanConf, GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter
+        AutoGamma, Cropping, FastContours, FastEdges, FastScanConf, FastScanCtx, FineScanConf, GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter, WidthEmissions
     }, conf::{Conf, NormalizeConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -37,36 +37,40 @@ fn main() {
     let scan_rope = GeometryDefect::<FastScanCtx>::new(
         conf.fast_scan.geometry_defect_threshold,
         *Box::new(Mad::new()),
-        FastEdges::new(
-            conf.fast_scan.fast_edges.otsu_tune,
-            conf.fast_scan.fast_edges.threshold,
-            conf.fast_scan.fast_edges.smooth,
-            FastContours::new(
-                conf.fast_scan.fast_contours.clone(),
-                TemporalFilter::<FastScanCtx>::new(
-                    conf.fast_scan.temporal_filter.gaussian,
-                    conf.fast_scan.temporal_filter.open_kernel,
-                    conf.fast_scan.temporal_filter.erode_kernel,
-                    conf.fast_scan.temporal_filter.threshold,
-                    Gray::new(
-                        AutoGamma::new(
-                            conf.normalize.gamma.factor,
-                            Cropping::new(
-                                conf.normalize.cropping.x,
-                                conf.normalize.cropping.width,
-                                conf.normalize.cropping.y,
-                                conf.normalize.cropping.height,
-                                Initial::new(
-                                    InitialCtx::new(),
+        WidthEmissions::<FastScanCtx>::new(
+            conf.fast_scan.geometry_defect_threshold,
+            *Box::new(Mad::new()),
+            FastEdges::new(
+                conf.fast_scan.fast_edges.otsu_tune,
+                conf.fast_scan.fast_edges.threshold,
+                conf.fast_scan.fast_edges.smooth,
+                FastContours::new(
+                    conf.fast_scan.fast_contours.clone(),
+                    TemporalFilter::<FastScanCtx>::new(
+                        conf.fast_scan.temporal_filter.gaussian,
+                        conf.fast_scan.temporal_filter.open_kernel,
+                        conf.fast_scan.temporal_filter.erode_kernel,
+                        conf.fast_scan.temporal_filter.threshold,
+                        Gray::new(
+                            AutoGamma::new(
+                                conf.normalize.gamma.factor,
+                                Cropping::new(
+                                    conf.normalize.cropping.x,
+                                    conf.normalize.cropping.width,
+                                    conf.normalize.cropping.y,
+                                    conf.normalize.cropping.height,
+                                    Initial::new(
+                                        InitialCtx::new(),
+                                    ),
+                                    debug,
                                 ),
                                 debug,
                             ),
-                            debug,
                         ),
+                        debug,
                     ),
                     debug,
                 ),
-                debug,
             ),
         ),
     );

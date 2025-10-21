@@ -15,8 +15,8 @@ use super::WidthEmissionsCtx;
 pub struct WidthEmissions<Branch> {
     dbg: Dbg,
     threshold: Threshold,
-    mad: Box<dyn Eval<Vec<usize>, MadCtx> + Send + Sync>,
-    ctx: Box<dyn Eval<(), EvalResult> + Send + Sync>,
+    mad: Box<dyn Eval<Vec<usize>, Result<MadCtx, Error>> + Send + Sync>,
+    ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     branch: PhantomData<Branch>,
 }
 //
@@ -26,8 +26,8 @@ impl<Branch> WidthEmissions<Branch> {
     /// New instance [WidthEmissions]
     pub fn new(
         threshold: Threshold,
-        mad: impl Eval<Vec<usize>, MadCtx> + Send + Sync + 'static,
-        ctx: impl Eval<(), EvalResult> + Send + Sync + 'static,
+        mad: impl Eval<Vec<usize>, Result<MadCtx, Error>> + Send + Sync + 'static,
+        ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static,
     ) -> Self {
         Self {
             dbg: Dbg::own("WidthEmissions"),
@@ -80,9 +80,9 @@ impl<Branch> WidthEmissions<Branch> {
 //
 //
 impl<Branch: 'static> Eval<Image, EvalResult> for WidthEmissions<Branch> {
-    fn eval(&self, _: Image) -> EvalResult {
+    fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new(&self.dbg, "eval");
-        match self.ctx.eval(()) {
+        match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let (upper, lower) = match TypeId::of::<Branch>() {
                     typ if typ == TypeId::of::<FastScanCtx>() => {
@@ -95,22 +95,23 @@ impl<Branch: 'static> Eval<Image, EvalResult> for WidthEmissions<Branch> {
                     }
                     _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>())))?,
                 };
-                // let edge_detection_ctx = ContextRead::<FastEdgesCtx>::read(&ctx);
-                // let upper = edge_detection_ctx.result.get(Side::Upper);
-                // let lower = edge_detection_ctx.result.get(Side::Lower);
-                let mad_result = self.mad.eval(
-                    Self::points_width(
-                            upper.clone(),
-                            lower.clone(),
+                let result = if upper.is_empty() || lower.is_empty() {
+                    vec![]
+                } else {
+                    let mad_result = self.mad.eval(
+                        Self::points_width(
+                                upper.clone(),
+                                lower.clone(),
+                        )
+                    ).map_err(|err| error.pass(err))?;
+                    Self::emissions(
+                        upper.clone(),
+                        lower.clone(),
+                        mad_result.median,
+                        mad_result.mad,
+                        self.threshold.0,
                     )
-                );
-                let result =  Self::emissions(
-                    upper.clone(),
-                    lower.clone(),
-                    mad_result.median,
-                    mad_result.mad,
-                    self.threshold.0,
-                );
+                };
                 match TypeId::of::<Branch>() {
                     typ if typ == TypeId::of::<FastScanCtx>() => ContextWrite::<WidthEmissionsCtx<FastScanCtx>>::write(ctx, WidthEmissionsCtx::new(result)),
                     typ if typ == TypeId::of::<FineScanCtx>() => ContextWrite::<WidthEmissionsCtx<FastScanCtx>>::write(ctx, WidthEmissionsCtx::new(result)),

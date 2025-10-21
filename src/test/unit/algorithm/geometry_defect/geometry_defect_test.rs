@@ -188,7 +188,11 @@ mod geometry_defect {
                 *Box::new(Mad::new()),
                 WidthEmissions::<FastScanCtx>::new(threshold, 
                     *Box::new(Mad::new()), 
-                    ctx
+                    WidthEmissions::<FastScanCtx>::new(
+                        threshold,
+                        *Box::new(Mad::new()),
+                        ctx,
+                    )
                 ),
             ).eval(Image::default());
             match result {
@@ -216,8 +220,8 @@ mod geometry_defect {
     }
     //
     //
-    impl Eval<(), EvalResult> for MocEval {
-        fn eval(&self, _: ()) -> EvalResult {
+    impl Eval<Image, EvalResult> for MocEval {
+        fn eval(&self, _: Image) -> EvalResult {
             Result::Ok(self.ctx.clone())
         }
     }

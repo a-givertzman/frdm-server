@@ -54,10 +54,10 @@ impl FineScan {
             },
             ctx_fast: Box::new(ctx),
             ctx: Arc::new(Box::new(
-                GeometryDefect::new(
+                GeometryDefect::<FineScanCtx>::new(
                     conf.geometry_defect_threshold,
                     *Box::new(Mad::new()),
-                    WidthEmissions::new(
+                    WidthEmissions::<FineScanCtx>::new(
                         conf.geometry_defect_threshold,
                         *Box::new(Mad::new()),
                         FineEdges::new(

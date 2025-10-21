@@ -12,9 +12,7 @@ use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx,
-        FastEdgesCtx, FastScan, FastScanCtx, FineEdgesCtx, FineScan, FineScanCtx, FineContoursCtx,
-        Gray, GrayCtx, Initial, InitialCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side,
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx, FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, GeometryDefectCtx, Gray, GrayCtx, Initial, InitialCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side
     }, conf::Conf, domain::{Color, ColorProps, Eval, Image}, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -46,7 +44,7 @@ fn draw_dots<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) -> Result<
 ///
 /// Drawing Rope dimensions verification result
 fn draw_rope_dimensions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context, conf: &RopeDimensionsConf) -> Result<Mat, Error> {
-    let error = Error::new(dbg, "draw_dots");
+    let error = Error::new(dbg, "draw_rope_dimensions");
     let (text, text_color) = match RopeDimensions::<Branch>::new(
         conf.rope_width,
         conf.width_tolerance,
@@ -54,10 +52,20 @@ fn draw_rope_dimensions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context,
         FakePassCtx::new(ctx.clone()),
     ).eval(Image::with(img.clone())) {
         Ok(ctx) => {
-            let dimensions: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
-            let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_width as f64).abs();
-            let square_error = (100.0 - dimensions.square * 100.0 / (conf.rope_width as f64 * img.cols() as f64)).abs();
-            (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", dimensions.width, width_error, dimensions.square, square_error), Color::SkyBlue)
+            let (width, square) = match TypeId::of::<Branch>() {
+                typ if typ == TypeId::of::<FastScanCtx>() => (
+                    ContextRead::<RopeDimensionsCtx<FastScanCtx>>::read(&ctx).width,
+                    ContextRead::<RopeDimensionsCtx<FastScanCtx>>::read(&ctx).square,
+                ),
+                typ if typ == TypeId::of::<FineScanCtx>() => (
+                    ContextRead::<RopeDimensionsCtx<FineScanCtx>>::read(&ctx).width,
+                    ContextRead::<RopeDimensionsCtx<FineScanCtx>>::read(&ctx).square,
+                ),
+                _ => return  Err(error.err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
+            };
+            let width_error = (100.0 - width * 100.0 / conf.rope_width as f64).abs();
+            let square_error = (100.0 - square * 100.0 / (conf.rope_width as f64 * img.cols() as f64)).abs();
+            (format!("Rope width: {:.3} ({:.2}%), square: {} ({:.2}%)", width, width_error, square, square_error), Color::SkyBlue)
         }
         Err(err) => (format!("Error: {:?}", err), Color::Red)
     };
@@ -71,6 +79,47 @@ fn draw_rope_dimensions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context,
         -1,
         false,
     ).map_err(|err| error.pass(err.to_string()))?;
+    Ok(img)
+}
+///
+/// Drawing Rope defects
+fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) -> Result<Mat, Error> {
+    let error = Error::new(dbg, "draw_rope_defects");
+    let defects = match TypeId::of::<Branch>() {
+        typ if typ == TypeId::of::<FastScanCtx>() => &ContextRead::<GeometryDefectCtx<FastScanCtx>>::read(ctx).result,
+        typ if typ == TypeId::of::<FineScanCtx>() => &ContextRead::<GeometryDefectCtx<FineScanCtx>>::read(ctx).result,
+        _ => return  Err(error.err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
+    };
+    let offset = 64;
+    if defects.is_empty() {
+        opencv::imgproc::put_text(
+            &mut img, "No defects",
+            Point2i::new(10, offset ), 1, 2.0,
+            Color::Green.bgra(0.0).into(),
+            2, -1, false,
+        ).map_err(|err| error.pass(err.to_string()))?;
+    } else {
+        opencv::imgproc::put_text(
+            &mut img, "No defects",
+            Point2i::new(10, offset ), 1, 2.0,
+            Color::Red.bgra(0.0).into(),
+            2, -1, false,
+        ).map_err(|err| error.pass(err.to_string()))?;
+        for (i, defect) in defects.iter().enumerate() {
+            let text = match defect {
+                algorithm::GeometryDefectType::Expansion => "Расширение",
+                algorithm::GeometryDefectType::Compressing => "Сужение",
+                algorithm::GeometryDefectType::Hill => "Холмик",
+                algorithm::GeometryDefectType::Pit => "Ямка",
+            };
+            opencv::imgproc::put_text(
+                &mut img, &text,
+                Point2i::new(10, i as i32 * 24 + offset ), 1, 2.0,
+                Color::OrangeRed.bgra(0.0).into(),
+                2, -1, false,
+            ).map_err(|err| error.pass(err.to_string()))?;
+        }
+    }
     Ok(img)
 }
 ///
@@ -230,6 +279,7 @@ fn main() {
         };
         let crop = draw_dots::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
         let crop = draw_rope_dimensions::<FineScanCtx>(&dbg, crop, &ctx, &conf.fine_scan.rope_dimensions).unwrap();
+        let crop = draw_rope_defects::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
         if !crop.empty() { opencv::highgui::imshow(w_crop, &crop).unwrap(); }
         if !gray.frame.mat.empty() { opencv::highgui::imshow(w_gray, &gray.frame.mat).unwrap(); }
         if !fast_contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_fast_contours, &fast_contours_ctx.result.mat).unwrap(); }

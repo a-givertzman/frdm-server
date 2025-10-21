@@ -122,8 +122,8 @@ mod width_emissions {
     }
     //
     //
-    impl Eval<(), EvalResult> for MocEval {
-        fn eval(&self, _: ()) -> EvalResult {
+    impl Eval<Image, EvalResult> for MocEval {
+        fn eval(&self, _: Image) -> EvalResult {
             Result::Ok(self.ctx.clone())
         }
     }
