@@ -99,7 +99,10 @@ fn edge_detection() {
     let test_duration = TestDuration::new(dbg, Duration::from_secs(100));
     test_duration.run().unwrap();
     fn into_dots(dots: &[usize]) -> Vec<Dot<usize>> {
-        dots.chunks(2).map(|d| d.into()).collect()
+        dots.chunks(2).map(|d| {
+            let dot: &[usize; 2] = d.try_into().unwrap();
+            Dot::from(dot)
+        }).collect()
     }
     let test_data: [(i32, Image, Result<FastEdgesCtx, Error>); 2] = [
         (

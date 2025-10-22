@@ -23,6 +23,7 @@ impl<Branch> TemporalFilter<Branch> {
     /// - `open_kernel` - Morphology open operation kernel size
     /// - `erode_kernel` - Morphology erode operation kernel size
     /// - `threshold` - used to detect movement by comparing with the delta between same pixel of each frame
+    /// - `Branch` - the calculation branch [FastScanCtx] or [FineScanCtx]
     pub fn new(gaussian: GaussianConf, open_kernel: [i32; 2], erode_kernel: [i32; 2], threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self {
             threshold,

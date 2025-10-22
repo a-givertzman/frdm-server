@@ -21,6 +21,7 @@ impl Mad {
             .map(|point| *point as f64)
         .collect();
         values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        // log::debug!("Mad.median | values: {:?}", values);
         if !values.is_empty() {
             let len = values.len();
             if len % 2 == 1 {
@@ -39,6 +40,7 @@ impl Mad {
             .map(|point| (*point as f64 - median).abs())
             .collect();
         deviations.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        // log::debug!("Mad.mad | deviations: {:?}", deviations);
         if !deviations.is_empty() {
             let len = deviations.len();
             if len % 2 == 1 {

@@ -98,7 +98,7 @@ fn eval() {
                 ],
             ),
             vec![
-                RopeDefectKind::Expansion
+                RopeDefectKind::Expansion(0, 0)
             ]
         ),
         (
@@ -133,7 +133,7 @@ fn eval() {
                 ],
             ),
             vec![
-                RopeDefectKind::Compressing
+                RopeDefectKind::Compressing(0, 0),
             ]
         ),
         (
@@ -168,8 +168,8 @@ fn eval() {
                 ],
             ),
             vec![
-                RopeDefectKind::Hill, 
-                RopeDefectKind::Compressing
+                RopeDefectKind::Hill(0, 0), 
+                RopeDefectKind::Compressing(0, 0)
             ]
         ),
     ];

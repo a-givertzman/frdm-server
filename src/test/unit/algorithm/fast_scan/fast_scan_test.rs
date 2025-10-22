@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::{algorithm::InitialCtx, domain::{Eval, Image}};
 use std::{any::TypeId, sync::Once, time::{Duration, Instant}};
-use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Vec3b}, highgui};
+use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Rect, Vec3b}, highgui, imgproc::LineTypes};
 use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
@@ -15,6 +15,7 @@ use crate::{
         AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult,
         FastEdgesCtx, FineEdgesCtx, FastScan, FastScanConf, FastScanCtx, FastUnionCtx, Gray, GrayCtx,
         Initial, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side, FineScanCtx,
+        RopeDefectCtx, RopeDefectKind,
     }, 
     domain::{Color, ColorProps, Error},
 };
@@ -87,6 +88,55 @@ fn draw_rope_dimensions<Branch: 'static>(mut img: Mat, ctx: &Context, conf: &Rop
         false,
     ).unwrap();
     img
+}
+///
+/// Drawing Rope defects
+fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) -> Result<Mat, Error> {
+    let error = Error::new(dbg, "draw_rope_defects");
+    let defects = match TypeId::of::<Branch>() {
+        typ if typ == TypeId::of::<FastScanCtx>() => &ContextRead::<RopeDefectCtx<FastScanCtx>>::read(ctx).result,
+        typ if typ == TypeId::of::<FineScanCtx>() => &ContextRead::<RopeDefectCtx<FineScanCtx>>::read(ctx).result,
+        _ => return  Err(error.err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
+    };
+    let offset = 64;
+    let line_height = 24;
+    if defects.is_empty() {
+        opencv::imgproc::put_text(
+            &mut img, "No defects",
+            Point2i::new(10, offset ), 1, 2.0,
+            Color::Green.bgra(0.0).into(),
+            2, -1, false,
+        ).map_err(|err| error.pass(err.to_string()))?;
+    } else {
+        opencv::imgproc::put_text(
+            &mut img, "Defects:",
+            Point2i::new(10, offset ), 1, 2.0,
+            Color::Red.bgra(0.0).into(),
+            2, -1, false,
+        ).map_err(|err| error.pass(err.to_string()))?;
+        for (i, defect) in defects.iter().enumerate() {
+            let (text, start, end) = match defect {
+                RopeDefectKind::Expansion(start, end) => ("Expansion", start, end),
+                RopeDefectKind::Compressing(start, end) => ("Compressing", start, end),
+                RopeDefectKind::Hill(start, end) => ("Hill", start, end), // Холмик
+                RopeDefectKind::Pit(start, end) => ("Pit", start, end),   // Ямка
+            };
+            let height = img.rows() - 200;
+            opencv::imgproc::rectangle(
+                &mut img,
+                Rect::new(*start as i32, 100, (end - start) as i32, height),
+                Color::Orange.bgra(0.0).into(),
+                1, LineTypes::LINE_8 as i32, 0,
+            ).map_err(|err| error.pass(err.to_string()))?;
+            opencv::imgproc::put_text(
+                &mut img, &text,
+                Point2i::new(20, (i as i32 + 1) * line_height + offset ), 1, 2.0,
+                Color::OrangeRed.bgra(0.0).into(),
+                2, -1, false,
+            ).map_err(|err| error.pass(err.to_string()))?;
+        }
+    }
+    Ok(img)
 }
 ///
 /// Testing 'TemporalFilter.eval'
@@ -190,6 +240,7 @@ fn eval() {
                 };
                 let crop = draw_dots::<FastScanCtx>(&dbg, crop, &ctx).unwrap();
                 let crop = draw_rope_dimensions::<FastScanCtx>(crop, &ctx, &conf.rope_dimensions);
+                let crop = draw_rope_defects::<FastScanCtx>(&dbg, crop, &ctx).unwrap();
                 if !gray.frame.mat.empty() { highgui::imshow(w_gray, &gray.frame.mat).unwrap() };
                 // if !gamma.result.mat.empty() { highgui::imshow(w_gamma, &gamma.result.mat).unwrap() };
                 if !contours.frame.mat.empty() { highgui::imshow(w_contours, &contours.frame.mat).unwrap() };

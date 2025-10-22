@@ -12,7 +12,10 @@ use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx, FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, RopeDefectCtx, Gray, GrayCtx, Initial, InitialCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx,
+        FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, RopeDefectCtx, Gray,
+        GrayCtx, Initial, InitialCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side,
+        RopeDefectKind,
     }, conf::Conf, domain::{Color, ColorProps, Eval, Image}, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -91,6 +94,7 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
         _ => return  Err(error.err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
     };
     let offset = 64;
+    let line_height = 24;
     if defects.is_empty() {
         opencv::imgproc::put_text(
             &mut img, "No defects",
@@ -100,21 +104,21 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
         ).map_err(|err| error.pass(err.to_string()))?;
     } else {
         opencv::imgproc::put_text(
-            &mut img, "No defects",
+            &mut img, "Defects:",
             Point2i::new(10, offset ), 1, 2.0,
             Color::Red.bgra(0.0).into(),
             2, -1, false,
         ).map_err(|err| error.pass(err.to_string()))?;
         for (i, defect) in defects.iter().enumerate() {
             let text = match defect {
-                algorithm::RopeDefectKind::Expansion => "Расширение",
-                algorithm::RopeDefectKind::Compressing => "Сужение",
-                algorithm::RopeDefectKind::Hill => "Холмик",
-                algorithm::RopeDefectKind::Pit => "Ямка",
+                RopeDefectKind::Expansion(start, end) => "Расширение",
+                RopeDefectKind::Compressing(start, end) => "Сужение",
+                RopeDefectKind::Hill(start, end) => "Холмик",
+                RopeDefectKind::Pit(start, end) => "Ямка",
             };
             opencv::imgproc::put_text(
                 &mut img, &text,
-                Point2i::new(10, i as i32 * 24 + offset ), 1, 2.0,
+                Point2i::new(20, (i as i32 + 1) * line_height + offset ), 1, 2.0,
                 Color::OrangeRed.bgra(0.0).into(),
                 2, -1, false,
             ).map_err(|err| error.pass(err.to_string()))?;

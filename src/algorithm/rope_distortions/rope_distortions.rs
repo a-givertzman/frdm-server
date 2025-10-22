@@ -2,7 +2,7 @@ use std::{any::TypeId, marker::PhantomData};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        Threshold, mad::{Bond, MadCtx},
+        Threshold, mad::{Bend, MadCtx},
         ContextRead, ContextWrite, FastEdgesCtx, FineEdgesCtx, EvalResult, Side,
         FastScanCtx, FineScanCtx,
     },
@@ -27,6 +27,8 @@ pub struct RopeDistortions<Branch> {
 impl<Branch> RopeDistortions<Branch> {
     ///
     /// New instance [RopeDistortions]
+    /// 
+    /// - `Branch` - the calculation branch [FastScanCtx] or [FineScanCtx]
     pub fn new(
         threshold: Threshold,
         mad: impl Eval<Vec<usize>, Result<MadCtx, Error>> + Send + Sync + 'static,
@@ -41,11 +43,11 @@ impl<Branch> RopeDistortions<Branch> {
         }
     }
     ///
-    /// Compute width between initial dots
-    fn points_width(initial_points_upper: Vec<Dot<usize>>, initial_points_lower: Vec<Dot<usize>>) -> Vec<usize> {
+    /// Compute width between `upper` and `lower` dots
+    fn points_width(upper: &[Dot<usize>], lower: &[Dot<usize>]) -> Vec<usize> {
         let mut dots_width = Vec::new();
-        for i in 0..initial_points_upper.len() { // `for` only for one vector cause they must be same length
-            let width = initial_points_upper[i].y - initial_points_lower[i].y;
+        for i in 0..upper.len() { // `for` only for one vector cause they must be same length
+            let width = (upper[i].y as isize - lower[i].y as isize).abs() as usize;
             dots_width.push(width);
         };
         dots_width
@@ -53,26 +55,20 @@ impl<Branch> RopeDistortions<Branch> {
     ///
     /// Finding rope distortion
     fn distortion(
-        initial_points_upper: Vec<Dot<usize>>, 
-        initial_points_lower: Vec<Dot<usize>>, 
+        upper: Vec<Dot<usize>>, 
+        lower: Vec<Dot<usize>>, 
         median: f64, 
         mad: f64, 
         threshold: Threshold
-    ) -> Vec<Bond<usize>> {
+    ) -> Vec<Bend<usize>> {
         let mut distortion = Vec::new();
-        for i in 0..initial_points_upper.len() { // `for` only for one vector cause they must be same length
-            let deviation = ((initial_points_upper[i].y - initial_points_lower[i].y) as f64 - median).abs();
+        for i in 0..upper.len() { // `for` only for one vector cause they must be same length
+            let deviation = ((upper[i].y - lower[i].y) as f64 - median).abs();
             if deviation > threshold.0 * mad {
                 distortion.push(
-                    Bond {
-                        x: initial_points_upper[i].x,
-                        y: initial_points_upper[i].y,
-                    }
-                );
-                distortion.push(
-                    Bond {
-                        x: initial_points_lower[i].x,
-                        y: initial_points_lower[i].y,
+                    Bend {
+                        upper: upper[i],
+                        lower: lower[i],
                     }
                 );
             }
@@ -101,7 +97,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDistortions<Branch> {
                 let (result, mad) = if upper.is_empty() || lower.is_empty() {
                     (vec![], MadCtx::default())
                 } else {
-                    let mad = self.mad.eval(Self::points_width(upper.clone(), lower.clone())).map_err(|err| error.pass(err))?;
+                    let mad = self.mad.eval(Self::points_width(&upper, &lower)).map_err(|err| error.pass(err))?;
                     (Self::distortion(upper, lower, mad.median, mad.mad, self.threshold), mad)
                 };
                 match TypeId::of::<Branch>() {

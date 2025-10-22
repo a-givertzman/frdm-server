@@ -35,7 +35,10 @@ fn eval() {
     let test_duration = TestDuration::new(dbg, Duration::from_secs(100));
     test_duration.run().unwrap();
     fn into_dots(dots: &[usize]) -> Vec<Dot<usize>> {
-        dots.chunks(2).map(|d| d.into()).collect()
+        dots.chunks(2).map(|d| {
+            let d: &[usize; 2] = d.try_into().unwrap();
+            d.into()
+        }).collect()
     }
     let test_data: &[(usize, FastEdgesCtx, Result<(f64, f64), ()>)] = &[
         (
