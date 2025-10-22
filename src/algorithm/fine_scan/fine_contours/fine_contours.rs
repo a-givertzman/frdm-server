@@ -194,7 +194,7 @@ impl FineContours {
     fn contour(image: &Mat, threshold: f64) -> Result<core::Vector<Point>, Error> {
         let error = Error::new("FineContours", "max_contour");
         let mut contours: core::Vector<core::Vector<Point>> = core::Vector::default();
-        log::debug!("FineContours.eval | contours...");
+        log::trace!("FineContours.eval | contours...");
         imgproc::find_contours(
             image,
             &mut contours,
@@ -249,7 +249,7 @@ impl FineContours {
             // log::debug!("FineContours.eval | count: {}", count);
             // log::debug!("FineContours.eval | contours: {}", contours.len());
         }
-        log::debug!("FineContours.eval | contours: {}", contours.len());
+        log::trace!("FineContours.eval | contours: {}", contours.len());
         let contour = contours.into_iter().max_by(|c1, c2| {
             let area1 = imgproc::contour_area(c1, false).ok();
             let area2 = imgproc::contour_area(c2, false).ok();

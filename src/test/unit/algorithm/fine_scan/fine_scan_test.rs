@@ -221,7 +221,8 @@ fn eval() {
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 30.0         # Tolerance for rope width, %
                 square-tolerance: 100.0       # Tolerance for rope square, %
-            geometry-defect-threshold: 1.4    # 1.0..1.5, absolute threshold to detect the geometry deffects
+            distortion-threshold: 1.2    # 1.1..1.3, absolute threshold to detect the geometry deffects
+            defect-threshold: 1.2    # 1.1..1.3, absolute threshold to detect the geometry deffects
         "#)).unwrap(),
     );
     let conf = FineScanConf::new(&dbg, conf);

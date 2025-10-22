@@ -56,13 +56,13 @@ fn eval() {
         fast_edges: FastEdgesConf::default(),
         union: UnionConf::default(),
         rope_dimensions: RopeDimensionsConf::default(),
-        geometry_defect_threshold: Threshold(1.1),
+        distortion_threshold: Threshold(1.1),
     };
     let geometry_defect = RopeDefect::<FineScanCtx>::new(
-        conf.geometry_defect_threshold,
+        conf.distortion_threshold,
         *Box::new(Mad::new()),
         RopeDistortions::new(
-            conf.geometry_defect_threshold,
+            conf.distortion_threshold,
             *Box::new(Mad::new()),
             FastEdges::new(
                 conf.fast_edges.otsu_tune,

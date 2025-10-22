@@ -46,7 +46,7 @@ impl Eval<Image, EvalResult> for FastEdges {
                     (Some(otsu_tune), None) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
                     (Some(otsu_tune), Some(_)) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
                 };
-                log::debug!("FastEdges.eval | threshold: {threshold}");
+                log::trace!("FastEdges.eval | threshold: {threshold}");
                 let rows = frame.mat.rows();
                 let cols = frame.mat.cols();
                 let mut upper_edge = Vec::with_capacity(cols as usize);

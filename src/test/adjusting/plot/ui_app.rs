@@ -552,7 +552,7 @@ impl eframe::App for UiApp {
                             width_tolerance: self.params.get("RopeDimensions.width-tolerance").unwrap().1.as_double(),
                             square_tolerance: self.params.get("RopeDimensions.square-tolerance").unwrap().1.as_double(),
                         },
-                        geometry_defect_threshold: Threshold(1.1),
+                        distortion_threshold: Threshold(1.1),
                     },
                     fine_scan: FineScanConf::default(),
                 };

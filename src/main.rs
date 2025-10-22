@@ -35,10 +35,10 @@ fn main() {
     };
     let debug = false;
     let scan_rope = RopeDefect::<FastScanCtx>::new(
-        conf.fast_scan.geometry_defect_threshold,
+        conf.fast_scan.distortion_threshold,
         *Box::new(Mad::new()),
         RopeDistortions::<FastScanCtx>::new(
-            conf.fast_scan.geometry_defect_threshold,
+            conf.fast_scan.distortion_threshold,
             *Box::new(Mad::new()),
             FastEdges::new(
                 conf.fast_scan.fast_edges.otsu_tune,

@@ -44,7 +44,7 @@ impl Eval<Image, EvalResult> for FineEdges {
                     (Some(otsu_tune), None) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
                     (Some(otsu_tune), Some(_)) => (imgproc::threshold(&frame.mat, &mut Mat::default(), 0.0, 255.0, imgproc::THRESH_OTSU).unwrap() * otsu_tune).round() as u8,
                 };
-                log::debug!("FineEdges.eval | threshold: {threshold}");
+                log::trace!("FineEdges.eval | threshold: {threshold}");
                 let rows = frame.mat.rows();
                 let cols = frame.mat.cols();
                 let mut upper_edge = Vec::with_capacity(cols as usize);
