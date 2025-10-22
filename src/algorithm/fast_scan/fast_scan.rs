@@ -42,7 +42,7 @@ impl FastScan {
             ctx_gray: Box::new(ctx),
             ctx: Box::new(
                 RopeDistortions::<FastScanCtx>::new(
-                    conf.geometry_defect_threshold,
+                    conf.distortion_threshold,
                     *Box::new(Mad::new()),
                     FastEdges::new(
                         conf.fast_edges.otsu_tune,

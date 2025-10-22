@@ -30,7 +30,7 @@ use crate::{algorithm::{FastContoursConf, FastEdgesConf, RopeDimensionsConf, Tem
 ///         rope-width: 380               # Standart rope width, px
 ///         width-tolerance: 25.0         # Tolerance for rope width, %
 ///         square-tolerance: 100.0       # Tolerance for rope square, %
-///     geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
+//      distortion-threshold: 1.0    # 1.0..1.5, threshold to detect the rope distortions
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct FastScanConf {
@@ -40,7 +40,7 @@ pub struct FastScanConf {
     pub fast_edges: FastEdgesConf,
     pub union: UnionConf,
     pub rope_dimensions: RopeDimensionsConf,
-    pub geometry_defect_threshold: Threshold,
+    pub distortion_threshold: Threshold,
 }
 impl FastScanConf {
     ///
@@ -68,16 +68,15 @@ impl FastScanConf {
         let rope_dimensions = conf.get("rope-dimensions").expect(&format!("{dbg}.new | 'rope-dimensions' - not found or wrong configuration"));
         let rope_dimensions = RopeDimensionsConf::new(&name, rope_dimensions);
         log::trace!("{dbg}.new | rope-dimensions: {:#?}", rope_dimensions);
-        let geometry_defect_threshold = conf.get("geometry-defect-threshold").unwrap();
-        let geometry_defect_threshold = Threshold(geometry_defect_threshold);
-        log::trace!("{dbg}.new | geometry-defect-threshold: {:?}", geometry_defect_threshold);
+        let distortion_threshold = conf.get("distortion-threshold").expect(&format!("{dbg}.new | 'distortion-threshold' - not found or wrong configuration"));
+        log::trace!("{dbg}.new | distortion-threshold: {:?}", distortion_threshold);
         Self {
             fast_contours,
             temporal_filter,
             fast_edges,
             union,
             rope_dimensions,
-            geometry_defect_threshold,
+            distortion_threshold: Threshold(distortion_threshold),
         }
     }
 }
@@ -91,7 +90,7 @@ impl Default for FastScanConf {
             fast_edges: Default::default(),
             union: UnionConf::default(),
             rope_dimensions: Default::default(),
-            geometry_defect_threshold: Default::default(),
+            distortion_threshold: Default::default(),
         }
     }
 }

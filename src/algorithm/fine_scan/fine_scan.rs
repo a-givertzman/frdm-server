@@ -55,10 +55,10 @@ impl FineScan {
             ctx_fast: Box::new(ctx),
             ctx: Arc::new(Box::new(
                 RopeDefect::<FineScanCtx>::new(
-                    conf.geometry_defect_threshold,
+                    conf.defect_threshold,
                     *Box::new(Mad::new()),
                     RopeDistortions::<FineScanCtx>::new(
-                        conf.geometry_defect_threshold,
+                        conf.distortion_threshold,
                         *Box::new(Mad::new()),
                         FineEdges::new(
                             conf.fine_edges.otsu_tune,

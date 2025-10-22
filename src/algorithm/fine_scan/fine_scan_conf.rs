@@ -33,7 +33,8 @@ use crate::{algorithm::{
 ///         rope-width: 380               # Standart rope width, px
 ///         width-tolerance: 25.0         # Tolerance for rope width, %
 ///         square-tolerance: 100.0       # Tolerance for rope square, %
-///     geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
+//      distortion-threshold: 1.2    # 1.1..1.3, threshold to detect the rope distortions
+///     defect-threshold: 1.2    # 1.1..1.3, threshold to detect rope geometry deffects
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FineScanConf {
@@ -42,7 +43,8 @@ pub struct FineScanConf {
     pub fine_edges: FineEdgesConf,
     pub union: UnionConf,
     pub rope_dimensions: RopeDimensionsConf,
-    pub geometry_defect_threshold: Threshold,
+    pub distortion_threshold: Threshold,
+    pub defect_threshold: Threshold,
 }
 //
 //
@@ -71,16 +73,18 @@ impl FineScanConf {
         let rope_dimensions = conf.get("rope-dimensions").expect(&format!("{dbg}.new | 'rope-dimensions' - not found or wrong configuration"));
         let rope_dimensions = RopeDimensionsConf::new(&name, rope_dimensions);
         log::trace!("{dbg}.new | rope-dimensions: {:#?}", rope_dimensions);
-        let geometry_defect_threshold = conf.get("geometry-defect-threshold").unwrap();
-        let geometry_defect_threshold = Threshold(geometry_defect_threshold);
-        log::trace!("{dbg}.new | geometry-defect-threshold: {:?}", geometry_defect_threshold);
+        let distortion_threshold = conf.get("distortion-threshold").expect(&format!("{dbg}.new | 'distortion-threshold' - not found or wrong configuration"));
+        log::trace!("{dbg}.new | distortion-threshold: {:?}", distortion_threshold);
+        let defect_threshold = conf.get("defect-threshold").expect(&format!("{dbg}.new | 'defect-threshold' - not found or wrong configuration"));
+        log::trace!("{dbg}.new | defect-threshold: {:?}", defect_threshold);
         Self {
             fine_contours,
             temporal_filter,
             fine_edges,
             union,
             rope_dimensions,
-            geometry_defect_threshold,
+            distortion_threshold: Threshold(distortion_threshold),
+            defect_threshold: Threshold(defect_threshold),
         }
     }
 }
@@ -94,7 +98,8 @@ impl Default for FineScanConf {
             fine_edges: FineEdgesConf::default(),
             union: UnionConf::default(),
             rope_dimensions: RopeDimensionsConf::default(),
-            geometry_defect_threshold: Threshold::default(),
+            distortion_threshold: Threshold::default(),
+            defect_threshold: Threshold::default(),
         }
     }
 }
