@@ -1,5 +1,5 @@
 use crate::algorithm::{
-    FastEdgesCtx, FastContoursCtx, FastUnionCtx, RopeDimensionsCtx, TemporalFilterCtx, WidthEmissionsCtx, GeometryDefectCtx,
+    FastEdgesCtx, FastContoursCtx, FastUnionCtx, RopeDimensionsCtx, TemporalFilterCtx, RopeDistortionsCtx, RopeDefectCtx,
 };
 ///
 /// `FastScan` algorithm results
@@ -16,9 +16,9 @@ pub struct FastScanCtx {
     /// Rope calculated dimensions
     pub rope_dimensions: RopeDimensionsCtx<FastScanCtx>,
     /// Result of rope `WidthEmissions`
-    pub width_emissions: WidthEmissionsCtx<FastScanCtx>,
+    pub width_emissions: RopeDistortionsCtx<FastScanCtx>,
     /// Rope geometry defects
-    pub defects: GeometryDefectCtx<FastScanCtx>,
+    pub defects: RopeDefectCtx<FastScanCtx>,
 
 }
 //
@@ -31,8 +31,8 @@ impl Default for FastScanCtx {
             union: FastUnionCtx::default(),
             edges: FastEdgesCtx::default(),
             rope_dimensions: RopeDimensionsCtx::default(),
-            width_emissions: WidthEmissionsCtx::default(),
-            defects: GeometryDefectCtx::default(),
+            width_emissions: RopeDistortionsCtx::default(),
+            defects: RopeDefectCtx::default(),
         }
     }
 }

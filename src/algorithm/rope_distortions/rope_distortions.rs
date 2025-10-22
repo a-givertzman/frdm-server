@@ -1,18 +1,21 @@
 use std::{any::TypeId, marker::PhantomData};
-
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        geometry_defect::Threshold, mad::{Bond, MadCtx},
+        Threshold, mad::{Bond, MadCtx},
         ContextRead, ContextWrite, FastEdgesCtx, FineEdgesCtx, EvalResult, Side,
         FastScanCtx, FineScanCtx,
     },
     domain::{Dot, Error, Eval, Image}
 };
-use super::WidthEmissionsCtx;
+use super::RopeDistortionsCtx;
 ///
-/// Finding width emissions the rope
-pub struct WidthEmissions<Branch> {
+/// Finding rope width distortion by calculating the deviation of the rope side
+/// 
+/// Deviation detected by comparing the side deviation with threshold multiplied by Median Absolute Deviation (MAD)
+/// 
+/// Threshold can be in the range 1.1 ... 1.3, the greater the threshold, the less the sensitivity of the algorithm
+pub struct RopeDistortions<Branch> {
     dbg: Dbg,
     threshold: Threshold,
     mad: Box<dyn Eval<Vec<usize>, Result<MadCtx, Error>> + Send + Sync>,
@@ -21,16 +24,16 @@ pub struct WidthEmissions<Branch> {
 }
 //
 //
-impl<Branch> WidthEmissions<Branch> {
+impl<Branch> RopeDistortions<Branch> {
     ///
-    /// New instance [WidthEmissions]
+    /// New instance [RopeDistortions]
     pub fn new(
         threshold: Threshold,
         mad: impl Eval<Vec<usize>, Result<MadCtx, Error>> + Send + Sync + 'static,
         ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static,
     ) -> Self {
         Self {
-            dbg: Dbg::own("WidthEmissions"),
+            dbg: Dbg::own("RopeDistortions"),
             threshold,
             mad: Box::new(mad),
             ctx: Box::new(ctx),
@@ -48,25 +51,25 @@ impl<Branch> WidthEmissions<Branch> {
         dots_width
     }
     ///
-    /// Find emissions
-    fn emissions(
+    /// Finding rope distortion
+    fn distortion(
         initial_points_upper: Vec<Dot<usize>>, 
         initial_points_lower: Vec<Dot<usize>>, 
         median: f64, 
         mad: f64, 
-        threshold: f64
+        threshold: Threshold
     ) -> Vec<Bond<usize>> {
-        let mut emissions = Vec::new();
+        let mut distortion = Vec::new();
         for i in 0..initial_points_upper.len() { // `for` only for one vector cause they must be same length
             let deviation = ((initial_points_upper[i].y - initial_points_lower[i].y) as f64 - median).abs();
-            if deviation > threshold * mad {
-                emissions.push(
+            if deviation > threshold.0 * mad {
+                distortion.push(
                     Bond {
                         x: initial_points_upper[i].x,
                         y: initial_points_upper[i].y,
                     }
                 );
-                emissions.push(
+                distortion.push(
                     Bond {
                         x: initial_points_lower[i].x,
                         y: initial_points_lower[i].y,
@@ -74,12 +77,12 @@ impl<Branch> WidthEmissions<Branch> {
                 );
             }
         };
-        emissions
+        distortion
     }
 }
 //
 //
-impl<Branch: 'static> Eval<Image, EvalResult> for WidthEmissions<Branch> {
+impl<Branch: 'static> Eval<Image, EvalResult> for RopeDistortions<Branch> {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new(&self.dbg, "eval");
         match self.ctx.eval(frame) {
@@ -99,18 +102,18 @@ impl<Branch: 'static> Eval<Image, EvalResult> for WidthEmissions<Branch> {
                     (vec![], MadCtx::default())
                 } else {
                     let mad = self.mad.eval(Self::points_width(upper.clone(), lower.clone())).map_err(|err| error.pass(err))?;
-                    (Self::emissions(upper, lower, mad.median, mad.mad, self.threshold.0), mad)
+                    (Self::distortion(upper, lower, mad.median, mad.mad, self.threshold), mad)
                 };
                 match TypeId::of::<Branch>() {
                     typ if typ == TypeId::of::<FastScanCtx>() => {
-                        log::debug!("WidthEmissions<FastScanCtx>.eval | mad: {:?}", mad);
-                        log::debug!("WidthEmissions<FastScanCtx>.eval | defects: {:?}", result);
-                        ctx.write(WidthEmissionsCtx::<FastScanCtx>::new(result))
+                        log::debug!("RopeDistortions<FastScanCtx>.eval | mad: {:?}", mad);
+                        log::debug!("RopeDistortions<FastScanCtx>.eval | defects: {:?}", result);
+                        ctx.write(RopeDistortionsCtx::<FastScanCtx>::new(result))
                     }
                     typ if typ == TypeId::of::<FineScanCtx>() => {
-                        log::debug!("WidthEmissions<FastScanCtx>.eval | mad: {:?}", mad);
-                        log::debug!("WidthEmissions<FineScanCtx>.eval | defects: {:?}", result);
-                        ctx.write(WidthEmissionsCtx::<FineScanCtx>::new(result))
+                        log::debug!("RopeDistortions<FastScanCtx>.eval | mad: {:?}", mad);
+                        log::debug!("RopeDistortions<FineScanCtx>.eval | defects: {:?}", result);
+                        ctx.write(RopeDistortionsCtx::<FineScanCtx>::new(result))
                     }
                     _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
                 }

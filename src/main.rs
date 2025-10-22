@@ -10,7 +10,7 @@ use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Cropping, FastContours, FastEdges, FastScanConf, FastScanCtx, FineScanConf, GeometryDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter, WidthEmissions
+        AutoGamma, Cropping, FastContours, FastEdges, FastScanConf, FastScanCtx, FineScanConf, RopeDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter, RopeDistortions
     }, conf::{Conf, NormalizeConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -34,10 +34,10 @@ fn main() {
         fine_scan: FineScanConf::default(),
     };
     let debug = false;
-    let scan_rope = GeometryDefect::<FastScanCtx>::new(
+    let scan_rope = RopeDefect::<FastScanCtx>::new(
         conf.fast_scan.geometry_defect_threshold,
         *Box::new(Mad::new()),
-        WidthEmissions::<FastScanCtx>::new(
+        RopeDistortions::<FastScanCtx>::new(
             conf.fast_scan.geometry_defect_threshold,
             *Box::new(Mad::new()),
             FastEdges::new(

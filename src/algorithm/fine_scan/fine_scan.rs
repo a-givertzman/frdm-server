@@ -4,7 +4,7 @@ use sal_sync::{services::future::Future, sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
         self, Context, ContextRead, ContextWrite, EvalResult, FineContours, FineEdges, FineScanConf, FineScanCtx,
-        FineUnion, GeometryDefectCtx, GrayCtx, TemporalFilter, ResultCtx, GeometryDefect, WidthEmissions, Mad,
+        FineUnion, RopeDefectCtx, GrayCtx, TemporalFilter, ResultCtx, RopeDefect, RopeDistortions, Mad,
     }, domain::{Eval, Image},
 };
 ///
@@ -54,10 +54,10 @@ impl FineScan {
             },
             ctx_fast: Box::new(ctx),
             ctx: Arc::new(Box::new(
-                GeometryDefect::<FineScanCtx>::new(
+                RopeDefect::<FineScanCtx>::new(
                     conf.geometry_defect_threshold,
                     *Box::new(Mad::new()),
-                    WidthEmissions::<FineScanCtx>::new(
+                    RopeDistortions::<FineScanCtx>::new(
                         conf.geometry_defect_threshold,
                         *Box::new(Mad::new()),
                         FineEdges::new(
@@ -109,7 +109,7 @@ impl Eval<Image, Future<Result<Context, Error>>> for FineScan {
                         log::debug!("FineScan.eval | NormalizedCtx size: {:?}", size_of_val(ContextRead::<algorithm::NormalizedCtx>::read(&ctx)));
                         log::debug!("FineScan.eval | FastScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
                         log::debug!("FineScan.eval | FineScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FineScanCtx>::read(&ctx)));
-                        log::debug!("FineScan.eval | GeometryDefectCtx size: {:?}", size_of_val(ContextRead::<GeometryDefectCtx<()>>::read(&ctx)));
+                        log::debug!("FineScan.eval | GeometryDefectCtx size: {:?}", size_of_val(ContextRead::<RopeDefectCtx<()>>::read(&ctx)));
                         // log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
                         // log::debug!("FineScan.eval | frame size: {:?}", size_of_val(&frame));
                         self.pass_ctx1.replace(ctx.clone());
@@ -122,7 +122,7 @@ impl Eval<Image, Future<Result<Context, Error>>> for FineScan {
                                 Ok(ctx) => {
                                     log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
                                     if let Some(defects) = defects {
-                                        let defects_ctx: &GeometryDefectCtx<()> = ctx.read();
+                                        let defects_ctx: &RopeDefectCtx<()> = ctx.read();
                                         if !defects_ctx.result.is_empty() {
                                             (defects)(&ctx)
                                         }

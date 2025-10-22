@@ -1,5 +1,13 @@
 #[cfg(test)]
-use crate::{algorithm::{Context, ContextWrite, EvalResult, InitialCtx}, domain::{Eval, Image}};
+use crate::{
+    algorithm::{Context, ContextWrite, EvalResult, InitialCtx,
+        ContextRead, FastContours, FastContoursConf, FastEdges, FastEdgesConf,
+        FastScanConf, FastScanCtx, RopeDefect, RopeDefectCtx, Mad, ResultCtx,
+        RopeDimensionsConf, TemporalFilterConf, Threshold, RopeDistortions,
+    },
+    domain::{Eval, Image},
+    conf::UnionConf,
+};
 use std::{sync::Once, time::Duration};
 use opencv::imgcodecs;
 use testing::stuff::max_test_duration::TestDuration;
@@ -9,11 +17,6 @@ use debugging::session::debug_session::{
     Backtrace
 };
 use sal_core::dbg::Dbg;
-use crate::{
-    algorithm::{
-        ContextRead, FastContours, FastContoursConf, FastEdges, FastEdgesConf, FastScanConf, FastScanCtx, GeometryDefect, GeometryDefectCtx, Mad, ResultCtx, RopeDimensionsConf, TemporalFilterConf, Threshold, WidthEmissions
-    }, conf::UnionConf, 
-};
 ///
 ///
 static INIT: Once = Once::new();
@@ -55,10 +58,10 @@ fn eval() {
         rope_dimensions: RopeDimensionsConf::default(),
         geometry_defect_threshold: Threshold(1.1),
     };
-    let geometry_defect = GeometryDefect::<FastScanCtx>::new(
+    let geometry_defect = RopeDefect::<FastScanCtx>::new(
         conf.geometry_defect_threshold,
         *Box::new(Mad::new()),
-        WidthEmissions::new(
+        RopeDistortions::new(
             conf.geometry_defect_threshold,
             *Box::new(Mad::new()),
             FastEdges::new(
@@ -82,7 +85,7 @@ fn eval() {
         let result = geometry_defect.eval(src_frame);
         match result {
             Ok(result) => {
-                let result = ContextRead::<GeometryDefectCtx<FastScanCtx>>::read(&result)
+                let result = ContextRead::<RopeDefectCtx<FastScanCtx>>::read(&result)
                     .result.clone();
                 assert!(
                     result == target, 

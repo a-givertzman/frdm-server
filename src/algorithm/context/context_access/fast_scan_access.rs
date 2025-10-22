@@ -1,7 +1,7 @@
 use crate::{
     algorithm::{
-        FastContoursCtx, FastEdgesCtx, FastScanCtx, FastUnionCtx, GeometryDefectCtx,
-        RopeDimensionsCtx, TemporalFilterCtx, WidthEmissionsCtx,
+        FastContoursCtx, FastEdgesCtx, FastScanCtx, FastUnionCtx, RopeDefectCtx,
+        RopeDimensionsCtx, TemporalFilterCtx, RopeDistortionsCtx,
         Context, ContextRead, ContextWrite,
     },
     domain::Error,
@@ -35,27 +35,27 @@ impl ContextRead<FastEdgesCtx> for Context {
 }
 //
 //
-impl ContextWrite<WidthEmissionsCtx<FastScanCtx>> for Context {
-    fn write(mut self, value: WidthEmissionsCtx<FastScanCtx>) -> Result<Self, Error> {
+impl ContextWrite<RopeDistortionsCtx<FastScanCtx>> for Context {
+    fn write(mut self, value: RopeDistortionsCtx<FastScanCtx>) -> Result<Self, Error> {
         self.fast_scan.width_emissions = value;
         Result::Ok(self)
     }
 }
-impl ContextRead<WidthEmissionsCtx<FastScanCtx>> for Context {
-    fn read(&self) -> &WidthEmissionsCtx<FastScanCtx> {
+impl ContextRead<RopeDistortionsCtx<FastScanCtx>> for Context {
+    fn read(&self) -> &RopeDistortionsCtx<FastScanCtx> {
         &self.fast_scan.width_emissions
     }
 }
 //
 //
-impl ContextWrite<GeometryDefectCtx<FastScanCtx>> for Context {
-    fn write(mut self, value: GeometryDefectCtx<FastScanCtx>) -> Result<Self, Error> {
+impl ContextWrite<RopeDefectCtx<FastScanCtx>> for Context {
+    fn write(mut self, value: RopeDefectCtx<FastScanCtx>) -> Result<Self, Error> {
         self.fast_scan.defects = value;
         Result::Ok(self)
     }
 }
-impl ContextRead<GeometryDefectCtx<FastScanCtx>> for Context {
-    fn read(&self) -> &GeometryDefectCtx<FastScanCtx> {
+impl ContextRead<RopeDefectCtx<FastScanCtx>> for Context {
+    fn read(&self) -> &RopeDefectCtx<FastScanCtx> {
         &self.fast_scan.defects
     }
 }

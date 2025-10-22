@@ -3,7 +3,7 @@ use sal_core::error::Error;
 use sal_sync::{sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        Context, ContextRead, EvalResult, FastContours, FastEdges, FastScanConf, FastScanCtx, FastUnion, GeometryDefect, ResultCtx, TemporalFilter, Mad, WidthEmissions,
+        Context, ContextRead, EvalResult, FastContours, FastEdges, FastScanConf, FastScanCtx, FastUnion, RopeDefect, ResultCtx, TemporalFilter, Mad, RopeDistortions,
     },
     domain::{Eval, Image},
 };
@@ -41,10 +41,10 @@ impl FastScan {
             pass_ctx2: pass_ctx2.clone(),
             ctx_gray: Box::new(ctx),
             ctx: Box::new(
-                GeometryDefect::<FastScanCtx>::new(
+                RopeDefect::<FastScanCtx>::new(
                     conf.geometry_defect_threshold,
                     *Box::new(Mad::new()),
-                    WidthEmissions::<FastScanCtx>::new(
+                    RopeDistortions::<FastScanCtx>::new(
                         conf.geometry_defect_threshold,
                         *Box::new(Mad::new()),
                         FastEdges::new(

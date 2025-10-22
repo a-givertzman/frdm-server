@@ -1,5 +1,5 @@
 use crate::algorithm::{
-    FineEdgesCtx, FineContoursCtx, FineUnionCtx, RopeDimensionsCtx, TemporalFilterCtx, GeometryDefectCtx, WidthEmissionsCtx,
+    FineEdgesCtx, FineContoursCtx, FineUnionCtx, RopeDimensionsCtx, TemporalFilterCtx, RopeDefectCtx, RopeDistortionsCtx,
 };
 
 ///
@@ -17,9 +17,9 @@ pub struct FineScanCtx {
     /// Rope calculated dimensions
     pub rope_dimensions: RopeDimensionsCtx<FineScanCtx>,
     /// Result of rope `WidthEmissions`
-    pub width_emissions: WidthEmissionsCtx<FineScanCtx>,
+    pub width_emissions: RopeDistortionsCtx<FineScanCtx>,
     /// Rope geometry defects
-    pub defects: GeometryDefectCtx<FineScanCtx>,
+    pub defects: RopeDefectCtx<FineScanCtx>,
 }
 //
 //
@@ -31,8 +31,8 @@ impl Default for FineScanCtx {
             union: FineUnionCtx::default(),
             edges: FineEdgesCtx::default(),
             rope_dimensions: RopeDimensionsCtx::default(),
-            width_emissions: WidthEmissionsCtx::default(),
-            defects: GeometryDefectCtx::default(),
+            width_emissions: RopeDistortionsCtx::default(),
+            defects: RopeDefectCtx::default(),
         }
     }
 }

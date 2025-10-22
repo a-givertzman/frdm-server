@@ -12,7 +12,7 @@ use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx, FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, GeometryDefectCtx, Gray, GrayCtx, Initial, InitialCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx, FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, RopeDefectCtx, Gray, GrayCtx, Initial, InitialCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side
     }, conf::Conf, domain::{Color, ColorProps, Eval, Image}, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -86,8 +86,8 @@ fn draw_rope_dimensions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context,
 fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) -> Result<Mat, Error> {
     let error = Error::new(dbg, "draw_rope_defects");
     let defects = match TypeId::of::<Branch>() {
-        typ if typ == TypeId::of::<FastScanCtx>() => &ContextRead::<GeometryDefectCtx<FastScanCtx>>::read(ctx).result,
-        typ if typ == TypeId::of::<FineScanCtx>() => &ContextRead::<GeometryDefectCtx<FineScanCtx>>::read(ctx).result,
+        typ if typ == TypeId::of::<FastScanCtx>() => &ContextRead::<RopeDefectCtx<FastScanCtx>>::read(ctx).result,
+        typ if typ == TypeId::of::<FineScanCtx>() => &ContextRead::<RopeDefectCtx<FineScanCtx>>::read(ctx).result,
         _ => return  Err(error.err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
     };
     let offset = 64;
@@ -107,10 +107,10 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
         ).map_err(|err| error.pass(err.to_string()))?;
         for (i, defect) in defects.iter().enumerate() {
             let text = match defect {
-                algorithm::GeometryDefectType::Expansion => "Расширение",
-                algorithm::GeometryDefectType::Compressing => "Сужение",
-                algorithm::GeometryDefectType::Hill => "Холмик",
-                algorithm::GeometryDefectType::Pit => "Ямка",
+                algorithm::RopeDefectKind::Expansion => "Расширение",
+                algorithm::RopeDefectKind::Compressing => "Сужение",
+                algorithm::RopeDefectKind::Hill => "Холмик",
+                algorithm::RopeDefectKind::Pit => "Ямка",
             };
             opencv::imgproc::put_text(
                 &mut img, &text,

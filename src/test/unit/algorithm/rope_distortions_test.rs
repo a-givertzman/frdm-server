@@ -11,7 +11,7 @@ mod width_emissions {
     };
     use crate::{
         algorithm::{
-            Bond, Context, ContextRead, ContextWrite, Edges, EvalResult, FastEdgesCtx, FastScanCtx, InitialCtx, Mad, Threshold, WidthEmissions, WidthEmissionsCtx
+            Bond, Context, ContextRead, ContextWrite, Edges, EvalResult, FastEdgesCtx, FastScanCtx, InitialCtx, Mad, Threshold, RopeDistortions, RopeDistortionsCtx
         },
         domain::{Dot, Eval, Image},
     };
@@ -92,14 +92,14 @@ mod width_emissions {
                 .clone()
                 .write(FastEdgesCtx { edges })
                 .unwrap();
-            let result = WidthEmissions::<FastScanCtx>::new(
+            let result = RopeDistortions::<FastScanCtx>::new(
                 threshold,
                 *Box::new(Mad::new()),
                 ctx,
             ).eval(Image::default());
             match result {
                 Ok(result) => {
-                    let result = ContextRead::<WidthEmissionsCtx<FastScanCtx>>::read(&result)
+                    let result = ContextRead::<RopeDistortionsCtx<FastScanCtx>>::read(&result)
                         .result.clone();
                     assert!(
                         result == target, 

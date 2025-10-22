@@ -1,6 +1,6 @@
 use crate::{
     algorithm::{
-        FineContoursCtx, FineScanCtx, FineUnionCtx, GeometryDefectCtx, RopeDimensionsCtx, TemporalFilterCtx, WidthEmissionsCtx, FineEdgesCtx,
+        FineContoursCtx, FineScanCtx, FineUnionCtx, RopeDefectCtx, RopeDimensionsCtx, TemporalFilterCtx, RopeDistortionsCtx, FineEdgesCtx,
         Context, ContextRead, ContextWrite,
     },
     domain::Error,
@@ -8,27 +8,27 @@ use crate::{
 
 //
 //
-impl ContextWrite<WidthEmissionsCtx<FineScanCtx>> for Context {
-    fn write(mut self, value: WidthEmissionsCtx<FineScanCtx>) -> Result<Self, Error> {
+impl ContextWrite<RopeDistortionsCtx<FineScanCtx>> for Context {
+    fn write(mut self, value: RopeDistortionsCtx<FineScanCtx>) -> Result<Self, Error> {
         self.fine_scan.width_emissions = value;
         Result::Ok(self)
     }
 }
-impl ContextRead<WidthEmissionsCtx<FineScanCtx>> for Context {
-    fn read(&self) -> &WidthEmissionsCtx<FineScanCtx> {
+impl ContextRead<RopeDistortionsCtx<FineScanCtx>> for Context {
+    fn read(&self) -> &RopeDistortionsCtx<FineScanCtx> {
         &self.fine_scan.width_emissions
     }
 }
 //
 //
-impl ContextWrite<GeometryDefectCtx<FineScanCtx>> for Context {
-    fn write(mut self, value: GeometryDefectCtx<FineScanCtx>) -> Result<Self, Error> {
+impl ContextWrite<RopeDefectCtx<FineScanCtx>> for Context {
+    fn write(mut self, value: RopeDefectCtx<FineScanCtx>) -> Result<Self, Error> {
         self.fine_scan.defects = value;
         Result::Ok(self)
     }
 }
-impl ContextRead<GeometryDefectCtx<FineScanCtx>> for Context {
-    fn read(&self) -> &GeometryDefectCtx<FineScanCtx> {
+impl ContextRead<RopeDefectCtx<FineScanCtx>> for Context {
+    fn read(&self) -> &RopeDefectCtx<FineScanCtx> {
         &self.fine_scan.defects
     }
 }
