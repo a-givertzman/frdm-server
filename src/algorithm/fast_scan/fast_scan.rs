@@ -3,7 +3,7 @@ use sal_core::error::Error;
 use sal_sync::{sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        Context, ContextRead, EvalResult, FastContours, FastEdges, FastScanConf, FastScanCtx, FastUnion, RopeDefect, ResultCtx, TemporalFilter, Mad, RopeDistortions,
+        Context, ContextRead, EvalResult, FastContours, FastEdges, FastScanConf, FastScanCtx, FastUnion, ResultCtx, TemporalFilter, Mad, RopeDistortions,
     },
     domain::{Eval, Image},
 };
@@ -41,37 +41,33 @@ impl FastScan {
             pass_ctx2: pass_ctx2.clone(),
             ctx_gray: Box::new(ctx),
             ctx: Box::new(
-                RopeDefect::<FastScanCtx>::new(
+                RopeDistortions::<FastScanCtx>::new(
                     conf.geometry_defect_threshold,
                     *Box::new(Mad::new()),
-                    RopeDistortions::<FastScanCtx>::new(
-                        conf.geometry_defect_threshold,
-                        *Box::new(Mad::new()),
-                        FastEdges::new(
-                            conf.fast_edges.otsu_tune,
-                            conf.fast_edges.threshold,
-                            conf.fast_edges.smooth,
-                            FastUnion::new(
-                                conf.union,
-                                scheduler,
-                                TemporalFilter::<FastScanCtx>::new(
-                                    conf.temporal_filter.gaussian,
-                                    conf.temporal_filter.open_kernel,
-                                    conf.temporal_filter.erode_kernel,
-                                    conf.temporal_filter.threshold,
-                                    PassGrayCtx::new(pass_ctx1),
-                                    debug,
-                                ),
-                                FastContours::new(
-                                    conf.fast_contours,
-                                    PassGrayCtx::new(pass_ctx2),
-                                    debug,
-                                ),
+                    FastEdges::new(
+                        conf.fast_edges.otsu_tune,
+                        conf.fast_edges.threshold,
+                        conf.fast_edges.smooth,
+                        FastUnion::new(
+                            conf.union,
+                            scheduler,
+                            TemporalFilter::<FastScanCtx>::new(
+                                conf.temporal_filter.gaussian,
+                                conf.temporal_filter.open_kernel,
+                                conf.temporal_filter.erode_kernel,
+                                conf.temporal_filter.threshold,
+                                PassGrayCtx::new(pass_ctx1),
                                 debug,
                             ),
+                            FastContours::new(
+                                conf.fast_contours,
+                                PassGrayCtx::new(pass_ctx2),
+                                debug,
+                            ),
+                            debug,
                         ),
-                    )
-                ),
+                    ),
+                )
             ),
         }
     }

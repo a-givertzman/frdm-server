@@ -7,7 +7,7 @@ use std::any::TypeId;
 
 use crossterm::event::{KeyEventKind, KeyEventState};
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
-use opencv::core::{Mat, MatTrait, MatTraitConst, Point2i, Vec3b};
+use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Rect, Vec3b}, imgproc::LineTypes};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
 use crate::{
@@ -89,7 +89,7 @@ fn draw_rope_dimensions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context,
 fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) -> Result<Mat, Error> {
     let error = Error::new(dbg, "draw_rope_defects");
     let defects = match TypeId::of::<Branch>() {
-        typ if typ == TypeId::of::<FastScanCtx>() => &ContextRead::<RopeDefectCtx<FastScanCtx>>::read(ctx).result,
+        // typ if typ == TypeId::of::<FastScanCtx>() => &ContextRead::<RopeDefectCtx<FastScanCtx>>::read(ctx).result,
         typ if typ == TypeId::of::<FineScanCtx>() => &ContextRead::<RopeDefectCtx<FineScanCtx>>::read(ctx).result,
         _ => return  Err(error.err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
     };
@@ -110,12 +110,19 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
             2, -1, false,
         ).map_err(|err| error.pass(err.to_string()))?;
         for (i, defect) in defects.iter().enumerate() {
-            let text = match defect {
-                RopeDefectKind::Expansion(start, end) => "Расширение",
-                RopeDefectKind::Compressing(start, end) => "Сужение",
-                RopeDefectKind::Hill(start, end) => "Холмик",
-                RopeDefectKind::Pit(start, end) => "Ямка",
+            let (text, start, end) = match defect {
+                RopeDefectKind::Expansion(start, end) => ("Expansion", start, end),
+                RopeDefectKind::Compressing(start, end) => ("Compressing", start, end),
+                RopeDefectKind::Hill(start, end) => ("Hill", start, end), // Холмик
+                RopeDefectKind::Pit(start, end) => ("Pit", start, end),   // Ямка
             };
+            let height = img.rows() - 200;
+            opencv::imgproc::rectangle(
+                &mut img,
+                Rect::new(*start as i32, 100, (end - start) as i32, height),
+                Color::Orange.bgra(0.0).into(),
+                1, LineTypes::LINE_8 as i32, 0,
+            ).map_err(|err| error.pass(err.to_string()))?;
             opencv::imgproc::put_text(
                 &mut img, &text,
                 Point2i::new(20, (i as i32 + 1) * line_height + offset ), 1, 2.0,

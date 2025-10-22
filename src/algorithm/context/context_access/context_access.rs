@@ -3,7 +3,7 @@
 //! 
 use crate::{
     algorithm::{
-        Context, ContextRead, ContextWrite, FastScanCtx, FineScanCtx, RopeDefectCtx, InitialCtx, NormalizedCtx, FineConvexCtx, ResultCtx
+        Context, ContextRead, ContextWrite, FastScanCtx, FineScanCtx, InitialCtx, NormalizedCtx, FineConvexCtx, ResultCtx
     },
     domain::{Error, Image},
 };
@@ -32,19 +32,6 @@ impl ContextWrite<ResultCtx<Image>> for Context {
 impl ContextRead<ResultCtx<Image>> for Context {
     fn read(&self) -> &ResultCtx<Image> {
         &self.result
-    }
-}
-//
-//
-impl ContextWrite<RopeDefectCtx<()>> for Context {
-    fn write(mut self, value: RopeDefectCtx<()>) -> Result<Self, Error> {
-        self.defects = value;
-        Result::Ok(self)
-    }
-}
-impl ContextRead<RopeDefectCtx<()>> for Context {
-    fn read(&self) -> &RopeDefectCtx<()> {
-        &self.defects
     }
 }
 //

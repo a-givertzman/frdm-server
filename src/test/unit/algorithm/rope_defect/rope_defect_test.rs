@@ -13,7 +13,7 @@ use debugging::session::debug_session::{
 };
 use crate::{
     algorithm::{
-        Context, ContextRead, ContextWrite, Edges, EvalResult, FastEdgesCtx, FastScanCtx,
+        Context, ContextRead, ContextWrite, Edges, EvalResult, FastEdgesCtx, FineScanCtx,
         RopeDefect, RopeDefectCtx, RopeDefectKind, InitialCtx, Mad, Threshold, RopeDistortions,
     }, 
     domain::{Dot, Eval, Image},
@@ -183,12 +183,12 @@ fn eval() {
             .clone()
             .write(FastEdgesCtx{ edges: edges.clone() })
             .unwrap();
-        let result = RopeDefect::<FastScanCtx>::new(
+        let result = RopeDefect::<FineScanCtx>::new(
             threshold,
             *Box::new(Mad::new()),
-            RopeDistortions::<FastScanCtx>::new(threshold, 
+            RopeDistortions::<FineScanCtx>::new(threshold, 
                 *Box::new(Mad::new()), 
-                RopeDistortions::<FastScanCtx>::new(
+                RopeDistortions::<FineScanCtx>::new(
                     threshold,
                     *Box::new(Mad::new()),
                     ctx,
@@ -197,7 +197,7 @@ fn eval() {
         ).eval(Image::default());
         match result {
             Ok(result) => {
-                let result = ContextRead::<RopeDefectCtx<FastScanCtx>>::read(&result)
+                let result = ContextRead::<RopeDefectCtx<FineScanCtx>>::read(&result)
                     .result.clone();
                 assert!(
                     result == target, 

@@ -1,4 +1,4 @@
-use std::{any::TypeId, marker::PhantomData};
+use std::{any::TypeId, marker::PhantomData, time::Instant};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
@@ -62,13 +62,13 @@ impl<Branch> RopeDistortions<Branch> {
         threshold: Threshold
     ) -> Vec<Bend<usize>> {
         let mut distortion = Vec::new();
-        for i in 0..upper.len() { // `for` only for one vector cause they must be same length
-            let deviation = ((upper[i].y - lower[i].y) as f64 - median).abs();
+        for (upper, lower) in upper.iter().zip(&lower) { // `for` only for one vector cause they must be same length
+            let deviation = ((upper.y as f64 - lower.y as f64).abs() - median).abs();
             if deviation > threshold.0 * mad {
                 distortion.push(
                     Bend {
-                        upper: upper[i],
-                        lower: lower[i],
+                        upper: *upper,
+                        lower: *lower,
                     }
                 );
             }
@@ -83,6 +83,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDistortions<Branch> {
         let error = Error::new(&self.dbg, "eval");
         match self.ctx.eval(frame) {
             Ok(ctx) => {
+                let t = Instant::now();
                 let (upper, lower) = match TypeId::of::<Branch>() {
                     typ if typ == TypeId::of::<FastScanCtx>() => {
                         let edges_ctx: &FastEdgesCtx = ctx.read();
@@ -102,14 +103,16 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDistortions<Branch> {
                 };
                 match TypeId::of::<Branch>() {
                     typ if typ == TypeId::of::<FastScanCtx>() => {
-                        log::debug!("RopeDistortions<FastScanCtx>.eval | mad: {:?}", mad);
-                        log::debug!("RopeDistortions<FastScanCtx>.eval | defects: {:?}", result);
-                        ctx.write(RopeDistortionsCtx::<FastScanCtx>::new(result))
+                        log::debug!("RopeDistortions<FastScanCtx>.eval | Elapsed: {:?}", t.elapsed());
+                        log::trace!("RopeDistortions<FastScanCtx>.eval | mad: {:?}", mad);
+                        // log::debug!("RopeDistortions<FastScanCtx>.eval | defects: {:?}", result);
+                        ctx.write(RopeDistortionsCtx::<FastScanCtx>::new(result, mad))
                     }
                     typ if typ == TypeId::of::<FineScanCtx>() => {
-                        log::debug!("RopeDistortions<FastScanCtx>.eval | mad: {:?}", mad);
-                        log::debug!("RopeDistortions<FineScanCtx>.eval | defects: {:?}", result);
-                        ctx.write(RopeDistortionsCtx::<FineScanCtx>::new(result))
+                        log::debug!("RopeDistortions<FineScanCtx>.eval | Elapsed: {:?}", t.elapsed());
+                        log::trace!("RopeDistortions<FineScanCtx>.eval | mad: {:?}", mad);
+                        // log::debug!("RopeDistortions<FineScanCtx>.eval | defects: {:?}", result);
+                        ctx.write(RopeDistortionsCtx::<FineScanCtx>::new(result, mad))
                     }
                     _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
                 }

@@ -2,7 +2,7 @@
 use crate::{
     algorithm::{Context, ContextWrite, EvalResult, InitialCtx,
         ContextRead, FastContours, FastContoursConf, FastEdges, FastEdgesConf,
-        FastScanConf, FastScanCtx, RopeDefect, RopeDefectCtx, Mad, ResultCtx,
+        FastScanConf, FineScanCtx, RopeDefect, RopeDefectCtx, Mad, ResultCtx,
         RopeDimensionsConf, TemporalFilterConf, Threshold, RopeDistortions,
     },
     domain::{Eval, Image},
@@ -58,7 +58,7 @@ fn eval() {
         rope_dimensions: RopeDimensionsConf::default(),
         geometry_defect_threshold: Threshold(1.1),
     };
-    let geometry_defect = RopeDefect::<FastScanCtx>::new(
+    let geometry_defect = RopeDefect::<FineScanCtx>::new(
         conf.geometry_defect_threshold,
         *Box::new(Mad::new()),
         RopeDistortions::new(
@@ -85,7 +85,7 @@ fn eval() {
         let result = geometry_defect.eval(src_frame);
         match result {
             Ok(result) => {
-                let result = ContextRead::<RopeDefectCtx<FastScanCtx>>::read(&result)
+                let result = ContextRead::<RopeDefectCtx<FineScanCtx>>::read(&result)
                     .result.clone();
                 assert!(
                     result == target, 

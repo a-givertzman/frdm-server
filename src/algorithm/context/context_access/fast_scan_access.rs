@@ -1,6 +1,6 @@
 use crate::{
     algorithm::{
-        FastContoursCtx, FastEdgesCtx, FastScanCtx, FastUnionCtx, RopeDefectCtx,
+        FastContoursCtx, FastEdgesCtx, FastScanCtx, FastUnionCtx,
         RopeDimensionsCtx, TemporalFilterCtx, RopeDistortionsCtx,
         Context, ContextRead, ContextWrite,
     },
@@ -37,26 +37,13 @@ impl ContextRead<FastEdgesCtx> for Context {
 //
 impl ContextWrite<RopeDistortionsCtx<FastScanCtx>> for Context {
     fn write(mut self, value: RopeDistortionsCtx<FastScanCtx>) -> Result<Self, Error> {
-        self.fast_scan.width_emissions = value;
+        self.fast_scan.distortions = value;
         Result::Ok(self)
     }
 }
 impl ContextRead<RopeDistortionsCtx<FastScanCtx>> for Context {
     fn read(&self) -> &RopeDistortionsCtx<FastScanCtx> {
-        &self.fast_scan.width_emissions
-    }
-}
-//
-//
-impl ContextWrite<RopeDefectCtx<FastScanCtx>> for Context {
-    fn write(mut self, value: RopeDefectCtx<FastScanCtx>) -> Result<Self, Error> {
-        self.fast_scan.defects = value;
-        Result::Ok(self)
-    }
-}
-impl ContextRead<RopeDefectCtx<FastScanCtx>> for Context {
-    fn read(&self) -> &RopeDefectCtx<FastScanCtx> {
-        &self.fast_scan.defects
+        &self.fast_scan.distortions
     }
 }
 //

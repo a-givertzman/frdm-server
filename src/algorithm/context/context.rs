@@ -1,6 +1,6 @@
 use crate::{
     algorithm::{
-        FastScanCtx, FineConvexCtx, FineScanCtx, InitialCtx, NormalizedCtx, ResultCtx, RopeDefectCtx,
+        FastScanCtx, FineConvexCtx, FineScanCtx, InitialCtx, NormalizedCtx, ResultCtx,
     },
     domain::Image,
 };
@@ -23,10 +23,6 @@ pub struct Context {
     pub(super) fine_scan: FineScanCtx,
     /// Result of `FineScan` convex - solid contour
     pub(super) convex: FineConvexCtx,
-    /// Result of detecting [GeometryDefect's](design/theory/geometry_rope_defects.md)
-    // /// Points that deviate in width from the threshold
-    // pub(super) width_emissions: WidthEmissionsCtx,
-    pub(super) defects: RopeDefectCtx<()>,
     ///
     /// Used for testing only
     #[allow(dead_code)]
@@ -43,11 +39,9 @@ impl Context {
             initial,
             result: ResultCtx::default(),
             normalized: NormalizedCtx::default(),
-            // width_emissions: WidthEmissionsCtx::default(),
             fast_scan: FastScanCtx::default(),
             fine_scan: FineScanCtx::default(),
             convex: FineConvexCtx::default(),
-            defects: RopeDefectCtx::default(),
             testing: None,
         }
     }

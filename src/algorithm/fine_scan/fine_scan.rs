@@ -3,8 +3,8 @@ use sal_core::error::Error;
 use sal_sync::{services::future::Future, sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        self, Context, ContextRead, ContextWrite, EvalResult, FineContours, FineEdges, FineScanConf, FineScanCtx,
-        FineUnion, RopeDefectCtx, GrayCtx, TemporalFilter, ResultCtx, RopeDefect, RopeDistortions, Mad,
+        self, Context, ContextRead, ContextWrite, EvalResult, FineContours, FineEdges, FineScanConf, FineScanCtx, FastScanCtx,
+        FineUnion, RopeDefectCtx, GrayCtx, TemporalFilter, ResultCtx, RopeDefect, RopeDistortions, RopeDistortionsCtx, Mad,
     }, domain::{Eval, Image},
 };
 ///
@@ -99,43 +99,49 @@ impl Eval<Image, Future<Result<Context, Error>>> for FineScan {
         let result = match self.ctx_fast.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
-                let result: &GrayCtx = ctx.read();
-                let result = ResultCtx { val: result.frame.clone() };
-                match ctx.write(result) {
-                    Ok(ctx) => {
-                        log::debug!("FineScan.eval | ctx size: {:?}", size_of_val(&ctx));
-                        log::debug!("FineScan.eval | Image size: {:?}", size_of_val(&Image::default()));
-                        log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::InitialCtx>::read(&ctx)));
-                        log::debug!("FineScan.eval | NormalizedCtx size: {:?}", size_of_val(ContextRead::<algorithm::NormalizedCtx>::read(&ctx)));
-                        log::debug!("FineScan.eval | FastScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
-                        log::debug!("FineScan.eval | FineScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FineScanCtx>::read(&ctx)));
-                        log::debug!("FineScan.eval | GeometryDefectCtx size: {:?}", size_of_val(ContextRead::<RopeDefectCtx<()>>::read(&ctx)));
-                        // log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
-                        // log::debug!("FineScan.eval | frame size: {:?}", size_of_val(&frame));
-                        self.pass_ctx1.replace(ctx.clone());
-                        self.pass_ctx2.replace(ctx);
-                        let ctx_eval = self.ctx.clone();
-                        let defects = self.defects.clone();
-                        let handle = self.scheduler.spawn(move || {
-                            let error = Error::new("FineScan", "eval");
-                            match ctx_eval.eval(Image::default()) {
-                                Ok(ctx) => {
-                                    log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
-                                    if let Some(defects) = defects {
-                                        let defects_ctx: &RopeDefectCtx<()> = ctx.read();
-                                        if !defects_ctx.result.is_empty() {
-                                            (defects)(&ctx)
+                let distortions: &RopeDistortionsCtx<FastScanCtx> = ctx.read();
+                if !distortions.result.is_empty() {
+                    let result: &GrayCtx = ctx.read();
+                    let result = ResultCtx { val: result.frame.clone() };
+                    match ctx.write(result) {
+                        Ok(ctx) => {
+                            log::debug!("FineScan.eval | ctx size: {:?}", size_of_val(&ctx));
+                            log::debug!("FineScan.eval | Image size: {:?}", size_of_val(&Image::default()));
+                            log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::InitialCtx>::read(&ctx)));
+                            log::debug!("FineScan.eval | NormalizedCtx size: {:?}", size_of_val(ContextRead::<algorithm::NormalizedCtx>::read(&ctx)));
+                            log::debug!("FineScan.eval | FastScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
+                            log::debug!("FineScan.eval | FineScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FineScanCtx>::read(&ctx)));
+                            log::debug!("FineScan.eval | RopeDefectCtx size: {:?}", size_of_val(ContextRead::<RopeDefectCtx<FineScanCtx>>::read(&ctx)));
+                            // log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
+                            // log::debug!("FineScan.eval | frame size: {:?}", size_of_val(&frame));
+                            self.pass_ctx1.replace(ctx.clone());
+                            self.pass_ctx2.replace(ctx);
+                            let ctx_eval = self.ctx.clone();
+                            let defects = self.defects.clone();
+                            let handle = self.scheduler.spawn(move || {
+                                let error = Error::new("FineScan", "eval");
+                                match ctx_eval.eval(Image::default()) {
+                                    Ok(ctx) => {
+                                        log::debug!("FineScan.eval | Elapsed: {:?}", t.elapsed());
+                                        if let Some(defects) = defects {
+                                            let defects_ctx: &RopeDefectCtx<FineScanCtx> = ctx.read();
+                                            if !defects_ctx.result.is_empty() {
+                                                (defects)(&ctx)
+                                            }
                                         }
+                                        sink1.add(Ok(ctx));
                                     }
-                                    sink1.add(Ok(ctx));
+                                    Err(err) => sink1.add(Err(error.pass(err))),
                                 }
-                                Err(err) => sink1.add(Err(error.pass(err))),
-                            }
-                            Ok(())
-                        });
-                        handle.map_err(|err| error.pass(err))
+                                Ok(())
+                            });
+                            handle.map(|_| ()).map_err(|err| error.pass(err))
+                        }
+                        Err(err) => Err(error.pass(err)),
                     }
-                    Err(err) => Err(error.pass(err)),
+                } else {
+                    sink1.add(Ok(ctx));
+                    Ok(())
                 }
             }
             Err(err) => Err(error.pass(err)),

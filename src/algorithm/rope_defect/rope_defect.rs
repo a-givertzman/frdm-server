@@ -109,7 +109,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDefect<Branch> {
                 if rope_distortions.is_empty() {
                     log::debug!("Frame without defect's");
                     return match TypeId::of::<Branch>() {
-                        typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(RopeDefectCtx::<FastScanCtx>::new(vec![])),
+                        // typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(RopeDefectCtx::<FastScanCtx>::new(vec![])),
                         typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(RopeDefectCtx::<FineScanCtx>::new(vec![])),
                         _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
                     }
@@ -161,7 +161,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDefect<Branch> {
                 //     acc
                 // });
                 match TypeId::of::<Branch>() {
-                    typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(RopeDefectCtx::<FastScanCtx>::new(result.all())),
+                    // typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(RopeDefectCtx::<FastScanCtx>::new(result.all())),
                     typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(RopeDefectCtx::<FineScanCtx>::new(result.all())),
                     _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
                 }
