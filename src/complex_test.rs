@@ -94,7 +94,7 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
     if defects.is_empty() {
         opencv::imgproc::put_text(
             &mut img, "No defects",
-            Point2i::new(10, offset ), 1, 2.0,
+            Point2i::new(10, offset + 24), 1, 2.0,
             Color::Green.bgra(0.0).into(),
             2, -1, false,
         ).map_err(|err| error.pass(err.to_string()))?;
