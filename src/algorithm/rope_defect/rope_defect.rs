@@ -175,7 +175,10 @@ impl Defects {
     }
     pub fn no_defect(&mut self, x: usize) {
         if let Some(prev) = &self.prev {
-            self.items.push(prev.end_with(x));
+            let detected = prev.end_with(x);
+            if detected.end() - detected.start() > 16 {
+                self.items.push(detected);
+            }
             self.prev = None;
         }
     }
@@ -190,7 +193,17 @@ impl Defects {
                     if prev.is_same(&RopeDefectKind::Expansion(0, 0)) && (defect.is_same(&RopeDefectKind::Pit(0, 0)) || defect.is_same(&RopeDefectKind::Hill(0, 0))) {
                         return;
                     }
-                    self.items.push(prev.end_with(defect.start()));
+                    if prev.is_same(&RopeDefectKind::Pit(0, 0)) && defect.is_same(&RopeDefectKind::Compressing(0, 0)) {
+                        self.prev = Some(RopeDefectKind::Compressing(prev.start(), defect.end()));
+                        return;
+                    }
+                    if prev.is_same(&RopeDefectKind::Compressing(0, 0)) && (defect.is_same(&RopeDefectKind::Pit(0, 0)) || defect.is_same(&RopeDefectKind::Hill(0, 0))) {
+                        return;
+                    }
+                    let detected = prev.end_with(defect.start());
+                    if detected.end() - detected.start() > 16 {
+                        self.items.push(detected);
+                    }
                     self.prev = Some(defect);
                 }
             }
