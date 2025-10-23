@@ -37,7 +37,7 @@ serde_json = { version = "~1.0" }                           # , git = "https://g
 bincode = "~2.0"
 #
 #
-regex = { version = "~1.11", git = "https://github.com/rust-lang/regex" }
+regex = "~1.11"                                             # , git = "https://github.com/rust-lang/regex"
 #
 #
 strum = { version = "~0.27", git = "https://github.com/Peternator7/strum" }
