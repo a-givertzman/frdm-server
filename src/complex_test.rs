@@ -91,7 +91,6 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
         _ => return  Err(error.err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
     };
     let offset = 64;
-    let line_height = 24;
     if defects.is_empty() {
         opencv::imgproc::put_text(
             &mut img, "No defects",
@@ -106,7 +105,7 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
             Color::Red.bgra(0.0).into(),
             2, -1, false,
         ).map_err(|err| error.pass(err.to_string()))?;
-        for (i, defect) in defects.iter().enumerate() {
+        for defect in defects {
             let (text, start, end) = match defect {
                 RopeDefectKind::Expansion(start, end) => ("Expansion", start, end),
                 RopeDefectKind::Compressing(start, end) => ("Compressing", start, end),
