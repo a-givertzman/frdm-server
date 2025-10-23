@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use sal_core::error::Error;
 
 use crate::domain::Eval;
@@ -15,52 +17,44 @@ impl Mad {
     }
     ///
     /// Calculate median
-    fn median(points: &[usize]) -> Result<f64, Error> {
-        let mut values: Vec<f64> = points
-            .iter()
-            .map(|point| *point as f64)
-        .collect();
-        values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        // log::debug!("Mad.median | values: {:?}", values);
-        if !values.is_empty() {
-            let len = values.len();
-            if len % 2 == 1 {
-                Ok(values[len / 2])
-            } else {
-                Ok((values[len / 2 - 1] + values[len / 2]) / 2.0)
+    pub fn median(sample: &[usize]) -> Result<usize, Error> {
+        let len = sample.len();
+        match len {
+            0 => Err(Error::new("Mad", "median").err("Input sequence is empty")),
+            1 => Ok(sample[0]),
+            _ => {
+                // log::debug!("Mad.median | values: {:?}", values);
+                let half_len = len / 2;
+                if len % 2 == 1 {
+                    Ok(sample[half_len])
+                } else {
+                    Ok(((sample[half_len - 1] + sample[half_len]) as f64 * 0.5).round() as usize)
+                }
             }
-        } else {
-            Err(Error::new("Mad", "median").err("Input sequence is empty"))
         }
     }
     ///
     /// Calculate Median Absolute Deviation
-    fn mad(sample: &[usize], median: f64) -> Result<f64, Error> {
-        let mut deviations: Vec<f64> = sample.iter()
-            .map(|point| (*point as f64 - median).abs())
-            .collect();
-        deviations.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        // log::debug!("Mad.mad | deviations: {:?}", deviations);
-        if !deviations.is_empty() {
-            let len = deviations.len();
-            if len % 2 == 1 {
-                Ok(deviations[len / 2])
-            } else {
-                Ok((deviations[len / 2 - 1] + deviations[len / 2]) / 2.0)
-            }
-        } else {
-            Err(Error::new("Mad", "median").err("Input sequence is empty"))
-        }
+    fn mad(sample: &[usize], median: usize) -> Result<usize, Error> {
+        let mut sample: Vec<usize> = sample.iter().map(|v| (*v as isize - median as isize).abs() as usize).collect();
+        sample.sort_by(|a, b| a.cmp(b));
+        Self::median(&sample)
     }
 }
 //
 //
 impl Eval<Vec<usize>, Result<MadCtx, Error>> for Mad {
-    fn eval(&self, sample: Vec<usize>) -> Result<MadCtx, Error> {
+    fn eval(&self, mut sample: Vec<usize>) -> Result<MadCtx, Error> {
+        let t = Instant::now();
+        sample.sort_by(|a, b| a.cmp(b));
         match Self::median(&sample) {
             Ok(median) => Ok(MadCtx {
-                median,
-                mad: Self::mad(&sample, median).map_err(|err| Error::new("Mad", "eval").pass(err))?,
+                median: median as f64,
+                mad: {
+                    let mad = Self::mad(&sample, median).map_err(|err| Error::new("Mad", "eval").pass(err))? as f64;
+                    log::debug!("Mad.eval | Elapsed: {:?}", t.elapsed());
+                    mad
+                }
             }),
             Err(err) => Err(Error::new("Mad", "eval").pass(err)),
         }

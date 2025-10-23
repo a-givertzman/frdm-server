@@ -186,13 +186,10 @@ fn eval() {
         let result = RopeDefect::<FineScanCtx>::new(
             threshold,
             *Box::new(Mad::new()),
-            RopeDistortions::<FineScanCtx>::new(threshold, 
+            RopeDistortions::<FineScanCtx>::new(
+                threshold,
                 *Box::new(Mad::new()), 
-                RopeDistortions::<FineScanCtx>::new(
-                    threshold,
-                    *Box::new(Mad::new()),
-                    ctx,
-                )
+                ctx,
             ),
         ).eval(Image::default());
         match result {

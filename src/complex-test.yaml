@@ -29,7 +29,7 @@ fast-scan:
         rope-width: 380               # Standart rope width, px
         width-tolerance: 50.0         # Tolerance for rope width, %
         square-tolerance: 100.0       # Tolerance for rope square, %
-    geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
+    distortion-threshold: 1.2    # 1.1..1.3, absolute threshold to detect the geometry deffects
 
 fine-scan:
     fine-contours:
@@ -56,4 +56,5 @@ fine-scan:
         rope-width: 380               # Standart rope width, px
         width-tolerance: 30.0         # Tolerance for rope width, %
         square-tolerance: 100.0       # Tolerance for rope square, %
-    geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
+    distortion-threshold: 1.4    # 1.1..1.3, absolute threshold to detect the geometry deffects
+    defect-threshold: 2.8        # 1.1..1.3, absolute threshold to detect the geometry deffects

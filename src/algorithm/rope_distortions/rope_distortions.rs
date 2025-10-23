@@ -59,18 +59,25 @@ impl<Branch> RopeDistortions<Branch> {
         lower: Vec<Dot<usize>>, 
         median: f64, 
         mad: f64, 
-        threshold: Threshold
+        threshold: Threshold,
     ) -> Vec<Bend<usize>> {
         let mut distortion = Vec::new();
+        let mut bend: Option<Bend<usize>> = None;
         for (upper, lower) in upper.iter().zip(&lower) { // `for` only for one vector cause they must be same length
             let deviation = ((upper.y as f64 - lower.y as f64).abs() - median).abs();
             if deviation > threshold.0 * mad {
-                distortion.push(
-                    Bend {
-                        upper: *upper,
-                        lower: *lower,
-                    }
-                );
+                match &mut bend {
+                    Some(bend) => bend.push(*upper, *lower),
+                    None => {
+                        let mut init = Bend::new();
+                        init.push(*upper, *lower);
+                        bend = Some(init);
+                    },
+                }
+            } else {
+                if let Some(bend) = bend.take() {
+                    distortion.push(bend);
+                }
             }
         };
         distortion

@@ -33,8 +33,8 @@ use crate::{algorithm::{
 ///         rope-width: 380               # Standart rope width, px
 ///         width-tolerance: 25.0         # Tolerance for rope width, %
 ///         square-tolerance: 100.0       # Tolerance for rope square, %
-//      distortion-threshold: 1.2    # 1.1..1.3, threshold to detect the rope distortions
-///     defect-threshold: 1.2    # 1.1..1.3, threshold to detect rope geometry deffects
+///     distortion-threshold: 1.2      # 1.1..1.3, threshold to detect the rope distortions
+///     defect-threshold: 1.2          # 1.1..1.3, threshold to detect rope geometry defects
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FineScanConf {

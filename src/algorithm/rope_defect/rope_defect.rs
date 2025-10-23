@@ -46,8 +46,8 @@ impl<Branch> RopeDefect<Branch> {
     fn expansion(&self, upper_point: &Dot<usize>, lower_point: &Dot<usize>, upper_mad: &MadCtx, lower_mad: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - upper_mad.median;
         let deviation_lower = lower_point.y as f64 - lower_mad.median;
-        if (deviation_upper > self.threshold.0 * upper_mad.mad) &&
-            (deviation_lower < -self.threshold.0 * lower_mad.mad) {
+        if (deviation_upper < self.threshold.0 * upper_mad.mad) &&
+            (deviation_lower > self.threshold.0 * lower_mad.mad) {
             return Some(());
         }
         None
@@ -57,8 +57,8 @@ impl<Branch> RopeDefect<Branch> {
     fn compressing(&self, upper_point: &Dot<usize>, lower_point: &Dot<usize>, upper_mad: &MadCtx, lower_mad: &MadCtx) -> Option<()> {
         let deviation_upper = upper_point.y as f64 - upper_mad.median;
         let deviation_lower = lower_point.y as f64 - lower_mad.median;
-        if (deviation_upper < -self.threshold.0 * upper_mad.mad) &&
-            (deviation_lower > self.threshold.0 * lower_mad.mad) {
+        if (deviation_upper > self.threshold.0 * upper_mad.mad) &&
+            (deviation_lower < self.threshold.0 * lower_mad.mad) {
             return Some(());
         }
         None
@@ -132,34 +132,26 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDefect<Branch> {
                     lower.iter().map(|dot| dot.y).collect()
                 ).map_err(|err| error.pass(err))?;
                 let mut result = Defects::new();
+                let mut x = 0;
                 for bend in rope_distortions {
-                    let upper_point = bend.upper;
-                    let lower_point = bend.lower;
-                    match self.expansion(&upper_point, &lower_point, &upper_mad, &lower_mad) {
-                        Some(_) => result.push(RopeDefectKind::Expansion(upper_point.x, upper_point.x)),
-                        None => match self.compressing(&upper_point, &lower_point, &upper_mad, &lower_mad) {
-                            Some(_) => result.push(RopeDefectKind::Compressing(upper_point.x, upper_point.x)),
-                            None => match self.hill(&upper_point, &lower_point, &upper_mad, &lower_mad) {
-                                Some(_) => result.push(RopeDefectKind::Hill(upper_point.x, upper_point.x)),
-                                None => match self.pit(&upper_point, &lower_point, &upper_mad, &lower_mad) {
-                                    Some(_) => result.push(RopeDefectKind::Pit(upper_point.x, upper_point.x)),
-                                    None => result.no_defect(upper_point.x),
+                    for (upper_point, lower_point) in bend.upper.iter().zip(&bend.lower) {
+                        match self.expansion(&upper_point, &lower_point, &upper_mad, &lower_mad) {
+                            Some(_) => result.push(RopeDefectKind::Expansion(upper_point.x, upper_point.x)),
+                            None => match self.compressing(&upper_point, &lower_point, &upper_mad, &lower_mad) {
+                                Some(_) => result.push(RopeDefectKind::Compressing(upper_point.x, upper_point.x)),
+                                None => match self.hill(&upper_point, &lower_point, &upper_mad, &lower_mad) {                   // Холмик
+                                    Some(_) => result.push(RopeDefectKind::Hill(upper_point.x, upper_point.x)),
+                                    None => match self.pit(&upper_point, &lower_point, &upper_mad, &lower_mad) {                // Ямка
+                                        Some(_) => result.push(RopeDefectKind::Pit(upper_point.x, upper_point.x)),
+                                        None => result.no_defect(upper_point.x),
+                                    }
                                 }
                             }
                         }
+                        x = upper_point.x;
                     }
+                    result.no_defect(x);
                 }
-                // result = result.into_iter().fold(vec![], |mut acc, defect| {
-                //     match acc.last() {
-                //         Some(prev) => {
-                //             if prev != &defect {
-                //                 acc.push(defect);
-                //             }
-                //         }
-                //         None => acc.push(defect),
-                //     }
-                //     acc
-                // });
                 match TypeId::of::<Branch>() {
                     // typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(RopeDefectCtx::<FastScanCtx>::new(result.all())),
                     typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(RopeDefectCtx::<FineScanCtx>::new(result.all())),
@@ -191,6 +183,13 @@ impl Defects {
         match &self.prev {
             Some(prev) => {
                 if !defect.is_same(prev) {
+                    if prev.is_same(&RopeDefectKind::Hill(0, 0)) && defect.is_same(&RopeDefectKind::Expansion(0, 0)) {
+                        self.prev = Some(RopeDefectKind::Expansion(prev.start(), defect.end()));
+                        return;
+                    }
+                    if prev.is_same(&RopeDefectKind::Expansion(0, 0)) && (defect.is_same(&RopeDefectKind::Pit(0, 0)) || defect.is_same(&RopeDefectKind::Hill(0, 0))) {
+                        return;
+                    }
                     self.items.push(prev.end_with(defect.start()));
                     self.prev = Some(defect);
                 }

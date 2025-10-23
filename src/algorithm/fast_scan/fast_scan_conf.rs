@@ -30,7 +30,7 @@ use crate::{algorithm::{FastContoursConf, FastEdgesConf, RopeDimensionsConf, Tem
 ///         rope-width: 380               # Standart rope width, px
 ///         width-tolerance: 25.0         # Tolerance for rope width, %
 ///         square-tolerance: 100.0       # Tolerance for rope square, %
-//      distortion-threshold: 1.0    # 1.0..1.5, threshold to detect the rope distortions
+//      distortion-threshold: 1.3       # 1.0..1.5, threshold to detect the rope distortions
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct FastScanConf {

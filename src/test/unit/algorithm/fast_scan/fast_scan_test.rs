@@ -119,18 +119,20 @@ fn draw_rope_distortions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context
             Color::Red.bgra(0.0).into(), 1, LineTypes::LINE_8 as i32, 0,
         ).map_err(|err| error.pass(err.to_string()))?;
         for bend in distortions {
-            opencv::imgproc::circle(
-                &mut img,
-                Point2i::new(bend.upper.x as i32, bend.upper.y as i32),
-                1, Color::Orange.bgra(0.0).into(),
-                2, LineTypes::LINE_8 as i32, 0,
-            ).map_err(|err| error.pass(err.to_string()))?;
-            opencv::imgproc::circle(
-                &mut img,
-                Point2i::new(bend.lower.x as i32, bend.lower.y as i32),
-                1, Color::Orange.bgra(0.0).into(),
-                2, LineTypes::LINE_8 as i32, 0,
-            ).map_err(|err| error.pass(err.to_string()))?;
+            for (upper, lower) in bend.upper.iter().zip(&bend.lower) {
+                opencv::imgproc::circle(
+                    &mut img,
+                    Point2i::new(upper.x as i32, upper.y as i32),
+                    1, Color::Orange.bgra(0.0).into(),
+                    2, LineTypes::LINE_8 as i32, 0,
+                ).map_err(|err| error.pass(err.to_string()))?;
+                opencv::imgproc::circle(
+                    &mut img,
+                    Point2i::new(lower.x as i32, lower.y as i32),
+                    1, Color::Orange.bgra(0.0).into(),
+                    2, LineTypes::LINE_8 as i32, 0,
+                ).map_err(|err| error.pass(err.to_string()))?;
+            }
         }
     }
     Ok(img)
@@ -169,7 +171,7 @@ fn eval() {
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 50.0         # Tolerance for rope width, %
                 square-tolerance: 100.0       # Tolerance for rope square, %
-            distortion-threshold: 1.2    # 1.1..1.3, absolute threshold to detect the geometry deffects
+            distortion-threshold: 1.3      # 1.0..1.6, absolute threshold to detect the geometry deffects
         "#)).unwrap(),
     );
     let conf = FastScanConf::new(&dbg, conf);

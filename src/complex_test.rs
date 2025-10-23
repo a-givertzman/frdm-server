@@ -12,10 +12,7 @@ use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx,
-        FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, RopeDefectCtx, Gray,
-        GrayCtx, Initial, InitialCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side,
-        RopeDefectKind,
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx, FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, Gray, GrayCtx, Initial, InitialCtx, RopeDefectCtx, RopeDefectKind, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, RopeDistortionsCtx, Side
     }, conf::Conf, domain::{Color, ColorProps, Eval, Image}, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -125,10 +122,60 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
             ).map_err(|err| error.pass(err.to_string()))?;
             opencv::imgproc::put_text(
                 &mut img, &text,
-                Point2i::new(20, (i as i32 + 1) * line_height + offset ), 1, 2.0,
+                Point2i::new(*start as i32  + 5, 115 ), 1, 0.5,
+                // Point2i::new(20, (i as i32 + 1) * line_height + offset ), 1, 2.0,
                 Color::OrangeRed.bgra(0.0).into(),
-                2, -1, false,
+                1, -1, false,
             ).map_err(|err| error.pass(err.to_string()))?;
+        }
+    }
+    Ok(img)
+}
+///
+/// Drawing Rope defects
+fn draw_rope_distortions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) -> Result<Mat, Error> {
+    let error = Error::new(dbg, "draw_rope_defects");
+    let (distortions, mad) = match TypeId::of::<Branch>() {
+        typ if typ == TypeId::of::<FastScanCtx>() => {
+            let result = ContextRead::<RopeDistortionsCtx<FastScanCtx>>::read(ctx);
+            (&result.result, result.mad)
+        },
+        typ if typ == TypeId::of::<FineScanCtx>() => {
+            let result = ContextRead::<RopeDistortionsCtx<FineScanCtx>>::read(ctx);
+            (&result.result, result.mad)
+        }
+        _ => return  Err(error.err(format!("Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>()))),
+    };
+    let offset = 64;
+    if distortions.is_empty() {
+        opencv::imgproc::put_text(
+            &mut img, "No distortions",
+            Point2i::new(10, offset ), 1, 2.0,
+            Color::Green.bgra(0.0).into(),
+            2, -1, false,
+        ).map_err(|err| error.pass(err.to_string()))?;
+    } else {
+        let width = img.cols();
+        let median = mad.median.round() as i32;
+        opencv::imgproc::line(
+            &mut img, Point2i::new(0, median), Point2i::new(width, median),
+            Color::Red.bgra(0.0).into(), 1, LineTypes::LINE_8 as i32, 0,
+        ).map_err(|err| error.pass(err.to_string()))?;
+        for bend in distortions {
+            for (upper, lower) in bend.upper.iter().zip(&bend.lower) {
+                opencv::imgproc::circle(
+                    &mut img,
+                    Point2i::new(upper.x as i32, upper.y as i32),
+                    1, Color::Orange.bgra(0.0).into(),
+                    2, LineTypes::LINE_8 as i32, 0,
+                ).map_err(|err| error.pass(err.to_string()))?;
+                opencv::imgproc::circle(
+                    &mut img,
+                    Point2i::new(lower.x as i32, lower.y as i32),
+                    1, Color::Orange.bgra(0.0).into(),
+                    2, LineTypes::LINE_8 as i32, 0,
+                ).map_err(|err| error.pass(err.to_string()))?;
+            }
         }
     }
     Ok(img)
@@ -291,6 +338,7 @@ fn main() {
         let crop = draw_dots::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
         let crop = draw_rope_dimensions::<FineScanCtx>(&dbg, crop, &ctx, &conf.fine_scan.rope_dimensions).unwrap();
         let crop = draw_rope_defects::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
+        let crop = draw_rope_distortions::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
         if !crop.empty() { opencv::highgui::imshow(w_crop, &crop).unwrap(); }
         if !gray.frame.mat.empty() { opencv::highgui::imshow(w_gray, &gray.frame.mat).unwrap(); }
         if !fast_contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_fast_contours, &fast_contours_ctx.result.mat).unwrap(); }
