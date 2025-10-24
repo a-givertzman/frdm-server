@@ -1,16 +1,20 @@
 use crate::{
     algorithm::{
-        FastScanCtx, FineConvexCtx, FineScanCtx, InitialCtx, NormalizedCtx, ResultCtx,
+        FastScanCtx, FineConvexCtx, FineScanCtx, InitialCtx, NormalizedCtx, ResultCtx, TestingCtx,
     },
     domain::Image,
 };
-use super::testing_ctx::TestingCtx;
+///
+/// Meta information used for identification
+pub type MetaCtx = usize;
 ///
 /// # Calculation context
 /// - Provides read/write access to initial
 /// - R/W access to the isoleted data of each step of computations
 #[derive(Debug, Clone)]
 pub struct Context {
+    /// Some identification info
+    pub(super) meta: MetaCtx,
     /// where store source frame
     pub(super) initial: InitialCtx,
     /// Result of last evaluated step
@@ -36,6 +40,7 @@ impl Context {
     /// - 'initial' - [InitialCtx] instance, where store initial data
     pub fn new(initial: InitialCtx) -> Self {
         Self {
+            meta: 0,
             initial,
             result: ResultCtx::default(),
             normalized: NormalizedCtx::default(),

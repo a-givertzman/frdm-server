@@ -81,7 +81,7 @@ fn eval() {
             testing_frame,
             imgcodecs::IMREAD_COLOR,
         ).unwrap();
-        let src_frame = Image::with(frame_mat);
+        let src_frame = Image::from(frame_mat, 0);
         let result = geometry_defect.eval(src_frame);
         match result {
             Ok(result) => {

@@ -29,7 +29,7 @@ fn edge_visualization_img() {
         path,
         imgcodecs::IMREAD_GRAYSCALE,
     ).unwrap();
-    let ctx = FastEdges::new(None, Some(1), None, FakePassImg::new()).eval(Image::with(img.clone())).unwrap();
+    let ctx = FastEdges::new(None, Some(1), None, FakePassImg::new()).eval(Image::from(img.clone(), 0)).unwrap();
     let edges: &FastEdgesCtx = ctx.read();
     let mut img_of_edges = imgcodecs::imread(
         path,
@@ -63,7 +63,7 @@ fn edge_visualization_matrix(matrix: [[u8; 6]; 6]) {
     let img = Mat::from_slice_2d(&matrix).unwrap();
     let mut img_of_edges = Mat::default();
     imgproc::cvt_color(&img, &mut img_of_edges, imgproc::COLOR_GRAY2BGR, 0).unwrap();
-    let ctx = FastEdges::new(None, Some(1), None, FakePassImg::new()).eval(Image::with(img)).unwrap();
+    let ctx = FastEdges::new(None, Some(1), None, FakePassImg::new()).eval(Image::from(img, 0)).unwrap();
     let edges: &FastEdgesCtx = ctx.read();
     for dot in edges.edges.get(Side::Upper) {
         if dot.x as i32 >= 0 && dot.y as i32 >= 0 {
@@ -107,7 +107,7 @@ fn edge_detection() {
     let test_data: [(i32, Image, Result<FastEdgesCtx, Error>); 2] = [
         (
             1,
-            Image::with( Mat::from_slice_2d(&MATRIX1).unwrap()),
+            Image::from( Mat::from_slice_2d(&MATRIX1).unwrap(), 0),
             Ok(FastEdgesCtx {
                 edges: Edges::new(
                     into_dots(&[0,1, 1,0, 2,0, 3,1, 4,0, 5,0]),
@@ -117,7 +117,7 @@ fn edge_detection() {
         ),
         (
             2,
-            Image::with( Mat::from_slice_2d(&MATRIX2).unwrap()),
+            Image::from( Mat::from_slice_2d(&MATRIX2).unwrap(), 0),
             Ok(FastEdgesCtx {
                 edges: Edges::new(
                     into_dots(&[0,2, 1,1, 2,0, 3,1, 4,0, 5,1]),

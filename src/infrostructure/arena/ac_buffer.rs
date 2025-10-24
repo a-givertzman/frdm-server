@@ -127,11 +127,11 @@ impl AcBuffer {
                         opencv::imgproc::COLOR_BayerRG2RGB,
                         3,
                     ) {
-                        Ok(_) => Ok(Image { timestamp: timestamp, mat: dst }),
+                        Ok(_) => Ok(Image { meta: timestamp, mat: dst }),
                         Err(err) => Err(error.pass_with("OpenCv COLOR_BayerRG2RGB conversion Error", err.to_string())),
                     }
                 }
-                _ => Ok(Image { timestamp, mat: src })
+                _ => Ok(Image { meta: timestamp, mat: src })
             }
             Err(err) => Err(error.pass_with("Create OpenCv Mat Error", err.to_string())),
         }

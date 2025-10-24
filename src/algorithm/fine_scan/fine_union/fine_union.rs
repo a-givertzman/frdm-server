@@ -38,6 +38,7 @@ impl FineUnion {
 impl Eval<Image, EvalResult> for FineUnion {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("FineUnion", "eval");
+        let meta = frame.meta;
         let (ctx1, sink) = Future::new();
         let ctx1_eval = self.ctx1.clone();
         let frame1 = frame.clone();
@@ -101,9 +102,9 @@ impl Eval<Image, EvalResult> for FineUnion {
                     }
                     None => dst,
                 };
-                let frame = Image::with(dst);
+                let frame = Image::from(dst, meta);
                 let union = FineUnionCtx { frame: frame.clone() };
-                let ctx = ctx.write(union)?;
+                let ctx = ctx.write(union).map_err(|err| error.pass(err))?;
                 let result = ResultCtx { val: frame };
                 log::debug!("FineUnion.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)

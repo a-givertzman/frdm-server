@@ -51,6 +51,7 @@ impl<Branch> TemporalFilter<Branch> {
 impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("TemporalFilter", "eval");
+        let meta = frame.meta;
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
@@ -94,7 +95,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                             .map_err(|err| error.pass(err))?;
                         let dst = self.proc.eval(dst)
                             .map_err(|err| error.pass(err))?;
-                        let frame = Image::with(dst);
+                        let frame = Image::from(dst, meta);
                         let ctx = if self.debug {
                             match TypeId::of::<Branch>() {
                                 typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(TemporalFilterCtx::<FastScanCtx>::new(frame.clone()))

@@ -112,7 +112,7 @@ impl Eval<Image, EvalResult> for AutoBrightnessAndContrast {
                                 match opencv::core::convert_scale_abs(&frame.mat, &mut dst, alpha * 1.99, beta) {
                                     Ok(_) => {
                                         let frame = Image {
-                                            timestamp: frame.timestamp,
+                                            meta: frame.meta,
                                             mat: dst,
                                         };
                                         let ctx = if self.debug {

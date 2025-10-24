@@ -1,5 +1,5 @@
 use eframe::CreationContext;
-use opencv::core::{MatTrait, MatTraitConst};
+use opencv::core::{Mat, MatTrait, MatTraitConst};
 use sal_core::dbg::Dbg;
 use sal_sync::collections::FxIndexMap;
 use testing::entities::test_value::Value;
@@ -74,20 +74,20 @@ impl UiApp {
         Self::configure_text_styles(&cc.egui_ctx);
         let path = path.into();
         let rotate= true;
-        let (origin, frame, is_changed) = match Image::load(&path) {
+        let (origin, frame, is_changed) = match Image::load(&path, 0) {
             Ok(frame) => {
                 match rotate {
                     true => {
-                        let mut rotated = opencv::core::Mat::default();
+                        let mut rotated = Mat::default();
                         opencv::core::rotate(&frame.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
-                        (frame, Image::with(rotated), 3)
+                        (frame, Image::from(rotated, 0), 3)
                     }
                     false => (frame.clone(), frame, 3),
                 }
             }
             Err(err) => {
                 log::error!("{dbg}.new | Read path '{}' error: {:?}", path, err);
-                (Image::with(opencv::core::Mat::default()), Image::with(opencv::core::Mat::default()), 0)
+                (Image::from(Mat::default(), 0), Image::from(Mat::default(), 0), 0)
             }
         };
         Self {
@@ -287,16 +287,16 @@ impl UiApp {
     ///
     /// Returns an image with hist
     fn display_hist(frame: &Image, hist_clip_left: f32, hist_clip_right: f32) -> Image {
-        // let mut gray = opencv::core::Mat::default();
+        // let mut gray = Mat::default();
         // match opencv::imgproc::cvt_color(&frame.mat, &mut gray, opencv::imgproc::COLOR_BGR2GRAY, 0) {
         //     Ok(_) => {
-                let mut hist = opencv::core::Mat::default();
+                let mut hist = Mat::default();
                 let hist_size = 256 as i32;
-                let imgs: opencv::core::Vector<opencv::core::Mat> = opencv::core::Vector::from_iter([frame.mat.clone()]);
+                let imgs: opencv::core::Vector<Mat> = opencv::core::Vector::from_iter([frame.mat.clone()]);
                 match opencv::imgproc::calc_hist(
                     &imgs,
                     &opencv::core::Vector::from_slice(&[0]),
-                    &opencv::core::Mat::default(),
+                    &Mat::default(),
                     &mut hist,
                     &opencv::core::Vector::from_slice(&[hist_size]),
                     &opencv::core::Vector::from_slice(&[0.0 ,256.0]),
@@ -353,7 +353,7 @@ impl UiApp {
                         let hist_width = hist.cols();
                         let hist_height = hist.rows();
                         log::debug!("UiApp.display_hist.eval | hist_max: {:?}", hist_max);
-                        let mut plot = opencv::core::Mat::new_rows_cols_with_default((hist_max as i32) + 10, 256, opencv::core::CV_8UC3, opencv::core::VecN::new(0.0, 0.0, 0.0, 0.0)).unwrap();
+                        let mut plot = Mat::new_rows_cols_with_default((hist_max as i32) + 10, 256, opencv::core::CV_8UC3, opencv::core::VecN::new(0.0, 0.0, 0.0, 0.0)).unwrap();
                         for col in 0..(hist_size as usize) {
                             match hist.at::<f32>(col as i32) {
                                 Ok(val) => {
@@ -363,7 +363,7 @@ impl UiApp {
                             }
                         }
                         let plot = Self::image_plot(
-                            &Image::with(plot),
+                            &Image::from(plot, 0),
                             (0..(hist_max as usize)).map(|y| Dot {x: minimum_gray, y: y as usize}).collect(),
                             [0, 0, 255],
                             &CroppingConf { x: 0, width: hist_width, y: 0, height: hist_height },
@@ -374,7 +374,7 @@ impl UiApp {
                             [255, 0, 0],
                             &CroppingConf { x: 0, width: hist_width, y: 0, height: hist_height },
                         );
-                        let mut otsu = opencv::core::Mat::default();
+                        let mut otsu = Mat::default();
                         let threshold = (opencv::imgproc::threshold(&frame.mat, &mut otsu, 0.0, 255.0, opencv::imgproc::THRESH_OTSU).unwrap() * 0.99).round()as u8;
                         let plot = Self::image_plot(
                             &plot,
@@ -420,14 +420,14 @@ impl eframe::App for UiApp {
                         ui.add(egui::Label::new(format!("Image↕ ")));
                         ui.separator();
                         if ui.add_sized([ui.available_width() - 4.0, 24.0], egui::TextEdit::singleline(&mut self.path)).changed() {
-                            match Image::load(&self.path) {
+                            match Image::load(&self.path, 0) {
                                 Ok(frame) => {
                                     self.origin = frame.clone();
                                     match self.rotate {
                                         true => {
-                                            let mut rotated = opencv::core::Mat::default();
+                                            let mut rotated = Mat::default();
                                             opencv::core::rotate(&self.origin.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
-                                            self.frame = Image::with(rotated);
+                                            self.frame = Image::from(rotated, 0);
                                         }
                                         false => self.frame = frame,
                                     }
@@ -444,9 +444,9 @@ impl eframe::App for UiApp {
                         if ui.add(egui::Checkbox::new(&mut self.rotate, "Rotate")).changed() {
                             match self.rotate {
                                 true => {
-                                    let mut rotated = opencv::core::Mat::default();
+                                    let mut rotated = Mat::default();
                                     opencv::core::rotate(&self.origin.mat, &mut rotated, opencv::core::ROTATE_90_CLOCKWISE).unwrap();
-                                    self.frame = Image::with(rotated);
+                                    self.frame = Image::from(rotated, 0);
                                 }
                                 false => self.frame = self.origin.clone(),
                             }

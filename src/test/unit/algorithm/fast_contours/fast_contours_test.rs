@@ -111,7 +111,7 @@ fn eval() {
     {
         match path.extension() {
             Some(ext) if ext == "jpg" || ext == "png" || ext == "jpeg" => {
-                let frame = Image::load(path.to_str().unwrap()).unwrap();
+                let frame = Image::load(path.to_str().unwrap(), 0).unwrap();
                 // let mut rotated = Mat::default();
                 // core::rotate(&frame.mat, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 // let src = Image::with(rotated);

@@ -203,7 +203,7 @@ fn video(){
                     if read {
                         let result = camera.next().unwrap();
                         highgui::imshow("Video", &result.mat).unwrap();
-                        assert!(result == Image::with(target.clone()), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
+                        assert!(result == Image::from(target.clone(), 0), "{} | step {} \nresult: {:?}\ntarget: {:?}", dbg, step, result, target_video);
                         frames += 1;
                         if highgui::wait_key(30).unwrap() == 'q' as i32 {
                             break;

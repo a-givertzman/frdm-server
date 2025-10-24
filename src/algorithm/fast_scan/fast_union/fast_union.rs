@@ -43,6 +43,7 @@ impl Eval<Image, EvalResult> for FastUnion {
         let (ctx1, sink) = Future::new();
         let ctx1_eval = self.ctx1.clone();
         let frame1 = frame.clone();
+        let meta = frame.meta;
         self.scheduler.spawn(move || {
             let ctx = ctx1_eval.read().eval(frame1);
             sink.add(ctx);
@@ -74,7 +75,7 @@ impl Eval<Image, EvalResult> for FastUnion {
                         .map_err(|err| error.pass(err.to_string()))?,
                     _ => return Err(error.err(format!("Both: 'add-weighted' and `bitwise-and` - are specified, please use one of"))),
                 }
-                let frame = Image::with(dst);
+                let frame = Image::from(dst, meta);
                 let ctx = if self.debug {
                     let union = FastUnionCtx { frame: frame.clone() };
                     ctx1.write(union).map_err(|err| error.pass(err))?

@@ -275,6 +275,7 @@ impl FineContours {
 impl Eval<Image, EvalResult> for FineContours {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("FineContours", "eval");
+        let meta = frame.meta;
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
@@ -314,12 +315,12 @@ impl Eval<Image, EvalResult> for FineContours {
                     //     .unwrap();
                         // .map_err(|err| error.pass(err.to_string()))?;
                 }
-                let frame = Image::with(thresh);
+                let frame = Image::from(thresh, meta);
                 let ctx = match self.debug {
                     true => ctx.write(FineContoursCtx { result: frame.clone() }).map_err(|err| error.pass(err))?,
                     false => ctx,
                 };
-                let ctx = ctx.write(FineConvexCtx { convex: Some(Image::with(convex)) }).map_err(|err| error.pass(err))?;
+                let ctx = ctx.write(FineConvexCtx { convex: Some(Image::from(convex, meta)) }).map_err(|err| error.pass(err))?;
                 let result = ResultCtx { val: frame };
                 log::debug!("FineContours.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)

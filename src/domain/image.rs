@@ -5,8 +5,8 @@ use sal_core::error::Error;
 /// Contains a image with metadata
 #[derive(Debug, Clone)]
 pub struct Image {
-    pub timestamp: usize,
     pub mat: Mat,
+    pub meta: usize,
 }
 //
 //
@@ -16,15 +16,15 @@ impl Image {
     /// - `width` - Origin size of image
     /// - `height` - Origin size of image
     /// - `mat` - The matrix of image
-    /// - `timestamp` - Timstemp of image
+    /// - `meta` - Some custom data like Id or Timstemp of image
     /// - `bytes` - Length of image payload in bytes
     #[allow(unused)]
     pub fn new(
         mat: Mat,
-        timestamp: usize,
+        meta: usize,
     ) -> Self {
         Self {
-            timestamp,
+            meta,
             mat,
         }
     }
@@ -33,10 +33,10 @@ impl Image {
     /// To simply create [Image] and compare it by matrix
     /// 
     /// Use `Image::new` instead
-    pub fn with(mat: Mat) -> Self {
+    pub fn from(mat: Mat, meta: usize) -> Self {
         Self {
-            timestamp: 0,
             mat,
+            meta,
         }
     }
     ///
@@ -141,11 +141,11 @@ impl Image {
     /// - flags: IMREAD_COLOR_BGR
     /// 
     #[allow(unused)]
-    pub fn load(path: impl Into<String>) -> Result<Self, Error> {
+    pub fn load(path: impl Into<String>, meta: usize) -> Result<Self, Error> {
         let error = Error::new("Image", "load");
         let path = path.into();
         opencv::imgcodecs::imread(&path, opencv::imgcodecs::IMREAD_UNCHANGED)
-            .map(|mat| Image::with(mat))
+            .map(|mat| Image::from(mat, meta))
             .map_err(|err| error.pass_with(format!("Error saving image into '{path}'"), err.to_string()))
     }
     ///
@@ -176,7 +176,7 @@ impl Default for Image {
     fn default() -> Self {
         let mat = Mat::default();
         Self {
-            timestamp: 0,
+            meta: 0,
             mat,
         }
     }
@@ -199,7 +199,7 @@ impl bincode::Encode for Image {
         bincode::Encode::encode(&self.height(), encoder)?;
         bincode::Encode::encode(&self.mat.channels(), encoder)?;
         bincode::Encode::encode(&self.mat.typ(), encoder)?;
-        bincode::Encode::encode(&self.timestamp, encoder)?;
+        bincode::Encode::encode(&self.meta, encoder)?;
         let mat = self.mat.data_bytes()
             .map_err(|err| bincode::error::EncodeError::OtherString(format!("Image.encode | Get bytes of Mat error: {:?}", err)))?;
         bincode::Encode::encode(mat, encoder)?;
@@ -219,12 +219,12 @@ impl<Context> bincode::Decode<Context> for Image {
         log::trace!("Image.decode | channels: {}", channels);
         let typ: i32 = bincode::Decode::decode(decoder).unwrap();
         log::trace!("Image.decode | typ: {}", typ);
-        let timestamp = bincode::Decode::decode(decoder).unwrap();
+        let meta = bincode::Decode::decode(decoder).unwrap();
         let data: Vec<u8> = bincode::Decode::decode(decoder).unwrap();
         let mat = mat_from_bytes(typ, channels, height as i32, width as i32, &data)
             .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.decode | Mat from bytes error: {:?}", err)))?;
         Ok(Self {
-            timestamp,
+            meta,
             mat: mat.clone_pointee(),
         })
     }
@@ -242,19 +242,19 @@ impl<'de, Context> bincode::BorrowDecode<'de, Context> for Image {
         log::trace!("Image.borrow_decode | channels: {}", channels);
         let typ: i32 = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         log::trace!("Image.borrow_decode | typ: {}", typ);
-        let timestamp = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
+        let meta = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         let data: Vec<u8> = bincode::BorrowDecode::borrow_decode(decoder).unwrap();
         let mat = mat_from_bytes(typ, channels, height, width, &data)
             .map_err(|err| bincode::error::DecodeError::OtherString(format!("Image.borrow_decode | Mat from bytes error: {:?}", err)))?;
         Ok(Self {
-            timestamp,
+            meta,
             mat: mat.clone_pointee(),
         })
     }
 }
 ///
 /// Converts bytes into opencv::Mat depend on image typ, like CV_16SC3 or 16-bit signed 3-channel array, and so on.
-fn mat_from_bytes(typ: i32, channels: i32, height: i32, width: i32, data: &[u8]) -> Result<BoxedRef<Mat>, opencv::Error> {
+fn mat_from_bytes(typ: i32, channels: i32, height: i32, width: i32, data: &'_ [u8]) -> Result<BoxedRef<'_, Mat>, opencv::Error> {
     match typ {
         opencv::core::CV_8UC1 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 1>>(height as i32, width as i32, data),
         opencv::core::CV_8UC2 => Mat::new_rows_cols_with_bytes::<opencv::core::VecN<u8, 2>>(height as i32, width as i32, data),

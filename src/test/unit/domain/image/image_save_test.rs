@@ -33,11 +33,11 @@ fn image_save() {
     let img = opencv::imgcodecs::imread("src/test/unit/domain/image/test_pattern.png", opencv::imgcodecs::IMREAD_UNCHANGED).unwrap();
     opencv::highgui::named_window("Loaded", opencv::highgui::WINDOW_NORMAL).unwrap();
     opencv::highgui::imshow("Loaded", &img).unwrap();
-    let img = Image::with(img);
+    let img = Image::from(img, 0);
     let time = Instant::now();
     img.save("src/test/unit/domain/image/result.png").unwrap();
     log::debug!("{dbg} | Elapsed: {:?}", time.elapsed());
-    let img = Image::load("src/test/unit/domain/image/result.png").unwrap();
+    let img = Image::load("src/test/unit/domain/image/result.png", 0).unwrap();
     opencv::highgui::named_window("Result", opencv::highgui::WINDOW_NORMAL).unwrap();
     opencv::highgui::imshow("Result", &img.mat).unwrap();
     opencv::highgui::wait_key(1).unwrap();

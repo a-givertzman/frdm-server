@@ -3,11 +3,24 @@
 //! 
 use crate::{
     algorithm::{
-        Context, ContextRead, ContextWrite, FastScanCtx, FineScanCtx, InitialCtx, NormalizedCtx, FineConvexCtx, ResultCtx
+        Context, ContextRead, ContextWrite, FastScanCtx, FineScanCtx, InitialCtx, NormalizedCtx, FineConvexCtx, ResultCtx, MetaCtx,
     },
     domain::{Error, Image},
 };
 
+//
+//
+impl ContextWrite<MetaCtx> for Context {
+    fn write(mut self, value: MetaCtx) -> Result<Self, Error> {
+        self.meta = value;
+        Result::Ok(self)
+    }
+}
+impl ContextRead<MetaCtx> for Context {
+    fn read(&self) -> &MetaCtx {
+        &self.meta
+    }
+}
 //
 //
 impl ContextWrite<InitialCtx> for Context {

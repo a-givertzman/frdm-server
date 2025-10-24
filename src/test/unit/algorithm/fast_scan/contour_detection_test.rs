@@ -150,7 +150,7 @@ fn eval() {
                 let inp = frame_mat.clone();
                 let mut rotated = Mat::default();
                 core::rotate(&inp, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
-                let src_frame = Image::with(rotated);
+                let src_frame = Image::from(rotated, 0);
                 log::warn!("{dbg}.eval | src_frame size: {} x {}", src_frame.width(), src_frame.height());
                 // let test = src_frame.clone();
                 let time = Instant::now();

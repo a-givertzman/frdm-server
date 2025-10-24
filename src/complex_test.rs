@@ -12,7 +12,7 @@ use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx, FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, Gray, GrayCtx, Initial, InitialCtx, RopeDefectCtx, RopeDefectKind, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, RopeDistortionsCtx, Side
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx, FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, Gray, GrayCtx, Initial, InitialCtx, MetaCtx, RopeDefectCtx, RopeDefectKind, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, RopeDistortionsCtx, Side
     }, conf::Conf, domain::{Color, ColorProps, Eval, Image}, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -50,7 +50,7 @@ fn draw_rope_dimensions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context,
         conf.width_tolerance,
         conf.square_tolerance,
         FakePassCtx::new(ctx.clone()),
-    ).eval(Image::with(img.clone())) {
+    ).eval(Image::from(img.clone(), 0)) {
         Ok(ctx) => {
             let (width, square) = match TypeId::of::<Branch>() {
                 typ if typ == TypeId::of::<FastScanCtx>() => (
@@ -202,10 +202,11 @@ fn main() {
                     let path = e.unwrap().path();
                     path.is_file().then(|| path)
                 })
-                .filter_map(|path| {
+                .enumerate()
+                .filter_map(|(meta, path)| {
                     if let Some(ext) = path.extension() {
                          if ext == "jpg" || ext == "png" || ext == "jpeg" {
-                            return Some(Image::load(path.to_str().unwrap()).unwrap());
+                            return Some(Image::load(path.to_str().unwrap(), meta).unwrap());
                          }
                     }
                     None
@@ -318,9 +319,11 @@ fn main() {
         true,
     );
     for frame in stream {
-        log::trace!("{dbg} | Frame width: {},  height: {}, timestamp: {}", frame.width(), frame.height(), frame.timestamp);
+        log::trace!("{dbg} | Frame width: {},  height: {}, timestamp: {}", frame.width(), frame.height(), frame.meta);
         opencv::highgui::imshow(w_source, &frame.mat).unwrap();
         let ctx = fine_scan.eval(frame.clone()).wait().unwrap().unwrap();
+        let result_meta: &MetaCtx = ctx.read();
+        assert!(*result_meta == frame.meta, "{dbg} | \nresult: {:?}\ntarget: {:?}", result_meta, frame.meta);
         let gray: &GrayCtx = ctx.read();
         let crop: &CroppingCtx = ctx.read();
         let fast_contours_ctx: &FastContoursCtx = ctx.read();

@@ -52,7 +52,7 @@ impl Eval<Image, EvalResult> for Cropping {
                 match Mat::roi(&frame.mat, core::Rect { x: self.x,y: self.y,width: self.width,height: self.height,}) {
                         Ok(cropped) => {
                             let frame = Image {
-                                timestamp: frame.timestamp,
+                                meta: frame.meta,
                                 mat: cropped.clone_pointee(),
                             };
                             let ctx = if self.debug {

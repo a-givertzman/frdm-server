@@ -47,7 +47,7 @@ fn image_encode() {
         let img = opencv::imgcodecs::imread(path, opencv::imgcodecs::IMREAD_UNCHANGED).unwrap();
         opencv::highgui::named_window("Loaded", opencv::highgui::WINDOW_NORMAL).unwrap();
         opencv::highgui::imshow("Loaded", &img).unwrap();
-        let target = Image::with(img);
+        let target = Image::from(img, 0);
         let time = Instant::now();
         let bytes = target.to_bytes().unwrap();
         let elapsed = time.elapsed();

@@ -12,9 +12,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult,
-        FastEdgesCtx, FastScan, FastScanConf, FastScanCtx, FastUnionCtx, FineEdgesCtx, FineScanCtx,
-        Gray, GrayCtx, Initial, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, RopeDistortionsCtx, Side
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastEdgesCtx, FastScan, FastScanConf, FastScanCtx, FastUnionCtx, FineEdgesCtx, FineScanCtx, Gray, GrayCtx, Initial, MetaCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, RopeDistortionsCtx, Side
     }, 
     domain::{Color, ColorProps, Error},
 };
@@ -67,7 +65,7 @@ fn draw_rope_dimensions<Branch: 'static>(mut img: Mat, ctx: &Context, conf: &Rop
         conf.width_tolerance,
         conf.square_tolerance,
         FakePassDots::new(edges.clone()),
-    ).eval(Image::with(img.clone())) {
+    ).eval(Image::from(img.clone(), 0)) {
         Ok(ctx) => {
             let dimensions: &RopeDimensionsCtx<FastScanCtx> = ctx.read();
             let width_error = (100.0 - dimensions.width * 100.0 / conf.rope_width as f64).abs();
@@ -209,15 +207,16 @@ fn eval() {
     let image_dir = "src/test/unit/algorithm/temporal_filter/frames";
     // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
 
-    for path in std::fs::read_dir(image_dir).unwrap().into_iter()
+    for (meta, path) in std::fs::read_dir(image_dir).unwrap().into_iter()
         .filter_map(|e| {
             let path = e.unwrap().path();
             path.is_file().then(|| path)
         })
+        .enumerate()
     {
         match path.extension() {
             Some(ext) if ext == "jpg" || ext == "png" || ext == "jpeg" => {
-                let frame = Image::load(path.to_str().unwrap()).unwrap();
+                let frame = Image::load(path.to_str().unwrap(), meta).unwrap();
                 // let mut rotated = Mat::default();
                 // core::rotate(&frame.mat, &mut rotated, ROTATE_90_CLOCKWISE).unwrap();
                 // let src = Image::with(rotated);
@@ -225,6 +224,8 @@ fn eval() {
                 // let test = src.clone();
                 let t = Instant::now();
                 let ctx = fast_scan.eval(frame.clone()).unwrap();
+                let result_meta: &MetaCtx = ctx.read();
+                assert!(*result_meta == meta, "{dbg} | \nresult: {:?}\ntarget: {:?}", result_meta, meta);
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let gray: &GrayCtx = ctx.read();    
                 let crop: &CroppingCtx = ctx.read();    

@@ -3,7 +3,7 @@ use sal_core::error::Error;
 use sal_sync::{services::future::Future, sync::Owner, thread_pool::Scheduler};
 use crate::{
     algorithm::{
-        self, Context, ContextRead, ContextWrite, EvalResult, FineContours, FineEdges, FineScanConf, FineScanCtx, FastScanCtx,
+        Context, ContextRead, ContextWrite, EvalResult, FineContours, FineEdges, FineScanConf, FineScanCtx, FastScanCtx,
         FineUnion, RopeDefectCtx, GrayCtx, TemporalFilter, ResultCtx, RopeDefect, RopeDistortions, RopeDistortionsCtx, Mad,
     }, domain::{Eval, Image},
 };
@@ -105,13 +105,13 @@ impl Eval<Image, Future<Result<Context, Error>>> for FineScan {
                     let result = ResultCtx { val: result.frame.clone() };
                     match ctx.write(result) {
                         Ok(ctx) => {
-                            log::debug!("FineScan.eval | ctx size: {:?}", size_of_val(&ctx));
-                            log::debug!("FineScan.eval | Image size: {:?}", size_of_val(&Image::default()));
-                            log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::InitialCtx>::read(&ctx)));
-                            log::debug!("FineScan.eval | NormalizedCtx size: {:?}", size_of_val(ContextRead::<algorithm::NormalizedCtx>::read(&ctx)));
-                            log::debug!("FineScan.eval | FastScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
-                            log::debug!("FineScan.eval | FineScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FineScanCtx>::read(&ctx)));
-                            log::debug!("FineScan.eval | RopeDefectCtx size: {:?}", size_of_val(ContextRead::<RopeDefectCtx<FineScanCtx>>::read(&ctx)));
+                            log::trace!("FineScan.eval | ctx size: {:?}", size_of_val(&ctx));
+                            // log::debug!("FineScan.eval | Image size: {:?}", size_of_val(&Image::default()));
+                            // log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::InitialCtx>::read(&ctx)));
+                            // log::debug!("FineScan.eval | NormalizedCtx size: {:?}", size_of_val(ContextRead::<algorithm::NormalizedCtx>::read(&ctx)));
+                            // log::debug!("FineScan.eval | FastScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
+                            // log::debug!("FineScan.eval | FineScanCtx size: {:?}", size_of_val(ContextRead::<algorithm::FineScanCtx>::read(&ctx)));
+                            // log::debug!("FineScan.eval | RopeDefectCtx size: {:?}", size_of_val(ContextRead::<RopeDefectCtx<FineScanCtx>>::read(&ctx)));
                             // log::debug!("FineScan.eval | InitialCtx size: {:?}", size_of_val(ContextRead::<algorithm::FastScanCtx>::read(&ctx)));
                             // log::debug!("FineScan.eval | frame size: {:?}", size_of_val(&frame));
                             self.pass_ctx1.replace(ctx.clone());

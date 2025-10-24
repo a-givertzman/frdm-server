@@ -26,6 +26,7 @@ impl Gray {
 impl Eval<Image, EvalResult> for Gray {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("Gray", "eval");
+        let meta = frame.meta;
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
@@ -34,7 +35,7 @@ impl Eval<Image, EvalResult> for Gray {
                 let mut gray = opencv::core::Mat::default();
                 match imgproc::cvt_color(&frame.mat, &mut gray, imgproc::COLOR_BGR2GRAY, 0) {
                     Ok(_) => {
-                        let frame = Image::with(gray);
+                        let frame = Image::from(gray, meta);
                         let ctx = ctx.write(GrayCtx { frame: frame.clone() }).map_err(|err| error.pass(err))?;
                         log::debug!("Gray.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(ResultCtx { val: frame })

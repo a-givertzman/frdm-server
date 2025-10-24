@@ -32,6 +32,7 @@ impl GaussianBlur {
 impl Eval<Image, EvalResult> for GaussianBlur {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("GaussianBlur", "eval");
+        let meta = frame.meta;
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let t = Instant::now();
@@ -46,7 +47,7 @@ impl Eval<Image, EvalResult> for GaussianBlur {
                     opencv::core::BORDER_DEFAULT,
                 ) {
                     Ok(_) => {
-                        let frame = Image::with(blurred);
+                        let frame = Image::from(blurred, meta);
                         // let ctx = if self.debug {
                         //     let result = GaussianBlurCtx { frame: frame.clone() };
                         //     ctx.write(result).map_err(|err| error.pass(err))?

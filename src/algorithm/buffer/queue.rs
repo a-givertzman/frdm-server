@@ -31,6 +31,7 @@ impl Queue {
 impl Eval<Image, EvalResult> for Queue {
     fn eval(&self, frame: Image) -> EvalResult {
         let error = Error::new("Queue", "eval");
+        let meta = frame.meta;
         match self.ctx.eval(frame) {
             Ok(ctx) => {
                 let result: &ResultCtx<Image> = ctx.read();
@@ -38,17 +39,19 @@ impl Eval<Image, EvalResult> for Queue {
                 let frame = if self.buf.read().len() > self.len {
                     match self.buf.write().pop_front() {
                         Some(frame) => frame,
-                        None => Image::with(
-                        cv::CreateMat::new(result.val.width(), result.val.height(), cv::MatType::Cv8uc1)
-                            .eval(vec![0u8])
-                            .map_err(|err| error.pass(err))?,
+                        None => Image::from(
+                            cv::CreateMat::new(result.val.width(), result.val.height(), cv::MatType::Cv8uc1)
+                                .eval(vec![0u8])
+                                .map_err(|err| error.pass(err))?,
+                            meta,
                         ),
                     }
                 } else {
-                    Image::with(
+                    Image::from(
                         cv::CreateMat::new(result.val.width(), result.val.height(), cv::MatType::Cv8uc1)
                             .eval(vec![0u8])
                             .map_err(|err| error.pass(err))?,
+                        meta,
                     )
                 };
                 // let ctx = if self.debug {

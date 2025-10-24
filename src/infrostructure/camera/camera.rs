@@ -135,9 +135,11 @@ impl Camera {
             Ok(mut video) => {
                 let mut frames = vec![];
                 let mut frame = opencv::core::Mat::default();
+                let mut meta = 0;
                 while let Ok(result) = video.read(&mut frame) {
                     if result {
-                        frames.push(Image::with(frame.clone()));
+                        frames.push(Image::from(frame.clone(), meta));
+                        meta += 1;
                     } else {
                         break;
                     }
@@ -152,6 +154,7 @@ impl Camera {
     #[allow(unused)]
     pub fn from_images(&self, path: impl Into<String>) -> Result<CameraIntoIterator, Error> {
         let mut frames = vec![];
+        let mut meta = 0;
         match std::fs::read_dir(path.into()) {
             Ok(paths) => {
                 for path in paths {
@@ -160,13 +163,14 @@ impl Camera {
                             if path.path().is_file() {
                                 let path = path.path();
                                 let path = path.to_str().ok_or(Error::new(&self.dbg, "from_images").err(format!("Error in path {}", path.display())))?;
-                                match Image::load(path) {
+                                match Image::load(path, meta) {
                                     Ok(img) => {
                                         log::debug!("{}.from_images | Read: {}", self.dbg, path);
                                         frames.push(img);
                                     }
                                     Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
                                 }
+                                meta += 1;
                             }
                         }
                         Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
