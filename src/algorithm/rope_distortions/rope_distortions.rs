@@ -4,11 +4,10 @@ use crate::{
     algorithm::{
         Threshold, mad::{Bend, MadCtx},
         ContextRead, ContextWrite, FastEdgesCtx, FineEdgesCtx, EvalResult, Side,
-        FastScanCtx, FineScanCtx,
+        FastScanCtx, FineScanCtx, RopeDistortionsCtx,
     },
     domain::{Dot, Error, Eval, Image}
 };
-use super::RopeDistortionsCtx;
 ///
 /// Finding rope width distortion by calculating the deviation of the rope side
 /// 
