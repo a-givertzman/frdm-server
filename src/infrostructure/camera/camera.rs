@@ -184,7 +184,7 @@ impl Camera {
                                 let path = path.to_str().ok_or(Error::new(&self.dbg, "from_images").err(format!("Error in path {}", path.display())))?;
                                 match Image::load(path, meta) {
                                     Ok(img) => {
-                                        log::debug!("{}.from_images | Read: {}", self.dbg, path);
+                                        // log::debug!("{}.from_images | Read: {}", self.dbg, path);
                                         frames.push(img);
                                     }
                                     Err(err) => return Err(Error::new(&self.dbg, "from_images").pass(err.to_string())),
