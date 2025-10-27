@@ -174,7 +174,7 @@ fn video(){
     let test_data = [
         (
             1,
-            Camera::new(CameraConf{
+            Camera::new(None, CameraConf{
                 name: "/test/Camera1".into(),
                 from_path: None,
                 fps: FrameRate::Val(30.0),

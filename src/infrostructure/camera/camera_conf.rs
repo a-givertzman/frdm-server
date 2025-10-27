@@ -5,7 +5,7 @@ use crate::infrostructure::arena::{ChannelPacketSize, Exposure, FrameRate, Pixel
 use super::camera_resolution::CameraResolution;
 ///
 /// Configuration parameters for ip [Camera] class
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraConf {
     pub name: Name,
     ///
@@ -72,7 +72,6 @@ pub struct CameraConf {
     ///
     /// Frames can be read from the files if specified
     pub from_path: Option<String>,
-
 }
 //
 //

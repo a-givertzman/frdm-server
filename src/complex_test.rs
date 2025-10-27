@@ -193,6 +193,7 @@ fn main() {
     DebugSession::init(LogLevel::Debug, Backtrace::Short);
     let dbg = Dbg::own("complex-test");
     let source = Source::Path("src/test/unit/algorithm/temporal_filter/frames");
+    let source = Source::Path("/home/lobanov/code/rust/cma-server/src/tests/unit/services/frdm_service/frames");
     // let source = Source::Camera("src/complex-test-camera.yaml");
     let mut exposure = 0.0;
     let stream: Box<dyn Iterator<Item = Image>> = match source {
@@ -217,7 +218,7 @@ fn main() {
             let conf = CameraConf::read(&dbg, path);
             exposure = conf.exposure.time;
             let mut handles = vec![];
-            let mut camera = Camera::new(conf);
+            let mut camera = Camera::new(None, conf);
             handles.push(
                 camera.read().unwrap()
             );
