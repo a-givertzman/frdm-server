@@ -218,7 +218,7 @@ fn main() {
             let conf = CameraConf::read(&dbg, path);
             exposure = conf.exposure.time;
             let mut handles = vec![];
-            let mut camera = Camera::new(None, conf);
+            let mut camera = Camera::new(None::<Box<dyn Fn() -> usize + Send + Sync>>, conf);
             handles.push(
                 camera.read().unwrap()
             );

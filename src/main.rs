@@ -20,7 +20,7 @@ fn main() {
     let dbg = Dbg::own("main");
     let path = "./config.yaml";
     let conf = CameraConf::read(&dbg, path);
-    let mut camera = Camera::new(None, conf);
+    let mut camera = Camera::new(None::<Box<dyn Fn() -> usize + Send + Sync>>, conf);
     let recv = camera.stream();
     let handle = camera.read().unwrap();
     let window = "Retrived";
