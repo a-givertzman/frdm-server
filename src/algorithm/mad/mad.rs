@@ -1,7 +1,5 @@
 use std::time::Instant;
-
 use sal_core::error::Error;
-
 use crate::domain::Eval;
 use super::MadCtx;
 ///
@@ -52,7 +50,7 @@ impl Eval<Vec<usize>, Result<MadCtx, Error>> for Mad {
                 median: median as f64,
                 mad: {
                     let mad = Self::mad(&sample, median).map_err(|err| Error::new("Mad", "eval").pass(err))? as f64;
-                    log::debug!("Mad.eval | Elapsed: {:?}", t.elapsed());
+                    // log::debug!("Mad.eval | Elapsed: {:?}", t.elapsed());
                     mad
                 }
             }),
