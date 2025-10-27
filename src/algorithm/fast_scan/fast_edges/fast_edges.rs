@@ -111,7 +111,7 @@ impl Eval<Image, EvalResult> for FastEdges {
                 let result = FastEdgesCtx {
                     edges: Edges::new(upper_edge, lower_edge),
                 };
-                log::debug!("FastEdges.eval | Elapsed: {:?}", t.elapsed());
+                log::trace!("FastEdges.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }
             Err(err) => Err(error.pass(err)),

@@ -67,7 +67,7 @@ impl Eval<Image, EvalResult> for AutoGamma {
                                             ctx
                                         };
                                         let result = ResultCtx { val: frame };
-                                        log::debug!("AutoGamma.eval | Elapsed: {:?}", t.elapsed());
+                                        log::trace!("AutoGamma.eval | Elapsed: {:?}", t.elapsed());
                                         ctx.write(result)
                                     }
                                     Err(err) => Err(error.pass(err.to_string())),

@@ -109,13 +109,13 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDistortions<Branch> {
                 };
                 match TypeId::of::<Branch>() {
                     typ if typ == TypeId::of::<FastScanCtx>() => {
-                        log::debug!("RopeDistortions<FastScanCtx>.eval | Elapsed: {:?}", t.elapsed());
+                        log::trace!("RopeDistortions<FastScanCtx>.eval | Elapsed: {:?}", t.elapsed());
                         log::trace!("RopeDistortions<FastScanCtx>.eval | mad: {:?}", mad);
                         // log::debug!("RopeDistortions<FastScanCtx>.eval | defects: {:?}", result);
                         ctx.write(RopeDistortionsCtx::<FastScanCtx>::new(result, mad))
                     }
                     typ if typ == TypeId::of::<FineScanCtx>() => {
-                        log::debug!("RopeDistortions<FineScanCtx>.eval | Elapsed: {:?}", t.elapsed());
+                        log::trace!("RopeDistortions<FineScanCtx>.eval | Elapsed: {:?}", t.elapsed());
                         log::trace!("RopeDistortions<FineScanCtx>.eval | mad: {:?}", mad);
                         // log::debug!("RopeDistortions<FineScanCtx>.eval | defects: {:?}", result);
                         ctx.write(RopeDistortionsCtx::<FineScanCtx>::new(result, mad))

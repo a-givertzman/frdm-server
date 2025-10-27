@@ -87,7 +87,7 @@ impl Eval<Image, EvalResult> for FastContours {
                     ctx
                 };
                 let result = ResultCtx { val: frame };
-                log::debug!("FastContours.eval | Elapsed: {:?}", t.elapsed());
+                log::trace!("FastContours.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }
             Err(err) => Err(error.pass(err)),

@@ -71,7 +71,7 @@ impl Eval<Image, EvalResult> for FineUnion {
                         .map_err(|err| error.pass(err.to_string()))?,
                     (Some(conf), None) => opencv::core::add_weighted_def(src1_mat, conf.weight1, src2_mat, conf.weight2, conf.gamma, &mut dst)
                         .map_err(|err| error.pass(err.to_string()))?,
-                    _ => return Err(error.err(format!("Both: 'add-weighted' and `bitwise-and` - are specified, please use one of"))),
+                    _ => Err(error.err(format!("Both: 'add-weighted' and `bitwise-and` - are specified, please use one of")))?,
                 }
                 // let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
                 // let mut out = opencv::core::Mat::default();
@@ -106,7 +106,7 @@ impl Eval<Image, EvalResult> for FineUnion {
                 let union = FineUnionCtx { frame: frame.clone() };
                 let ctx = ctx.write(union).map_err(|err| error.pass(err))?;
                 let result = ResultCtx { val: frame };
-                log::debug!("FineUnion.eval | Elapsed: {:?}", t.elapsed());
+                log::trace!("FineUnion.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }
             (Ok(_), Err(err)) => Err(error.pass(err)),

@@ -81,11 +81,11 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                                                 Some(_) => 255,
                                                 None => 0,
                                             },
-                                            None => return Err(error.err(format!("Out image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
+                                            None => Err(error.err(format!("Out image format error, index [{i}] out of image range {width}x{height}={pixels}")))?,
                                         }
                                     }
                                 }
-                                None => return Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}"))),
+                                None => Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}")))?,
                             }
                         }
                         // log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
@@ -111,7 +111,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                             ctx
                         };
                         let result = ResultCtx { val: frame };
-                        log::debug!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
+                        log::trace!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(result)
                     }
                     Err(err) => Err(error.pass(err.to_string())),

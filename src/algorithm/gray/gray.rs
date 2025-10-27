@@ -37,7 +37,7 @@ impl Eval<Image, EvalResult> for Gray {
                     Ok(_) => {
                         let frame = Image::from(gray, meta);
                         let ctx = ctx.write(GrayCtx { frame: frame.clone() }).map_err(|err| error.pass(err))?;
-                        log::debug!("Gray.eval | Elapsed: {:?}", t.elapsed());
+                        log::trace!("Gray.eval | Elapsed: {:?}", t.elapsed());
                         ctx.write(ResultCtx { val: frame })
                     }
                     Err(err) => Err(error.pass(err.to_string())),

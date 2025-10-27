@@ -107,7 +107,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDefect<Branch> {
                     _ => Err(error.err(format!("Can't read result from: '{:?}' branch of 'Context'", TypeId::of::<Branch>())))?,
                 };
                 if rope_distortions.is_empty() {
-                    log::debug!("Frame without defect's");
+                    // log::trace!("Frame without defect's");
                     return match TypeId::of::<Branch>() {
                         // typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(RopeDefectCtx::<FastScanCtx>::new(vec![])),
                         typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(RopeDefectCtx::<FineScanCtx>::new(vec![])),

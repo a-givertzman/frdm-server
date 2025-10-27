@@ -50,23 +50,23 @@ impl Eval<Image, EvalResult> for Cropping {
                 let result: &ResultCtx<Image> = ctx.read();
                 let frame = &result.val;
                 match Mat::roi(&frame.mat, core::Rect { x: self.x,y: self.y,width: self.width,height: self.height,}) {
-                        Ok(cropped) => {
-                            let frame = Image {
-                                meta: frame.meta,
-                                mat: cropped.clone_pointee(),
-                            };
-                            let ctx = if self.debug {
-                                let result = CroppingCtx { result: frame.clone() };
-                                ctx.write(result).map_err(|err| error.pass(err))?
-                            } else {
-                                ctx
-                            };
-                            let result = ResultCtx { val: frame };
-                            ctx.write(result)
-                        },
-                        Err(err) => Err(error.pass(err.to_string())),
-                    }
+                    Ok(cropped) => {
+                        let frame = Image {
+                            meta: frame.meta,
+                            mat: cropped.clone_pointee(),
+                        };
+                        let ctx = if self.debug {
+                            let result = CroppingCtx { result: frame.clone() };
+                            ctx.write(result).map_err(|err| error.pass(err))?
+                        } else {
+                            ctx
+                        };
+                        let result = ResultCtx { val: frame };
+                        ctx.write(result)
+                    },
+                    Err(err) => Err(error.pass(err.to_string())),
                 }
+            }
             Err(err) => Err(error.pass(err)),
         }
     }
