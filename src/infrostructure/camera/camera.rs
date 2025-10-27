@@ -1,7 +1,7 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, thread::JoinHandle, time::Duration};
 use opencv::videoio::VideoCaptureTrait;
 use sal_core::{dbg::Dbg, error::Error};
-use sal_sync::services::entity::{Name, Object};
+use sal_sync::{services::entity::{Name, Object}, sync::AtomicUsizeOption};
 use crate::{domain::{channel_unbounded, Receiver, Sender, Image}, infrostructure::arena::{AcDevice, AcSystem}};
 use super::camera_conf::CameraConf;
 ///
@@ -15,7 +15,7 @@ pub struct Camera {
     send: Sender<Image>,
     recv: Option<Receiver<Image>>,
     suspend: Arc<AtomicBool>,
-    meta: Option<Arc<Box<dyn Fn() -> usize + Send + Sync>>>,
+    meta: Arc<AtomicUsizeOption>,
     exit: Arc<AtomicBool>,
 }
 //
@@ -25,17 +25,14 @@ impl Camera {
     /// Returns [Camera] new instance
     /// - [parent] - DbgId of parent entitie
     /// - `conf` - configuration parameters
-    pub fn new(meta: Option<impl Fn() -> usize + Send + Sync + 'static>, conf: CameraConf) -> Self {
+    pub fn new(meta: Arc<AtomicUsizeOption>, conf: CameraConf) -> Self {
         let dbg = Dbg::new(conf.name.parent(), conf.name.me());
         log::trace!("{}.new | : ", dbg);
         let (send, recv) = channel_unbounded();
         Self {
             dbg,
             name: conf.name.clone(),
-            meta: match meta {
-                Some(meta) => Some(Arc::new(Box::new(meta))),
-                None => None,
-            },
+            meta,
             conf,
             send,
             recv: Some(recv),
@@ -94,18 +91,14 @@ impl Camera {
                                     match &conf.index {
                                         Some(index) => {
                                             if devices >= index + 1 {
+                                                let meta_ = meta.clone();
                                                 let mut device = AcDevice::new(
                                                     &dbg,
                                                     ac_system.system,
                                                     *index,
                                                     conf.clone(),
                                                     Some(suspend.clone()),
-                                                    match meta.clone() {
-                                                        Some(meta) => Some(move || {
-                                                            (meta)()
-                                                        }),
-                                                        None => None
-                                                    },
+                                                    meta_,
                                                     Some(exit.clone()),
                                                 );
                                                 let result = device.listen(|frame| {

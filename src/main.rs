@@ -3,9 +3,6 @@ mod algorithm;
 mod conf;
 mod domain;
 mod infrostructure;
-#[cfg(test)]
-mod test;
-//
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
@@ -13,6 +10,10 @@ use crate::{
         AutoGamma, Cropping, FastContours, FastEdges, FastScanConf, FastScanCtx, FineScanConf, RopeDefect, Gray, Initial, InitialCtx, Mad, TemporalFilter, RopeDistortions
     }, conf::{Conf, NormalizeConf}, domain::Eval, infrostructure::camera::{Camera, CameraConf}
 };
+//
+#[cfg(test)]
+mod test;
+
 ///
 /// Application entry point
 fn main() {
@@ -20,7 +21,7 @@ fn main() {
     let dbg = Dbg::own("main");
     let path = "./config.yaml";
     let conf = CameraConf::read(&dbg, path);
-    let mut camera = Camera::new(None::<Box<dyn Fn() -> usize + Send + Sync>>, conf);
+    let mut camera = Camera::new(Default::default(), conf);
     let recv = camera.stream();
     let handle = camera.read().unwrap();
     let window = "Retrived";

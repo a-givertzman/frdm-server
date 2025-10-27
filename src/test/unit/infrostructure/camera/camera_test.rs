@@ -174,7 +174,7 @@ fn video(){
     let test_data = [
         (
             1,
-            Camera::new(None::<Box<dyn Fn() -> usize + Send + Sync>>, CameraConf{
+            Camera::new(Default::default(), CameraConf{
                 name: "/test/Camera1".into(),
                 from_path: None,
                 fps: FrameRate::Val(30.0),

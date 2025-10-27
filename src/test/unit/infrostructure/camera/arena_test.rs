@@ -107,7 +107,7 @@ mod arena {
                                 ac_system.system,
                                 selection, conf,
                                 Some(exit_1),
-                                None::<Box<dyn Fn() -> usize + Send + Sync>>,
+                                Default::default(),
                                 None,
                             );
                             let result = device.listen(|frame| {

@@ -4,7 +4,6 @@ mod conf;
 mod domain;
 mod infrostructure;
 use std::any::TypeId;
-
 use crossterm::event::{KeyEventKind, KeyEventState};
 use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
 use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Rect, Vec3b}, imgproc::LineTypes};
@@ -12,7 +11,10 @@ use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx, FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, Gray, GrayCtx, Initial, InitialCtx, MetaCtx, RopeDefectCtx, RopeDefectKind, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, RopeDistortionsCtx, Side
+        AutoGamma, Context, ContextRead, Cropping, CroppingCtx, EvalResult, FastContoursCtx, FastEdgesCtx,
+        FastScan, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanCtx, Gray, GrayCtx, Initial,
+        InitialCtx, MetaCtx, RopeDefectCtx, RopeDefectKind, RopeDimensions, RopeDimensionsConf,
+        RopeDimensionsCtx, RopeDistortionsCtx, Side,
     }, conf::Conf, domain::{Color, ColorProps, Eval, Image}, infrostructure::camera::{Camera, CameraConf}
 };
 ///
@@ -218,7 +220,7 @@ fn main() {
             let conf = CameraConf::read(&dbg, path);
             exposure = conf.exposure.time;
             let mut handles = vec![];
-            let mut camera = Camera::new(None::<Box<dyn Fn() -> usize + Send + Sync>>, conf);
+            let mut camera = Camera::new(Default::default(), conf);
             handles.push(
                 camera.read().unwrap()
             );

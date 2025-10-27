@@ -1,6 +1,6 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc}, time::Instant};
 use sal_core::error::Error;
-use sal_sync::{kernel::state::ChangeNotify, services::entity::Name};
+use sal_sync::{kernel::state::ChangeNotify, services::entity::Name, sync::AtomicUsizeOption};
 use crate::{infrostructure::{
     arena::{
         acBuffer, acDeviceGetBuffer, acDeviceGetTLStreamNodeMap, acDeviceStartStream, acDeviceStopStream, AcAccessMode
@@ -40,7 +40,7 @@ pub struct AcDevice {
     // Maximum time to wait for an image buffer
     image_timeout: u64,
     suspend: Arc<AtomicBool>,
-    meta: Option<Box<dyn Fn() -> usize>>,
+    meta: Arc<AtomicUsizeOption>,
     exit: Arc<AtomicBool>,
 }
 //
@@ -55,7 +55,7 @@ impl AcDevice {
         index: usize,
         conf: CameraConf,
         suspend: Option<Arc<AtomicBool>>,
-        meta: Option<impl  Fn() -> usize + 'static>,
+        meta: Arc<AtomicUsizeOption>,
         exit: Option<Arc<AtomicBool>>,
     ) -> Self {
         let name = Name::new(parent.into(), format!("AcDevice({index})"));
@@ -67,11 +67,7 @@ impl AcDevice {
             conf,
             image_timeout: 3000,
             suspend: suspend.unwrap_or(Arc::new(AtomicBool::new(false))),
-            // meta: meta.unwrap_or(Arc::new(AtomicUsizeOption::new(None))),
-            meta: match meta {
-                Some(meta) => Some(Box::new(meta)),
-                None => None,
-            },
+            meta,
             exit: exit.unwrap_or(Arc::new(AtomicBool::new(false))),
         }
     }
@@ -121,11 +117,7 @@ impl AcDevice {
         if err != AcErr::Success {
             return Err(Error::new(&self.name, "get_buffer").pass(err.to_string()));
         }
-        let meta = match &self.meta {
-            Some(meta) => Some((meta)()),
-            None => None,
-        };
-        Ok(AcBuffer::new(&self.name, self.device, buffer, self.conf.pixel_format, meta))
+        Ok(AcBuffer::new(&self.name, self.device, buffer, self.conf.pixel_format, self.meta.load()))
     }
     ///
     /// Set acquisition frame rate, FPS
