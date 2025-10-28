@@ -99,3 +99,18 @@ impl Conf {
         }
     }
 }
+//
+//
+impl Default for Conf {
+    ///
+    /// Returns config with some default values,
+    /// Default values is not promise the application to be working
+    /// It's only useful when conf parameters doesnt meter for testing purposes for example
+    fn default() -> Self {
+        Self {
+            normalize: Default::default(),
+            fast_scan: Default::default(),
+            fine_scan: Default::default(),
+        }
+    }
+}
