@@ -192,7 +192,10 @@ fn draw_rope_distortions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context
 /// 
 ///     `clear && cargo run --bin complex-test --release -- --nocapture --cam-pause`
 fn main() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new()
+        .filter(LogLevel::Debug)
+        .module("sal_sync::thread_pool", LogLevel::Info)
+        .init();
     let dbg = Dbg::own("complex-test");
     let source = Source::Path("src/test/unit/algorithm/temporal_filter/frames");
     let source = Source::Path("/home/lobanov/code/rust/cma-server/src/tests/unit/services/frdm_service/frames");

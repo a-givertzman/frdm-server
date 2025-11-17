@@ -1,4 +1,3 @@
-use std::time::Instant;
 use sal_core::error::Error;
 use crate::domain::Eval;
 use super::MadCtx;
@@ -43,7 +42,7 @@ impl Mad {
 //
 impl Eval<Vec<usize>, Result<MadCtx, Error>> for Mad {
     fn eval(&self, mut sample: Vec<usize>) -> Result<MadCtx, Error> {
-        let t = Instant::now();
+        // let t = Instant::now();
         sample.sort_by(|a, b| a.cmp(b));
         match Self::median(&sample) {
             Ok(median) => Ok(MadCtx {

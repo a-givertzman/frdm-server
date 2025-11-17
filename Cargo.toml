@@ -25,7 +25,7 @@ api-tools = { tag = "0.2.1", git = "https://github.com/a-givertzman/rust-api-too
 sal-sync = { tag = "0.3.0", git = "https://github.com/a-givertzman/rust-sal-sync.git" }
 #
 # Collections
-indexmap = "~2.11"                                          # , git = "https://github.com/indexmap-rs/indexmap"
+indexmap = "~2.12"                                          # , git = "https://github.com/indexmap-rs/indexmap"
 linked-hash-map = { version = "~0.5", git = "https://github.com/contain-rs/linked-hash-map" }
 hashers = { version = "~1.0", git = "https://github.com/tmmcguire/hashers" }
 circular-buffer = "~1.2"
@@ -37,7 +37,7 @@ serde_json = { version = "~1.0" }                           # , git = "https://g
 bincode = "~2.0"
 #
 #
-regex = "~1.11"                                             # , git = "https://github.com/rust-lang/regex"
+regex = "~1.12"                                             # , git = "https://github.com/rust-lang/regex"
 #
 #
 strum = { version = "~0.27", git = "https://github.com/Peternator7/strum" }
@@ -68,9 +68,9 @@ kanal = { version = "~0.1", git = "https://github.com/fereidani/kanal.git" }
 parking_lot = { version = "~0.12", git = "https://github.com/Amanieu/parking_lot.git" }
 #
 # UI
-egui = "~0.32"
-egui_plot = "~0.33"
-eframe = "~0.32"
+egui = "~0.33"
+egui_plot = "~0.34"
+eframe = "~0.33"
 winit = { version = "~0.30", optional = false }
 #
 # Terminal tools
