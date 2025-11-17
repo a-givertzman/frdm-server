@@ -4,7 +4,7 @@ use std::{sync::Once, time::Duration};
 use opencv::{core::{Mat, MatTrait, Vec3b}, highgui, imgcodecs, imgproc};
 use sal_core::{dbg::Dbg, error::Error};
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+use debugging::session::debug_session::{DebugSession, LogLevel};
 use crate::{algorithm::{Context, ContextRead, ContextWrite, FastContoursCtx, FastEdges, FastEdgesCtx, InitialCtx, Edges, Side}, domain::{Dot, Eval, Image}};
 ///
 ///
@@ -88,7 +88,7 @@ fn edge_visualization_matrix(matrix: [[u8; 6]; 6]) {
 /// Testing FastEdges.eval
 #[test]
 fn edge_detection() {
-    DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    DebugSession::new().filter(LogLevel::Debug).init();
     //
     // to visualize matrix use:
     let visualize_matrix = false;

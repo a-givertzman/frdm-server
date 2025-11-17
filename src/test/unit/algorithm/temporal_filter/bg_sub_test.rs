@@ -5,8 +5,7 @@ use opencv::{core::{Mat, MatTraitConst}, highgui, video::BackgroundSubtractorTra
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
     DebugSession, 
-    LogLevel, 
-    Backtrace
+    LogLevel
 };
 use sal_core::dbg::Dbg;
 use crate::{
@@ -32,7 +31,7 @@ fn init_each() -> () {}
 /// Testing 'TemporalFilter.eval'
 #[test]
 fn eval() {
-    DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    DebugSession::new().filter(LogLevel::Debug).init();
     init_once();
     init_each();
     let dbg = Dbg::own("bg-sub-test");

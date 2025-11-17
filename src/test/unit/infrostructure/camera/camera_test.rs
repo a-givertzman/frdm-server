@@ -5,7 +5,7 @@ use env_logger::Builder;
 use log::LevelFilter;
 use sal_core::dbg::Dbg;
 use testing::stuff::max_test_duration::TestDuration;
-// use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+// use debugging::session::debug_session::{DebugSession, LogLevel};
 use opencv::{
     highgui, prelude::*, videoio
 };
@@ -36,7 +36,7 @@ fn init_each() -> () {}
 /// Testing read from USB
 #[test]
 fn camera_conf() {
-    // DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    // DebugSession::new().filter(LogLevel::Debug).init();
     Builder::new().filter(None, LevelFilter::Debug).init();
     init_once();
     init_each();
@@ -163,7 +163,7 @@ fn camera_conf() {
 #[test]
 #[ignore = "Required connection with camera"]
 fn video(){
-    // DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    // DebugSession::new().filter(LogLevel::Debug).init();
     Builder::new().filter(None, LevelFilter::Debug).init();
     init_once();
     init_each();

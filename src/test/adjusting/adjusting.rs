@@ -8,7 +8,7 @@ use crate::
 /// Application entry point
 #[test]
 fn main() {
-    DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    DebugSession::new().filter(LogLevel::Debug).init();
     let dbg = Dbg::own("main");
     
     eframe::run_native(

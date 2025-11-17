@@ -4,7 +4,7 @@ use std::{sync::Once, time::{Duration, Instant}};
 use frdm_tools::Image;
 use sal_core::dbg::Dbg;
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+use debugging::session::debug_session::{DebugSession, LogLevel};
 ///
 ///
 static INIT: Once = Once::new();
@@ -23,7 +23,7 @@ fn init_each() -> () {}
 /// Testing [Image] => `Bytes`
 #[test]
 fn image_encode() {
-    DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    DebugSession::new().filter(LogLevel::Debug).init();
     init_once();
     init_each();
     let dbg = Dbg::own("Image.to_bytes");

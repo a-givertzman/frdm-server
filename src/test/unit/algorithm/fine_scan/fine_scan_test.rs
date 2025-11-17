@@ -6,8 +6,7 @@ use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
 use testing::stuff::max_test_duration::TestDuration;
 use debugging::session::debug_session::{
     DebugSession, 
-    LogLevel, 
-    Backtrace
+    LogLevel
 };
 use sal_core::dbg::Dbg;
 use crate::{
@@ -187,7 +186,7 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
 /// Testing 'TemporalFilter.eval'
 #[test]
 fn eval() {
-    DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    DebugSession::new().filter(LogLevel::Debug).init();
     init_once();
     init_each();
     let dbg = Dbg::own("FineScan-test");

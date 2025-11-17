@@ -5,7 +5,7 @@ mod domain;
 mod infrostructure;
 use std::any::TypeId;
 use crossterm::event::{KeyEventKind, KeyEventState};
-use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
+use debugging::session::debug_session::{DebugSession, LogLevel};
 use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Rect, Vec3b}, imgproc::LineTypes};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
@@ -192,7 +192,7 @@ fn draw_rope_distortions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context
 /// 
 ///     `clear && cargo run --bin complex-test --release -- --nocapture --cam-pause`
 fn main() {
-    DebugSession::init(LogLevel::Debug, Backtrace::Short);
+    DebugSession::new().filter(LogLevel::Debug).init();
     let dbg = Dbg::own("complex-test");
     let source = Source::Path("src/test/unit/algorithm/temporal_filter/frames");
     let source = Source::Path("/home/lobanov/code/rust/cma-server/src/tests/unit/services/frdm_service/frames");
