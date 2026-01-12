@@ -26,8 +26,8 @@ sal-sync = { tag = "0.3.0", git = "https://github.com/a-givertzman/rust-sal-sync
 #
 # Collections
 indexmap = "~2.12"                                          # , git = "https://github.com/indexmap-rs/indexmap"
-linked-hash-map = { version = "~0.5", git = "https://github.com/contain-rs/linked-hash-map" }
-hashers = { version = "~1.0", git = "https://github.com/tmmcguire/hashers" }
+linked-hash-map = { version = "~0.5" }                      # , git = "https://github.com/contain-rs/linked-hash-map"
+hashers = { version = "~1.0" }                              # , git = "https://github.com/tmmcguire/hashers"
 circular-buffer = "~1.2"
 #
 # Serde
@@ -40,12 +40,12 @@ bincode = "~2.0"
 regex = "~1.12"                                             # , git = "https://github.com/rust-lang/regex"
 #
 #
-strum = { version = "~0.27", git = "https://github.com/Peternator7/strum" }
-strum_macros = { version = "~0.27", git = "https://github.com/Peternator7/strum" }
+strum = { version = "~0.27" }                               # , git = "https://github.com/Peternator7/strum"
+strum_macros = { version = "~0.27" }                        # , git = "https://github.com/Peternator7/strum"
 #
 #
 # OpenCV
-opencv = { version = "~0.97", features = ["clang-runtime"], git = "https://github.com/twistedfall/opencv-rust" }
+opencv = { version = "~0.98", features = ["clang-runtime"] }    # , git = "https://github.com/twistedfall/opencv-rust"
 #
 #
 # Photon image processing
@@ -55,17 +55,17 @@ photon-rs = { version = "0.3.2", default-features = false, git = "https://github
 # Image
 #
 # For folder processing
-walkdir = "2.3"
+walkdir = "~2.5"
 #
 # [build-dependencies]
 # cc = "^1.1"
 #
 # libc = { version = "1.0.0-alpha.1", git = "https://github.com/rust-lang/libc.git" }
-libc = "~0.2"          # , git = "https://github.com/rust-lang/libc.git"
+libc = "~0.2"                           # , git = "https://github.com/rust-lang/libc.git"
 #
 # Sync
-kanal = { version = "~0.1", git = "https://github.com/fereidani/kanal.git" }
-parking_lot = { version = "~0.12", git = "https://github.com/Amanieu/parking_lot.git" }
+kanal = { version = "~0.1" }            # , git = "https://github.com/fereidani/kanal.git"
+parking_lot = { version = "~0.12" }     # , git = "https://github.com/Amanieu/parking_lot.git"
 #
 # UI
 egui = "~0.33"

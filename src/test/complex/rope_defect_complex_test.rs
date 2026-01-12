@@ -1,3 +1,4 @@
+use crate::algorithm::Gray;
 #[cfg(test)]
 use crate::{
     algorithm::{Context, ContextWrite, EvalResult, InitialCtx,
@@ -69,7 +70,9 @@ fn eval() {
                 conf.fast_edges.smooth,
                 FastContours::new(
                     conf.fast_contours,
-                    FakePassImg::new(),
+                    Gray::new(
+                        FakePassImg::new(),
+                    ),
                     false,
                 ),
             ),
