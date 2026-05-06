@@ -90,8 +90,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                         }
                         // log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
                         let dst = cv::CreateMat::gray8(width as i32, height as i32)
-                            .filled()
-                            .eval(&dst)
+                            .eval(dst)
                             .map_err(|err| error.pass(err))?;
                         let dst = self.proc.eval(dst)
                             .map_err(|err| error.pass(err))?;
