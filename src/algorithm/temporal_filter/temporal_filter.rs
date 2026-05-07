@@ -72,22 +72,36 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                         // log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
                         // log::debug!("TemporalFilter.eval | mat.channels: {:?}", frame.mat.channels());
                         let mut filters = self.filters.write();
-                        for i in 0..pixels {
-                            match input.get(i) {
-                                Some(value) => {
-                                    if let Some(filter) = filters.get_mut(i) {
-                                        match dst.get_mut(i) {
-                                            Some(pixel) => *pixel = match filter.add(*value as f32) {
-                                                Some(_) => 255,
-                                                None => 0,
-                                            },
-                                            None => Err(error.err(format!("Out image format error, index [{i}] out of image range {width}x{height}={pixels}")))?,
-                                        }
-                                    }
-                                }
-                                None => Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}")))?,
-                            }
+                        // Гарантируем компилятору равенство длин, чтобы убрать проверки границ
+                        if input.len() < pixels || filters.len() < pixels || dst.len() < pixels {
+                            return Err(error.err("Image size mismatch").into());
                         }
+                        // Новый быстрый вариант перебора
+                        filters.iter_mut()
+                            .zip(input)
+                            .zip(dst.iter_mut())
+                            // .take(pixels) // Можно удалить так как проверили длины массивов
+                            .for_each(|((filter, value), pixel)| *pixel = match filter.add(*value as f32) {
+                                    Some(_) => 255,
+                                    None => 0,
+                            });
+                        // Старый медленный вариант перебора
+                        // for i in 0..pixels {
+                        //     match input.get(i) {
+                        //         Some(value) => {
+                        //             if let Some(filter) = filters.get_mut(i) {
+                        //                 match dst.get_mut(i) {
+                        //                     Some(pixel) => *pixel = match filter.add(*value as f32) {
+                        //                         Some(_) => 255,
+                        //                         None => 0,
+                        //                     },
+                        //                     None => Err(error.err(format!("Out image format error, index [{i}] out of image range {width}x{height}={pixels}")))?,
+                        //                 }
+                        //             }
+                        //         }
+                        //         None => Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}")))?,
+                        //     }
+                        // }
                         // log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
                         let dst = cv::CreateMat::gray8(width as i32, height as i32)
                             .eval(dst)
