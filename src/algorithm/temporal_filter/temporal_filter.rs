@@ -1,16 +1,17 @@
 use std::{any::TypeId, marker::PhantomData, time::Instant};
-use opencv::core::{Mat, MatTraitConst, MatTraitConstManual};
+use opencv::{core::{self, Mat, MatTraitConst}, imgproc};
 use sal_core::error::Error;
 use crate::{
-    algorithm::{cv, ContextRead, ContextWrite, EvalResult, FilterIsChanged, ResultCtx, TemporalFilterCtx, FastScanCtx, FineScanCtx},
-    conf::GaussianConf, domain::{Eval, Filter, Image, RwLock}
+    algorithm::{cv, ContextRead, ContextWrite, EvalResult, ResultCtx, TemporalFilterCtx, FastScanCtx, FineScanCtx},
+    conf::GaussianConf, domain::{Eval, Image, RwLock}
 };
 ///
 /// Temporal Filter | Highlighting / Hiding pixels depending on those changing speed
 pub struct TemporalFilter<Branch> {
     threshold: f64,
-    filters: RwLock<Vec<FilterIsChanged::<f32>>>,
-    proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>,
+    // RwLock для мутации и передачи класса между потокоами, но работает он в синхронном режиме
+    prev: RwLock<Option<Mat>>,
+    proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
     debug: bool,
     branch: PhantomData<Branch>,
@@ -27,7 +28,7 @@ impl<Branch> TemporalFilter<Branch> {
     pub fn new(gaussian: GaussianConf, open_kernel: [i32; 2], erode_kernel: [i32; 2], threshold: f64, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self {
             threshold,
-            filters: RwLock::new(vec![]),
+            prev: RwLock::new(None),
             proc: Box::new(
                 cv::Morphology::erode(
                     &erode_kernel,
@@ -57,78 +58,44 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                 let t = Instant::now();
                 let result: &ResultCtx<Image> = ctx.read();
                 let frame = &result.val;
-                match frame.mat.data_bytes() {
-                    Ok(input) => {
-                        let height = frame.mat.rows() as usize;
-                        let width = frame.mat.cols() as usize;
-                        let pixels = width * height * frame.mat.channels() as usize;
-                        let mut dst = vec![0u8; pixels];
-                        // log::debug!("TemporalFilter.eval | pixels: {:?}", pixels);
-                        if self.filters.read().is_empty() {
-                            *self.filters.write() = (0..pixels).map(|_| {
-                                FilterIsChanged::<f32>::new(None, self.threshold)
-                            }).collect();
-                        }
-                        // log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
-                        // log::debug!("TemporalFilter.eval | mat.channels: {:?}", frame.mat.channels());
-                        let mut filters = self.filters.write();
-                        // Гарантируем компилятору равенство длин, чтобы убрать проверки границ
-                        if input.len() < pixels || filters.len() < pixels || dst.len() < pixels {
-                            return Err(error.err("Image size mismatch").into());
-                        }
-                        // Новый быстрый вариант перебора
-                        filters.iter_mut()
-                            .zip(input)
-                            .zip(dst.iter_mut())
-                            // .take(pixels) // Можно удалить так как проверили длины массивов
-                            .for_each(|((filter, value), pixel)| *pixel = match filter.add(*value as f32) {
-                                    Some(_) => 255,
-                                    None => 0,
-                            });
-                        // Старый медленный вариант перебора
-                        // for i in 0..pixels {
-                        //     match input.get(i) {
-                        //         Some(value) => {
-                        //             if let Some(filter) = filters.get_mut(i) {
-                        //                 match dst.get_mut(i) {
-                        //                     Some(pixel) => *pixel = match filter.add(*value as f32) {
-                        //                         Some(_) => 255,
-                        //                         None => 0,
-                        //                     },
-                        //                     None => Err(error.err(format!("Out image format error, index [{i}] out of image range {width}x{height}={pixels}")))?,
-                        //                 }
-                        //             }
-                        //         }
-                        //         None => Err(error.err(format!("Input image format error, index [{i}] out of image range {width}x{height}={pixels}")))?,
-                        //     }
-                        // }
-                        // log::debug!("TemporalFilter.eval | mat.typ: {:?}", frame.mat.typ());
-                        let dst = cv::CreateMat::gray8(width as i32, height as i32)
-                            .eval(dst)
-                            .map_err(|err| error.pass(err))?;
-                        let dst = self.proc.eval(dst)
-                            .map_err(|err| error.pass(err))?;
-                        let frame = Image::from(dst, meta);
-                        let ctx = if self.debug {
-                            match TypeId::of::<Branch>() {
-                                typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(TemporalFilterCtx::<FastScanCtx>::new(frame.clone()))
-                                    .map_err(|err| error.pass(err))?,
-                                typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(TemporalFilterCtx::<FineScanCtx>::new(frame.clone()))
-                                    .map_err(|err| error.pass(err))?,
-                                _ => {
-                                    log::warn!("TemporalFilter.eval | Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>());
-                                    ctx
-                                }
-                            }
-                        } else {
-                            ctx
-                        };
-                        let result = ResultCtx { val: frame };
-                        log::trace!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
-                        ctx.write(result)
-                    }
-                    Err(err) => Err(error.pass(err.to_string())),
+                let mut prev_guard = self.prev.write();
+                let mut dst = Mat::default();
+                if let Some(prev) = prev_guard.as_ref() {
+                    let mut diff = Mat::default();
+                    // Находим разницу между кадрами
+                    core::absdiff(prev, &frame.mat, &mut diff)
+                        .map_err(|err| error.clone().pass(err.to_string()))?;
+                    // Применяем порог: всё что больше threshold становится 255, остальное 0
+                    imgproc::threshold(&diff, &mut dst, self.threshold, 255.0, imgproc::THRESH_BINARY)
+                        .map_err(|err| error.clone().pass(err.to_string()))?;
+                } else {
+                    // Первый кадр: дельты нет, возвращаем черную матрицу нужного размера
+                    dst = unsafe { Mat::new_rows_cols(frame.mat.rows(), frame.mat.cols(), core::CV_8UC1) }
+                        .map_err(|err| error.clone().pass(err.to_string()))?;
+                    // Опционально можно залить нулями: dst.set_to(&core::Scalar::all(0.0), &Mat::default())...
                 }
+                // Сохраняем текущий кадр как фон для следующего цикла
+                *prev_guard = Some(frame.mat.clone());
+                // Отдаем результат в морфологию
+                let dst = self.proc.eval(dst).map_err(|err| error.pass(err))?;
+                let frame = Image::from(dst, meta);
+                let ctx = if self.debug {
+                    match TypeId::of::<Branch>() {
+                        typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(TemporalFilterCtx::<FastScanCtx>::new(frame.clone()))
+                            .map_err(|err| error.pass(err))?,
+                        typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(TemporalFilterCtx::<FineScanCtx>::new(frame.clone()))
+                            .map_err(|err| error.pass(err))?,
+                        _ => {
+                            log::warn!("TemporalFilter.eval | Can't write to result to: '{:?}' branch of 'Context'", TypeId::of::<Branch>());
+                            ctx
+                        }
+                    }
+                } else {
+                    ctx
+                };
+                let result = ResultCtx { val: frame };
+                log::trace!("TemporalFilter.eval | Elapsed: {:?}", t.elapsed());
+                ctx.write(result)
             }
             Err(err) => Err(error.pass(err)),
         }
