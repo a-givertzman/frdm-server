@@ -105,7 +105,7 @@ impl FineContours {
     fn merge(contour1: &core::Vector<Point>, contour2: &core::Vector<Point>, threshold: f32) -> Result<core::Vector<Point>, Error> {
         let error = Error::new("FineContours", "merge");
         if contour1.len() < 4 || contour2.len() < 4 {
-            log::warn!("FineContours.merge | c1[{}], c2[{}]", contour1.len(), contour2.len());
+            // log::warn!("FineContours.merge | c1[{}], c2[{}]", contour1.len(), contour2.len());
             return Err(error.err("c1 and c2 can't be length < 3"))
         }
         // let mut dst = Mat::default();

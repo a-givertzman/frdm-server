@@ -3,7 +3,7 @@ mod algorithm;
 mod conf;
 mod domain;
 mod infrostructure;
-use std::any::TypeId;
+use std::{any::TypeId, path::Path};
 use crossterm::event::{KeyEventKind, KeyEventState};
 use debugging::session::debug_session::{DebugSession, LogLevel};
 use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Rect, Vec3b}, imgproc::LineTypes};
@@ -197,9 +197,21 @@ fn main() {
         .module("sal_sync::thread_pool", LogLevel::Info)
         .init();
     let dbg = Dbg::own("complex-test");
+    //
+    // Выбери источник фреймов из папки или с камеры
     let source = Source::Path("src/test/unit/algorithm/temporal_filter/frames");
     let source = Source::Path("/home/lobanov/code/rust/cma-server/src/tests/unit/services/frdm_service/frames");
     // let source = Source::Camera("src/complex-test-camera.yaml");
+    //
+    // Переключи Target в DefectDetection для нормального выполнения теста детекции неисправностей
+    let target = Target::DefectDetection;
+    //
+    // Переключи Target в SaveFrames(...) для сохранения фреймов с камеры в папку
+    // let path_retr = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/retrived/", exposure);
+    // let path_proc = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/processed/", exposure);
+    // let target = Target::SaveFrames("assets/frames/");
+    //
+    // Receiving Frames
     let mut exposure = 0.0;
     let stream: Box<dyn Iterator<Item = Image>> = match source {
         Source::Path(path) => {
@@ -279,99 +291,116 @@ fn main() {
             camera_stream
         }
     };
-    let w_source = "Source";
-    let w_crop = "Cropped";
-    let w_gray = "Gray";
-    let w_fast_contours = "Fast Contours";
-    let w_fine_contours = "Fine Contours";
-    let w_fast = "Fast Scan";
-    let w_fine = "Fine Scan";
-    for window in [w_source, w_crop, w_gray, w_fast_contours, w_fine_contours, w_fast, w_fine] {
-        if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
-            log::warn!("{dbg} | Create Window Error: {}", err);
+    match target {
+        Target::SaveFrames(dir) => {
+            let mut counter = 0;
+            let mut frame_counter = 0;
+            for frame in stream {
+                if counter % 5 == 0 {
+                    let path = Path::new(dir).join(format!("exp{}_rope_frame_{:03}.jpeg", exposure, frame_counter));
+                    let path = path.to_str().expect(&format!("{dbg} | Wrong path '{}'", path.display()));
+                    if let Err(err) = frame.save(path) {
+                        log::warn!("{dbg} | Write image error: {:?}", err);
+                    }
+                    frame_counter += 1;
+                    counter = 0;
+                }
+                counter += 1;
+            }
         }
-    }
-    let mut counter = 0;
-    let mut frame_counter = 0;
-    let conf = std::fs::OpenOptions::new().read(true).open("src/complex-test.yaml").unwrap();
-    let conf = ConfTree::new_root(serde_yaml::from_reader(conf).unwrap());
-    let conf = Conf::new(&dbg, conf);
-    let tp = ThreadPool::new(&dbg, Some(8));
-    let fine_scan = FineScan::new(
-        conf.fine_scan,
-        tp.scheduler(),
-        None::<Box<dyn Fn(&Context) + Send + Sync>>,
-        FastScan::new(
-            conf.fast_scan,
-            tp.scheduler(),
-            Gray::new(
-                AutoGamma::new(
-                    conf.normalize.gamma.factor,
-                    Cropping::new(
-                        conf.normalize.cropping.x,
-                        conf.normalize.cropping.width,
-                        conf.normalize.cropping.y,
-                        conf.normalize.cropping.height,
-                        Initial::new(
-                            InitialCtx::new(),
+        Target::DefectDetection => {
+            let w_source = "Source";
+            let w_crop = "Cropped";
+            let w_gray = "Gray";
+            let w_fast_contours = "Fast Contours";
+            let w_fine_contours = "Fine Contours";
+            let w_fast = "Fast Scan";
+            let w_fine = "Fine Scan";
+            for window in [w_source, w_crop, w_gray, w_fast_contours, w_fine_contours, w_fast, w_fine] {
+                if let Err(err) = opencv::highgui::named_window(window, opencv::highgui::WINDOW_NORMAL) {
+                    log::warn!("{dbg} | Create Window Error: {}", err);
+                }
+            }
+            let conf = std::fs::OpenOptions::new().read(true).open("src/complex-test.yaml").unwrap();
+            let conf = ConfTree::new_root(serde_yaml::from_reader(conf).unwrap());
+            let conf = Conf::new(&dbg, conf);
+            let tp = ThreadPool::new(&dbg, Some(8));
+            let fine_scan = FineScan::new(
+                conf.fine_scan,
+                tp.scheduler(),
+                None::<Box<dyn Fn(&Context) + Send + Sync>>,
+                FastScan::new(
+                    conf.fast_scan,
+                    tp.scheduler(),
+                    Gray::new(
+                        AutoGamma::new(
+                            conf.normalize.gamma.factor,
+                            Cropping::new(
+                                conf.normalize.cropping.x,
+                                conf.normalize.cropping.width,
+                                conf.normalize.cropping.y,
+                                conf.normalize.cropping.height,
+                                Initial::new(
+                                    InitialCtx::new(),
+                                ),
+                                true,
+                            ),
+                            true,
                         ),
-                        true,
                     ),
                     true,
                 ),
-            ),
-            true,
-        ),
-        true,
-    );
-    for frame in stream {
-        log::trace!("{dbg} | Frame width: {},  height: {}, timestamp: {}", frame.width(), frame.height(), frame.meta);
-        opencv::highgui::imshow(w_source, &frame.mat).unwrap();
-        let ctx = fine_scan.eval(frame.clone()).wait().unwrap().unwrap();
-        let result_meta: &MetaCtx = ctx.read();
-        assert!(*result_meta == frame.meta, "{dbg} | \nresult: {:?}\ntarget: {:?}", result_meta, frame.meta);
-        let gray: &GrayCtx = ctx.read();
-        let crop: &CroppingCtx = ctx.read();
-        let fast_contours_ctx: &FastContoursCtx = ctx.read();
-        let fine_contours_ctx: &FineContoursCtx = ctx.read();
-        let fast_ctx: &FastScanCtx = ctx.read();
-        let fine_ctx: &FineScanCtx = ctx.read();
-        let crop = if crop.result.mat.empty() {
-            let mut dst = opencv::core::Mat::default();
-            opencv::imgproc::cvt_color(&gray.frame.mat, &mut dst, opencv::imgproc::COLOR_GRAY2BGR, 3).unwrap();
-            dst
-        } else {
-            crop.result.mat.clone()
-        };
-        let crop = draw_dots::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
-        let crop = draw_rope_dimensions::<FineScanCtx>(&dbg, crop, &ctx, &conf.fine_scan.rope_dimensions).unwrap();
-        let crop = draw_rope_defects::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
-        let crop = draw_rope_distortions::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
-        if !crop.empty() { opencv::highgui::imshow(w_crop, &crop).unwrap(); }
-        if !gray.frame.mat.empty() { opencv::highgui::imshow(w_gray, &gray.frame.mat).unwrap(); }
-        if !fast_contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_fast_contours, &fast_contours_ctx.result.mat).unwrap(); }
-        if !fine_contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_fine_contours, &fine_contours_ctx.result.mat).unwrap(); }
-        if !fast_ctx.union.frame.mat.empty() { opencv::highgui::imshow(w_fast, &fast_ctx.union.frame.mat).unwrap(); }
-        if !fine_ctx.union.frame.mat.empty() { opencv::highgui::imshow(w_fine, &fine_ctx.union.frame.mat).unwrap(); }
-        if counter == 5{
-            //_2lightAngle45_600rpm_
-            // let path_retr = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/retrived/", exposure);
-            // let path_proc = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/processed/", exposure);
-            // let file_name = &format!("exp{}_rope_frame_{}.jpeg", exposure, frame_counter);
-            // fs::create_dir_all(path_retr).unwrap();
-            // fs::create_dir_all(path_proc).unwrap();
-            // opencv::imgcodecs::imwrite(&format!("{}/{}", path_retr, file_name), &frame.mat, &opencv::core::Vector::new()).unwrap();
-            // opencv::imgcodecs::imwrite(&format!("{}/{}", path_proc, file_name), &contours_ctx.result.mat, &opencv::core::Vector::new()).unwrap();
-            frame_counter = frame_counter + 1;
-            counter = 0;
+                true,
+            );
+            for frame in stream {
+                log::trace!("{dbg} | Frame width: {},  height: {}, timestamp: {}", frame.width(), frame.height(), frame.meta);
+                opencv::highgui::imshow(w_source, &frame.mat).unwrap();
+                let ctx = fine_scan.eval(frame.clone()).wait().unwrap().unwrap();
+                let result_meta: &MetaCtx = ctx.read();
+                assert!(*result_meta == frame.meta, "{dbg} | \nresult: {:?}\ntarget: {:?}", result_meta, frame.meta);
+                let gray: &GrayCtx = ctx.read();
+                let crop: &CroppingCtx = ctx.read();
+                let fast_contours_ctx: &FastContoursCtx = ctx.read();
+                let fine_contours_ctx: &FineContoursCtx = ctx.read();
+                let fast_ctx: &FastScanCtx = ctx.read();
+                let fine_ctx: &FineScanCtx = ctx.read();
+                let crop = if crop.result.mat.empty() {
+                    let mut dst = opencv::core::Mat::default();
+                    opencv::imgproc::cvt_color(&gray.frame.mat, &mut dst, opencv::imgproc::COLOR_GRAY2BGR, 3).unwrap();
+                    dst
+                } else {
+                    crop.result.mat.clone()
+                };
+                let crop = draw_dots::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
+                let crop = draw_rope_dimensions::<FineScanCtx>(&dbg, crop, &ctx, &conf.fine_scan.rope_dimensions).unwrap();
+                let crop = draw_rope_defects::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
+                let crop = draw_rope_distortions::<FineScanCtx>(&dbg, crop, &ctx).unwrap();
+                if !crop.empty() { opencv::highgui::imshow(w_crop, &crop).unwrap(); }
+                if !gray.frame.mat.empty() { opencv::highgui::imshow(w_gray, &gray.frame.mat).unwrap(); }
+                if !fast_contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_fast_contours, &fast_contours_ctx.result.mat).unwrap(); }
+                if !fine_contours_ctx.result.mat.empty() { opencv::highgui::imshow(w_fine_contours, &fine_contours_ctx.result.mat).unwrap(); }
+                if !fast_ctx.union.frame.mat.empty() { opencv::highgui::imshow(w_fast, &fast_ctx.union.frame.mat).unwrap(); }
+                if !fine_ctx.union.frame.mat.empty() { opencv::highgui::imshow(w_fine, &fine_ctx.union.frame.mat).unwrap(); }
+                opencv::highgui::wait_key(0).unwrap();
+            }
+            // let _: Vec<()> = handles.into_iter().map(|h| h.join().unwrap()).collect();
         }
-        counter = counter + 1;
-        opencv::highgui::wait_key(0).unwrap();
     }
-    // let _: Vec<()> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+}
+///
+/// Select target
+/// - Test defect detection pipline
+/// - Save frames to the dir
+enum Target<'a> {
+    /// Test defect detection pipline
+    DefectDetection,
+    /// Save frames to the dir
+    SaveFrames(&'a str),
 }
 ///
 /// Select image source
+/// - `Path`: Read frames from path
+/// - `Camera`: Read frames from camera
 enum Source<'a> {
     Path(&'a str),
     Camera(&'a str),

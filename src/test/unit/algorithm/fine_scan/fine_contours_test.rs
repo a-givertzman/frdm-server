@@ -172,7 +172,7 @@ fn eval() {
                 if !crop.empty() { highgui::imshow(wcrop, &crop).unwrap() };
                 if let Some(convex) = &convex.convex {
                     let mut dst = opencv::core::Mat::default();
-                    let convex = opencv::core::add_weighted(
+                    opencv::core::add_weighted(
                         &contours.result.mat,   // первое изображение
                         1.0,  // вес первого
                         &convex.mat,   // второе изображение
