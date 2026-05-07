@@ -11,7 +11,7 @@ use debugging::session::debug_session::{
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
-        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastScanCtx, FineContours, FineEdges, FineEdgesCtx, FineScanConf, FineScanCtx, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side
+        AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastScanCtx, FineContours, FineContoursCtx, FineConvexCtx, FineEdges, FineEdgesCtx, FineScanConf, FineScanCtx, Gray, GrayCtx, ResultCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, Side
     }, 
     domain::Error,
 };
@@ -54,13 +54,20 @@ fn eval() {
                 threshold: 12.0         # Threshold to detect the pixel whas changed or not in the each next frame
             fine-edges:
                 # otsu-tune: 1.40         # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
-                threshold: 128        # 0...255, used if otsu-tune is not specified
+                threshold: 16           # 0...255, used if otsu-tune is not specified
                 smooth: 16              # Smoothing of edge line factor. The higher the factor the smoother the line.
+            union:
+                # add-weighted:
+                #     weight1: 1.0            # Weight of the first array elements.
+                #     weight2: 1.0            # Weight of the second array elements.
+                bitwise-and:
+                    no-params: ~
             rope-dimensions:        # Verifaing the rope dimensions 
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 30.0         # Tolerance for rope width, %
                 square-tolerance: 100.0       # Tolerance for rope square, %
-            geometry-defect-threshold: 1.0    # 1.1..1.3, absolute threshold to detect the geometry deffects
+            distortion-threshold: 1.4    # 1.1..1.3, absolute threshold to detect the geometry deffects
+            defect-threshold: 2.5        # 1.1..1.3, absolute threshold to detect the geometry deffects
         "#)).unwrap(),
     );
     let conf = FineScanConf::new(&dbg, conf);
@@ -129,7 +136,8 @@ fn eval() {
                 let crop: &CroppingCtx = ctx.read();    
                 let mut crop = crop.result.mat.clone();
                 let gamma: &AutoGammaCtx = ctx.read();
-                // let contours: &FineContoursCtx = ctx.read();
+                let contours: &FineContoursCtx = ctx.read();
+                let convex: &FineConvexCtx = ctx.read();
                 let result: &ResultCtx<Image> = ctx.read();
                 if !crop.empty() {
                     let edges: &FineEdgesCtx = ctx.read();
@@ -162,7 +170,22 @@ fn eval() {
                 if !gray.frame.mat.empty() { highgui::imshow(wgray, &gray.frame.mat).unwrap() };
                 if !gamma.result.mat.empty() { highgui::imshow(wgamma, &gamma.result.mat).unwrap() };
                 if !crop.empty() { highgui::imshow(wcrop, &crop).unwrap() };
-                if !result.val.mat.empty() { highgui::imshow(wcontours, &result.val.mat).unwrap() };
+                if let Some(convex) = &convex.convex {
+                    let mut dst = opencv::core::Mat::default();
+                    let convex = opencv::core::add_weighted(
+                        &contours.result.mat,   // первое изображение
+                        1.0,  // вес первого
+                        &convex.mat,   // второе изображение
+                        0.5,   // вес второго
+                        0.0,    // gamma
+                        &mut dst,
+                        -1      // тип выходной матрицы (-1 сохраняет тип входа)
+                    ).unwrap();
+                    if !result.val.mat.empty() { highgui::imshow(wcontours, &dst).unwrap() };
+                } else {
+                    if !result.val.mat.empty() { highgui::imshow(wcontours, &contours.result.mat).unwrap() };
+                }
+                // if !result.val.mat.empty() { highgui::imshow(wcontours, &result.val.mat).unwrap() };
                 highgui::wait_key(0).unwrap();
             },
             _ => continue,
