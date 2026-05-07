@@ -60,7 +60,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                 let frame = &result.val;
                 let mut prev_guard = self.prev.write();
                 let mut dst = Mat::default();
-                if let Some(prev) = prev_guard.as_ref() {
+                if let Some(prev) = prev_guard.as_mut() {
                     let mut diff = Mat::default();
                     // Находим разницу между кадрами
                     core::absdiff(prev, &frame.mat, &mut diff)
@@ -68,14 +68,23 @@ impl<Branch: 'static> Eval<Image, EvalResult> for TemporalFilter<Branch> {
                     // Применяем порог: всё что больше threshold становится 255, остальное 0
                     imgproc::threshold(&diff, &mut dst, self.threshold, 255.0, imgproc::THRESH_BINARY)
                         .map_err(|err| error.clone().pass(err.to_string()))?;
-                } else {
-                    // Первый кадр: дельты нет, возвращаем черную матрицу нужного размера
-                    dst = unsafe { Mat::new_rows_cols(frame.mat.rows(), frame.mat.cols(), core::CV_8UC1) }
+                    // Сохраняем текущий кадр как фон для следующего цикла
+                    frame.mat.copy_to(prev)
                         .map_err(|err| error.clone().pass(err.to_string()))?;
-                    // Опционально можно залить нулями: dst.set_to(&core::Scalar::all(0.0), &Mat::default())...
+                } else {
+                    // Первый кадр: дельты нет, возвращаем черную матрицу нужного размера (избегаем мусора в памяти)
+                    dst = Mat::new_rows_cols_with_default(
+                        frame.mat.rows(),
+                        frame.mat.cols(),
+                        core::CV_8UC1,
+                        core::Scalar::all(0.0)
+                    ).map_err(|err| error.clone().pass(err.to_string()))?;
+                    // Создаем матрицу фона один раз и копируем туда данные
+                    let mut prev = Mat::default();
+                    frame.mat.copy_to(&mut prev)
+                        .map_err(|err| error.clone().pass(err.to_string()))?;
+                    *prev_guard = Some(prev);
                 }
-                // Сохраняем текущий кадр как фон для следующего цикла
-                *prev_guard = Some(frame.mat.clone());
                 // Отдаем результат в морфологию
                 let dst = self.proc.eval(dst).map_err(|err| error.pass(err))?;
                 let frame = Image::from(dst, meta);
