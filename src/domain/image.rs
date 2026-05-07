@@ -186,8 +186,9 @@ impl Default for Image {
 // bool eq = std::equal(a.begin<uchar>(), a.end<uchar>(), b.begin<uchar>());
 impl PartialEq for Image {
     fn eq(&self, other: &Self) -> bool {
-        let mut dst = self.mat.clone();
-        opencv::core::compare(&self.mat, &other.mat, &mut dst, opencv::core::CmpTypes::CMP_EQ as i32).is_ok()
+        if self.size() != other.size() { return false; }
+        if self.mat.typ() == other.mat.typ() { return false; }
+        opencv::core::norm(&self.mat, opencv::core::NormTypes::NORM_INF as i32, &other.mat).unwrap_or(1.0) == 0.0
     }
 }
 //
