@@ -87,7 +87,25 @@ impl<In> Morphology<In> {
             iterations: 1,
             border: BorderTypes::BORDER_CONSTANT,
             border_val: None,
-            structuring_element: None,
+            structuring_element: Some(Box::new(StructuringElement::new(&[kernel[0], kernel[1]]).with_shape(imgproc::MorphShapes::MORPH_RECT))),
+            ctx: Box::new(ctx),
+        }
+    }
+    ///
+    /// Returns [Morphology] `MORPH_CLOSE` operation new instance
+    /// - `kernel` - Structuring element size
+    #[allow(unused)]
+    pub fn close(
+        kernel: &[i32; 2],
+        ctx: impl Eval<In, Result<Mat, Error>> + Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            operation: MorphTypes::MORPH_CLOSE,
+            kernel: kernel.into(),
+            iterations: 1,
+            border: BorderTypes::BORDER_CONSTANT,
+            border_val: None,
+            structuring_element: Some(Box::new(StructuringElement::new(&[kernel[0], kernel[1]]).with_shape(imgproc::MorphShapes::MORPH_RECT))),
             ctx: Box::new(ctx),
         }
     }

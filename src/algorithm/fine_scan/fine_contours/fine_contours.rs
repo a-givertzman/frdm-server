@@ -31,23 +31,40 @@ impl FineContours {
     #[allow(unused)]
     pub fn new(conf: FineContoursConf, ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static, debug: bool) -> Self {
         Self { 
+            // Первая версия подготовки изображения
             ctx: Box::new(ctx),
+            // thresh_ctx: Box::new(
+            //     cv::AutoThreshold::new(
+            //         conf.otsu_tune,
+            //         255.0,
+            //         ThresholdTypes::THRESH_BINARY,
+            //         cv::Morphology::open(
+            //             &[5, 5],
+            //             cv::GaussianBlur::new(
+            //                 &[13, 13],
+            //                 cv::Laplacian::new(
+            //                     5,
+            //                     cv::GaussianBlur::new(
+            //                         &[11, 11],
+            //                         PassCvMat::new(),
+            //                     ),
+            //                 ),
+            //             ),
+            //         ),
+            //     )
+            // ),
+            // Улучшенная версия подготовки изображения
             thresh_ctx: Box::new(
-                cv::AutoThreshold::new(
-                    conf.otsu_tune,
-                    255.0,
-                    ThresholdTypes::THRESH_BINARY,
-                    cv::Morphology::open(
-                        &[5, 5],
+                // 3. Замыкаем возможные разрывы пунктирных контуров
+                cv::Morphology::close(
+                    &[9, 9], 
+                    // Ищем границы с автоматической адаптацией (Otsu Threshold)
+                    cv::AutoCanny::new(
+                        conf.otsu_tune,
+                        // Обязательно глушим цифровой шум матрицы перед детектором
                         cv::GaussianBlur::new(
-                            &[13, 13],
-                            cv::Laplacian::new(
-                                5,
-                                cv::GaussianBlur::new(
-                                    &[11, 11],
-                                    PassCvMat::new(),
-                                ),
-                            ),
+                            &[5, 5],
+                            PassCvMat::new(),
                         ),
                     ),
                 )

@@ -65,6 +65,9 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDimensions<Branch> {
                 upper_average = upper_average / upper.len() as f64;
                 lower_average = lower_average / lower.len() as f64;
                 let rope_width = (upper_average - lower_average).abs();
+                if rope_width.is_nan() {
+                    return Err(error.err(format!("Rope width is NAN error, {rope_width} of {}", self.rope_width)));
+                };
                 // log::debug!("RopeDimensions.eval | Average rope_width: {:?} px", rope_width);
                 // log::debug!("RopeDimensions.eval | Rope square: {:?} px", rope_square);
                 let rope_width_error = (1.0 - rope_width / self.rope_width).abs();
@@ -77,7 +80,7 @@ impl<Branch: 'static> Eval<Image, EvalResult> for RopeDimensions<Branch> {
                 if rope_square_error >= self.square_tolerance {
                     return Err(error.err(format!("Rope square error: {:.3}%, {rope_square} of {}", rope_square_error, self.rope_width * upper.len() as f64)));
                 }
-                log::debug!("RopeDimensions.eval | Elapsed: {:?}", t.elapsed());
+                log::trace!("RopeDimensions.eval | Elapsed: {:?}", t.elapsed());
                 match TypeId::of::<Branch>() {
                     typ if typ == TypeId::of::<FastScanCtx>() => ctx.write(RopeDimensionsCtx::<FastScanCtx>::new(rope_width, rope_square)),
                     typ if typ == TypeId::of::<FineScanCtx>() => ctx.write(RopeDimensionsCtx::<FineScanCtx>::new(rope_width, rope_square)),

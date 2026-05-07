@@ -33,7 +33,7 @@ fast-scan:
 
 fine-scan:
     fine-contours:
-        otsu-tune: 0.40         # Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
+        otsu-tune: 0.36         # *Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
         merge-distance: 24.0    # Maximum distance between contours to be merged
     temporal-filter:
         gaussian:
@@ -58,3 +58,5 @@ fine-scan:
         square-tolerance: 100.0       # Tolerance for rope square, %
     distortion-threshold: 1.4    # 1.1..1.3, absolute threshold to detect the geometry deffects
     defect-threshold: 2.5        # 1.1..1.3, absolute threshold to detect the geometry deffects
+
+# * - Moste important configuration parameters

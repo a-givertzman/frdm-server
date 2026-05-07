@@ -1,6 +1,8 @@
 mod adaptive_threshold;
+mod auto_canny;
 mod auto_threshold;
 mod bitwise_and;
+mod canny;
 mod create_mat;
 mod gaussian_blur;
 mod laplacian;
@@ -10,8 +12,10 @@ mod structure_element;
 mod threshold;
 
 pub use adaptive_threshold::*;
+pub use auto_canny::*;
 pub use auto_threshold::*;
 pub use bitwise_and::*;
+pub use canny::*;
 pub use create_mat::*;
 pub use gaussian_blur::*;
 pub use laplacian::*;
