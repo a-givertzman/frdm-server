@@ -73,16 +73,34 @@ impl Camera {
                                     log::debug!("{}.read | Devices found: {}", dbg, devices);
                                     for dev in 0..devices {
                                         // log::debug!("{}.read | Retriving Device {}...", dbg, dev);
-                                        let device_vendor = ac_system.device_vendor(dev).unwrap();
-                                        let device_model = ac_system.device_model(dev).unwrap();
+                                        let device_vendor = ac_system.device_vendor(dev).unwrap_or_else(|err| {
+                                            log::warn!("{dbg}.read | Device {dev} | Can't read Vendor, error: {:?}", err);
+                                            "Vendor ?".to_string()
+                                        });
+                                        let device_model = ac_system.device_model(dev).unwrap_or_else(|err| {
+                                            log::warn!("{dbg}.read | Device {dev} | Can't read Model, error: {:?}", err);
+                                            "Model ?".to_string()
+                                        });
                                         log::trace!("{}.read | Device {} model: {}", dbg, dev, device_model);
-                                        let device_serial = ac_system.device_serial(dev).unwrap();
+                                        let device_serial = ac_system.device_serial(dev).unwrap_or_else(|err| {
+                                            log::warn!("{dbg}.read | Device {dev} | Can't read Serial, error: {:?}", err);
+                                            "Serial ?".to_string()
+                                        });
                                         log::trace!("{}.read | Device {} serial: {}", dbg, dev, device_serial);
-                                        let device_mac = ac_system.device_mac(dev).unwrap();
+                                        let device_mac = ac_system.device_mac(dev).unwrap_or_else(|err| {
+                                            log::warn!("{dbg}.read | Device {dev} | Can't read MAC, error: {:?}", err);
+                                            "MAC ?".to_string()
+                                        });
                                         log::trace!("{}.read | Device {} MAC: {}", dbg, dev, device_mac);
-                                        let device_ip = ac_system.device_ip(dev).unwrap();
+                                        let device_ip = ac_system.device_ip(dev).unwrap_or_else(|err| {
+                                            log::warn!("{dbg}.read | Device {dev} | Can't read IP, error: {:?}", err);
+                                            "IP ?".to_string()
+                                        });
                                         log::trace!("{}.read | Device {} IP: {}", dbg, dev, device_ip);
-                                        let device_firmware = ac_system.device_firmware(dev).unwrap();
+                                        let device_firmware = ac_system.device_firmware(dev).unwrap_or_else(|err| {
+                                            log::warn!("{dbg}.read | Device {dev} | Can't read Firmware, error: {:?}", err);
+                                            "Firmware ?".to_string()
+                                        });
                                         log::trace!("{}.read | Device {} Firmware: {}", dbg, dev, device_firmware);
                                         log::debug!(
                                             "{}.read | Device {}: {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
