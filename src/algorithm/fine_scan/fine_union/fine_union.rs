@@ -1,35 +1,38 @@
 use std::{sync::Arc, time::Instant};
 use opencv::core::MatTraitConst;
-use parking_lot::RwLock;
 use sal_core::error::Error;
 use sal_sync::{services::future::Future, thread_pool::Scheduler};
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, FineConvexCtx, FineUnionCtx, ResultCtx}, conf::UnionConf, domain::{Eval, Image}
+    algorithm::{ContextRead, ContextWrite, EvalResult, FineConvexCtx, FineUnionCtx, ResultCtx}, conf::{UnionConf, UnionKindConf}, domain::{Eval, Image}
 };
 ///
-/// Combine input contours
+/// Combines input from two parallel evaluation branches to build a definitive contour
 pub struct FineUnion {
     conf: UnionConf,
     scheduler: Scheduler,
-    ctx1: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
-    ctx2: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
+    ctx1: Arc<Box<dyn Eval<Image, EvalResult> + Send + Sync>>,
+    ctx2: Arc<Box<dyn Eval<Image, EvalResult> + Send + Sync>>,
 }
 //
 //
 impl FineUnion {
     ///
     /// Returns [FineUnion] new instance
+    /// - `conf`: Configuration for the merge strategy (e.g., bitwise operations or weighted sum)
+    /// - `scheduler`: Thread pool for concurrent execution of evaluation branches
+    /// - `ctx1`: First evaluation pipeline (e.g., `TemporalFilter`)
+    /// - `ctx2`: Second evaluation pipeline (e.g., `FineContours`)
     pub fn new(
         conf: UnionConf,
         scheduler: Scheduler,
-        ctx1: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
-        ctx2: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static
+        ctx1: impl Eval<Image, EvalResult> + Send + Sync + 'static,
+        ctx2: impl Eval<Image, EvalResult> + Send + Sync + 'static
     ) -> Self {
         Self {
             conf,
             scheduler,
-            ctx1: Arc::new(RwLock::new(Box::new(ctx1))),
-            ctx2: Arc::new(RwLock::new(Box::new(ctx2))),
+            ctx1: Arc::new(Box::new(ctx1)),
+            ctx2: Arc::new(Box::new(ctx2)),
         }
     }
 }
@@ -43,14 +46,14 @@ impl Eval<Image, EvalResult> for FineUnion {
         let ctx1_eval = self.ctx1.clone();
         let frame1 = frame.clone();
         self.scheduler.spawn(move || {
-            let ctx = ctx1_eval.read().eval(frame1);
+            let ctx = ctx1_eval.eval(frame1);
             sink.add(ctx);
             Ok(())
         }).map_err(|err| error.pass(err))?;
         let (ctx2, sink) = Future::new();
         let ctx2_eval = self.ctx2.clone();
         self.scheduler.spawn(move || {
-            let ctx = ctx2_eval.read().eval(frame);
+            let ctx = ctx2_eval.eval(frame);
             sink.add(ctx);
             Ok(())
         }).map_err(|err| error.pass(err))?;
@@ -66,41 +69,38 @@ impl Eval<Image, EvalResult> for FineUnion {
                 let src2_mat = &src2.val.mat;
                 log::trace!("FineUnion.eval | src2: {}x{}", src2_mat.cols(), src2_mat.rows());
                 let mut dst = opencv::core::Mat::default();
-                match (self.conf.add_weighted, self.conf.bitwise_and) {
-                    (None, Some(_)) => opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array())
+                match self.conf.kind {
+                    UnionKindConf::BitwiseAnd(_conf) => opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array())
                         .map_err(|err| error.pass(err.to_string()))?,
-                    (Some(conf), None) => opencv::core::add_weighted_def(src1_mat, conf.weight1, src2_mat, conf.weight2, conf.gamma, &mut dst)
+                    UnionKindConf::AddWeighted(conf) => opencv::core::add_weighted_def(src1_mat, conf.weight1, src2_mat, conf.weight2, conf.gamma, &mut dst)
                         .map_err(|err| error.pass(err.to_string()))?,
-                    _ => Err(error.err(format!("Both: 'add-weighted' and `bitwise-and` - are specified, please use one of")))?,
+                    UnionKindConf::BitwiseOr(_conf) => opencv::core::bitwise_or(src1_mat, src2_mat, &mut dst, &opencv::core::no_array())
+                        .map_err(|err| error.pass(err.to_string()))?,
                 }
-                // let kernel = opencv::imgproc::get_structuring_element(opencv::imgproc::MORPH_ELLIPSE, Size2i::new(5, 5), Point2i::new(-1, -1)).unwrap();
-                // let mut out = opencv::core::Mat::default();
-                // opencv::imgproc::morphology_ex(
-                //     &dst,
-                //     &mut out,
-                //     opencv::imgproc::MORPH_OPEN,
-                //     &kernel,
-                //     Point2i::new(-1, -1),
-                //     1,
-                //     opencv::core::BORDER_CONSTANT,
-                //     opencv::imgproc::morphology_default_border_value().map_err(|err| error.pass(err.to_string()))?,
-                // ).map_err(|err| error.pass(err.to_string()))?;
                 let convex1: &FineConvexCtx = ctx1.read();
                 let convex2: &FineConvexCtx = ctx2.read();
-                let (convex, ctx) = match (&convex1.convex, &convex2.convex) {
+                let ctx = match (&convex1.convex, &convex2.convex) {
                     (None, None) => Err(error.err("Can't find convex in the context"))?,
-                    (None, Some(convex)) => (Some(convex.clone()), ctx2),
-                    (Some(convex), None) => (Some(convex.clone()), ctx1),
-                    (Some(convex), Some(_)) => (Some(convex.clone()), ctx1),
-                };
-                let dst = match convex {
-                    Some(convex) => {
+                    (None, Some(convex)) => {
                         let mut out = opencv::core::Mat::default();
-                        opencv::core::bitwise_and(&dst, &convex.mat, &mut out, &opencv::core::no_array())
-                            .map_err(|err| error.pass(err.to_string()))?;
-                        out
+                        opencv::core::bitwise_and(&dst, &convex.mat, &mut out, &opencv::core::no_array()).map_err(|err| error.pass(err.to_string()))?;
+                        dst = out;
+                        ctx2
                     }
-                    None => dst,
+                    (Some(convex), None) => {
+                        let mut out = opencv::core::Mat::default();
+                        opencv::core::bitwise_and(&dst, &convex.mat, &mut out, &opencv::core::no_array()).map_err(|err| error.pass(err.to_string()))?;
+                        dst = out;
+                        ctx1
+                    }
+                    (Some(c1), Some(c2)) => {
+                        let mut convex = opencv::core::Mat::default();
+                        opencv::core::bitwise_and(&c1.mat, &c2.mat, &mut convex, &opencv::core::no_array()).map_err(|err| error.pass(err.to_string()))?;
+                        let mut out = opencv::core::Mat::default();
+                        opencv::core::bitwise_and(&dst, &convex, &mut out, &opencv::core::no_array()).map_err(|err| error.pass(err.to_string()))?;
+                        dst = out;
+                        ctx1
+                    }
                 };
                 let frame = Image::from(dst, meta);
                 let union = FineUnionCtx { frame: frame.clone() };
@@ -109,9 +109,7 @@ impl Eval<Image, EvalResult> for FineUnion {
                 log::trace!("FineUnion.eval | Elapsed: {:?}", t.elapsed());
                 ctx.write(result)
             }
-            (Ok(_), Err(err)) => Err(error.pass(err)),
-            (Err(err), Ok(_)) => Err(error.pass(err)),
-            (Err(err), Err(_)) => Err(error.pass(err)),
+            (Err(err), _) | (_, Err(err)) => Err(error.pass(err)),
         }
     }
 }

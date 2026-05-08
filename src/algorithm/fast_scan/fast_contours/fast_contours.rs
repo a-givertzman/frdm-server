@@ -13,7 +13,7 @@ use crate::{Eval, domain::Image};
 /// Binarization is based on the sharpness of the target segment
 pub struct FastContours {
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
-    proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>,
+    proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
     debug: bool,
 }
 //

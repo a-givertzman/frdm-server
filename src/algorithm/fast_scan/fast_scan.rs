@@ -32,7 +32,7 @@ impl FastScan {
     pub fn new(
         conf: FastScanConf,
         scheduler: Scheduler,
-        ctx: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
+        ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static,
         debug: bool) -> Self {
         let pass_ctx1 = Arc::new(Owner::empty());
         let pass_ctx2 = Arc::new(Owner::empty());

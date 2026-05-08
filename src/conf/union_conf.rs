@@ -1,6 +1,6 @@
 use sal_core::dbg::Dbg;
 use sal_sync::services::{conf::{ConfTree, ConfTreeGet}, entity::Name};
-use crate::conf::{AddWeightedConf, BitwiseAndConf};
+use crate::conf::{AddWeightedConf, BitwiseAndConf, BitwiseOrConf};
 
 ///
 /// ## Configuration for fast-edges algorithm
@@ -9,20 +9,20 @@ use crate::conf::{AddWeightedConf, BitwiseAndConf};
 /// 
 /// ### Example:
 /// ```yaml
-/// union:
+/// union:  # use just one of option
 ///     add-weighted:           # Weighted sum of two images to be calculated
 ///         weight1: 1.0            # Weight of the first array elements.
 ///         weight2: 1.0            # Weight of the second array elements.
 ///         gamma: 0.0              Scalar added to the result, default 0.0
 ///     bitwise-and:            # Bitwise AND of two images to be calculated
 ///         no-params: no parameters required
+///     bitwise-or:            # Bitwise OR of two images to be calculated
+///         no-params: no parameters required
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UnionConf {
-    /// Specify if weighted sum of two images have to be calculated
-    pub add_weighted: Option<AddWeightedConf>,
-    /// Specify if bitwise AND operation of two images have to be calculated
-    pub bitwise_and: Option<BitwiseAndConf>,
+    /// Specify a way to compose of two images
+    pub kind: UnionKindConf,
 }
 //
 // 
@@ -40,14 +40,32 @@ impl UnionConf {
         log::trace!("{dbg}.new | add-weighted: {:#?}", add_weighted);
         let bitwise_and = conf.get("bitwise-and").map(|conf| BitwiseAndConf::new(&name, conf));
         log::trace!("{dbg}.new | bitwise-and: {:#?}", bitwise_and);
-        match (add_weighted, bitwise_and) {
-            (None, None) => panic!("{dbg}.new | One of 'add-weighted' / `bitwise-and` - have to be specified"),
-            (Some(_), Some(_)) => panic!("{dbg}.new | Both: 'add-weighted' and `bitwise-and` - are specified, please use one of"),
-            _ => {},
-        }
+        let bitwise_or = conf.get("bitwise-or").map(|conf| BitwiseOrConf::new(&name, conf));
+        log::trace!("{dbg}.new | bitwise-or: {:#?}", bitwise_or);
+        let kind = match (add_weighted, bitwise_and, bitwise_or) {
+            (None, None, None) => UnionKindConf::BitwiseOr(BitwiseOrConf::default()),
+            (None, None, Some(conf)) => UnionKindConf::BitwiseOr(conf),
+            (None, Some(conf), None) => UnionKindConf::BitwiseAnd(conf),
+            (None, Some(_), Some(conf)) => {
+                log::warn!("{dbg}.new | Bitwise-And and Bitwise-Or - both specified, by default Bitwise-Or used");
+                UnionKindConf::BitwiseOr(conf)
+            }
+            (Some(conf), None, None) => UnionKindConf::AddWeighted(conf),
+            (Some(_), None, Some(conf)) => {
+                log::warn!("{dbg}.new | Add-Weighted and Bitwise-Or - both specified, by default Bitwise-Or used");
+                UnionKindConf::BitwiseOr(conf)
+            }
+            (Some(conf), Some(_), None) => {
+                log::warn!("{dbg}.new | Add-Weighted and Bitwise-And - both specified, by default Add-Weighted used");
+                UnionKindConf::AddWeighted(conf)
+            }
+            (Some(_), Some(_), Some(conf)) => {
+                log::warn!("{dbg}.new | Add-Weighted, Bitwise-And, Bitwise-Or - all specified, by default Bitwise-Or used");
+                UnionKindConf::BitwiseOr(conf)
+            }
+        };
         Self {
-            add_weighted,
-            bitwise_and,
+            kind,
         }
     }
 }
@@ -56,8 +74,18 @@ impl UnionConf {
 impl Default for UnionConf {
     fn default() -> Self {
         Self {
-            add_weighted: None,
-            bitwise_and: Some(BitwiseAndConf::default()),
+            kind: UnionKindConf::BitwiseOr(BitwiseOrConf::default()),
         }
     }
+}
+///
+/// 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum UnionKindConf {
+    /// Specify if weighted sum of two images have to be calculated
+    AddWeighted(AddWeightedConf),
+    /// Specify if bitwise AND operation of two images have to be calculated
+    BitwiseAnd(BitwiseAndConf),
+    /// Specify if bitwise OR operation of two images have to be calculated
+    BitwiseOr(BitwiseOrConf),
 }

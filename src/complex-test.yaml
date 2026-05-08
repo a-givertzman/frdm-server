@@ -33,7 +33,7 @@ fast-scan:
 
 fine-scan:
     fine-contours:
-        otsu-tune: 0.36         # *Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
+        otsu-tune: 0.48         # *Auto threshold factor, 1 - no correction, 0..1 - more, 1.. - less sensitive
         merge-distance: 24.0    # Maximum distance between contours to be merged
     temporal-filter:
         gaussian:
@@ -46,11 +46,13 @@ fine-scan:
         # otsu-tune: 1.40       # Multiplier to otsu auto threshold, 1.0 - do nothing, just use otsu auto threshold, default 1.0
         threshold: 16           # 0...255, used if otsu-tune is not specified
         smooth: 16              # Smoothing of edge line factor. The higher the factor the smoother the line.
-    union:
+    union:  # use just one of option
         # add-weighted:
         #     weight1: 1.0            # Weight of the first array elements.
         #     weight2: 1.0            # Weight of the second array elements.
-        bitwise-and:
+        # bitwise-and:
+        #     no-params: ~
+        bitwise-or:
             no-params: ~
     rope-dimensions:        # Verifaing the rope dimensions 
         rope-width: 380               # Standart rope width, px

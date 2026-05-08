@@ -298,12 +298,12 @@ impl Eval<Image, EvalResult> for FineContours {
                 let mut dst = Mat::default();
                 let contour = Self::contour(&thresh, self.conf.merge_distance).map_err(|err| error.pass(err))?;
                 // let mut contour_fill = Mat::default();
-                let mut convex = unsafe { Mat::new_rows_cols_with_default(
+                let mut convex = Mat::new_rows_cols_with_default(
                     thresh.rows(), 
                     thresh.cols(), 
                     core::CV_8UC1, 
                     core::Scalar::all(0.0)
-                )}.map_err(|err| error.pass(err.to_string()))?;
+                ).map_err(|err| error.pass(err.to_string()))?;
                 if !contour.is_empty() {
                     let mut convex_contour: core::Vector<Point> = core::Vector::default();
                     imgproc::convex_hull(&contour, &mut convex_contour, true, true)

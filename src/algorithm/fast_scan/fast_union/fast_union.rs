@@ -3,15 +3,15 @@ use opencv::core::MatTraitConst;
 use sal_core::error::Error;
 use sal_sync::{services::future::Future, thread_pool::Scheduler};
 use crate::{
-    algorithm::{ContextRead, ContextWrite, EvalResult, FastUnionCtx, ResultCtx}, conf::UnionConf, domain::{Eval, Image, RwLock}
+    algorithm::{ContextRead, ContextWrite, EvalResult, FastUnionCtx, ResultCtx}, conf::{UnionConf, UnionKindConf}, domain::{Eval, Image, RwLock}
 };
 ///
 /// Combine input contours
 pub struct FastUnion {
     conf: UnionConf,
     scheduler: Scheduler,
-    ctx1: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
-    ctx2: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
+    ctx1: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync>>>,
+    ctx2: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync>>>,
     debug: bool,
 }
 //
@@ -22,8 +22,8 @@ impl FastUnion {
     pub fn new(
         conf: UnionConf,
         scheduler: Scheduler,
-        ctx1: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
-        ctx2: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
+        ctx1: impl Eval<Image, EvalResult> + Send + Sync + 'static,
+        ctx2: impl Eval<Image, EvalResult> + Send + Sync + 'static,
         debug: bool,
     ) -> Self {
         Self {
@@ -68,12 +68,13 @@ impl Eval<Image, EvalResult> for FastUnion {
                 let src2_mat = &src2.val.mat;
                 log::trace!("FastUnion.eval | src1: {}x{}", src2_mat.cols(), src2_mat.rows());
                 let mut dst = opencv::core::Mat::default();
-                match (self.conf.add_weighted, self.conf.bitwise_and) {
-                    (None, Some(_)) => opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array())
+                match (self.conf.kind) {
+                    UnionKindConf::BitwiseAnd(_conf) => opencv::core::bitwise_and(src1_mat, src2_mat, &mut dst, &opencv::core::no_array())
                         .map_err(|err| error.pass(err.to_string()))?,
-                    (Some(conf), None) => opencv::core::add_weighted_def(src1_mat, conf.weight1, src2_mat, conf.weight2, conf.gamma, &mut dst)
+                    UnionKindConf::AddWeighted(conf) => opencv::core::add_weighted_def(src1_mat, conf.weight1, src2_mat, conf.weight2, conf.gamma, &mut dst)
                         .map_err(|err| error.pass(err.to_string()))?,
-                    _ => Err(error.err(format!("Both: 'add-weighted' and `bitwise-and` - are specified, please use one of")))?,
+                    UnionKindConf::BitwiseOr(_conf) => opencv::core::bitwise_or(src1_mat, src2_mat, &mut dst, &opencv::core::no_array())
+                        .map_err(|err| error.pass(err.to_string()))?,
                 }
                 let frame = Image::from(dst, meta);
                 let ctx = if self.debug {

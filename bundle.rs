@@ -1681,7 +1681,7 @@ use crate::algorithm::{
 use crate::{Eval, domain::Image};
 pub struct FastContours {
     ctx: Box<dyn Eval<Image, EvalResult> + Send + Sync>,
-    proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync + Send + Sync>,
+    proc: Box<dyn Eval<Mat, Result<Mat, Error>> + Send + Sync>,
     debug: bool,
 }
 impl FastContours {
@@ -1963,16 +1963,16 @@ use crate::{
 pub struct FastUnion {
     conf: UnionConf,
     scheduler: Scheduler,
-    ctx1: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
-    ctx2: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
+    ctx1: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync>>>,
+    ctx2: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync>>>,
     debug: bool,
 }
 impl FastUnion {
     pub fn new(
         conf: UnionConf,
         scheduler: Scheduler,
-        ctx1: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
-        ctx2: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
+        ctx1: impl Eval<Image, EvalResult> + Send + Sync + 'static,
+        ctx2: impl Eval<Image, EvalResult> + Send + Sync + 'static,
         debug: bool,
     ) -> Self {
         Self {
@@ -2150,7 +2150,7 @@ impl FastScan {
     pub fn new(
         conf: FastScanConf,
         scheduler: Scheduler,
-        ctx: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
+        ctx: impl Eval<Image, EvalResult> + Send + Sync + 'static,
         debug: bool) -> Self {
         let pass_ctx1 = Arc::new(Owner::empty());
         let pass_ctx2 = Arc::new(Owner::empty());
@@ -2749,15 +2749,15 @@ use crate::{
 pub struct FineUnion {
     conf: UnionConf,
     scheduler: Scheduler,
-    ctx1: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
-    ctx2: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync + Send + Sync>>>,
+    ctx1: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync>>>,
+    ctx2: Arc<RwLock<Box<dyn Eval<Image, EvalResult> + Send + Sync>>>,
 }
 impl FineUnion {
     pub fn new(
         conf: UnionConf,
         scheduler: Scheduler,
-        ctx1: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static,
-        ctx2: impl Eval<Image, EvalResult> + Send + Sync + Send + Sync + 'static
+        ctx1: impl Eval<Image, EvalResult> + Send + Sync + 'static,
+        ctx2: impl Eval<Image, EvalResult> + Send + Sync + 'static
     ) -> Self {
         Self {
             conf,
