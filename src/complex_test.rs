@@ -191,25 +191,28 @@ fn draw_rope_distortions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context
 /// - For Pause / Resume the Camera execute:
 /// 
 ///     `clear && cargo run --bin complex-test --release -- --nocapture --cam-pause`
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     DebugSession::new()
         .filter(LogLevel::Debug)
         .module("sal_sync::thread_pool", LogLevel::Info)
         .init();
     let dbg = Dbg::own("complex-test");
+    log::debug!("{dbg} | Started");
     //
     // Выбери источник фреймов из папки или с камеры
     let source = Source::Path("src/test/unit/algorithm/temporal_filter/frames");
-    let source = Source::Path("/home/lobanov/code/rust/cma-server/src/tests/unit/services/frdm_service/frames");
-    // let source = Source::Camera("src/complex-test-camera.yaml");
+    // let source = Source::Path("/home/lobanov/code/rust/cma-server/src/tests/unit/services/frdm_service/frames");
+    let source = Source::Camera("src/complex-test-camera.yaml");
     //
     // Переключи Target в DefectDetection для нормального выполнения теста детекции неисправностей
-    let target = Target::DefectDetection;
+    let target = std::hint::black_box(Target::DefectDetection);
     //
     // Переключи Target в SaveFrames(...) для сохранения фреймов с камеры в папку
     // let path_retr = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/retrived/", exposure);
     // let path_proc = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/processed/", exposure);
-    // let target = Target::SaveFrames("assets/frames/");
+    let target = std::hint::black_box(Target::SaveFrames("assets/frames/"));
+    log::debug!("{dbg} | \t Source    : {:?}", source);
+    log::debug!("{dbg} | \t Defination: {:?}", target);
     //
     // Receiving Frames
     let mut exposure = 0.0;
@@ -295,13 +298,19 @@ fn main() {
         Target::SaveFrames(dir) => {
             let mut counter = 0;
             let mut frame_counter = 0;
+            match source {
+                Source::Path(src) => panic!("{dbg} | You are trying to re-save frames, that was read from '{src}'"),
+                Source::Camera(_) => log::info!("{dbg} | Saving frames from Camera to the '{dir}'"),
+            }
             for frame in stream {
                 if counter % 5 == 0 {
+                    log::debug!("{dbg} | Frame width: {},  height: {}, meta: {}", frame.width(), frame.height(), frame.meta);
                     let path = Path::new(dir).join(format!("exp{}_rope_frame_{:03}.jpeg", exposure, frame_counter));
                     let path = path.to_str().expect(&format!("{dbg} | Wrong path '{}'", path.display()));
                     if let Err(err) = frame.save(path) {
                         log::warn!("{dbg} | Write image error: {:?}", err);
                     }
+                    log::debug!("{dbg} | Frame saved: {}", path);
                     frame_counter += 1;
                     counter = 0;
                 }
@@ -386,11 +395,13 @@ fn main() {
             // let _: Vec<()> = handles.into_iter().map(|h| h.join().unwrap()).collect();
         }
     }
+    Ok(())
 }
 ///
 /// Select target
 /// - Test defect detection pipline
 /// - Save frames to the dir
+#[derive(Debug, Clone, Copy)]
 enum Target<'a> {
     /// Test defect detection pipline
     DefectDetection,
@@ -401,6 +412,7 @@ enum Target<'a> {
 /// Select image source
 /// - `Path`: Read frames from path
 /// - `Camera`: Read frames from camera
+#[derive(Debug, Clone, Copy)]
 enum Source<'a> {
     Path(&'a str),
     Camera(&'a str),
