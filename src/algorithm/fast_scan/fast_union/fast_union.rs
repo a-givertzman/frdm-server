@@ -47,14 +47,12 @@ impl Eval<Image, EvalResult> for FastUnion {
         self.scheduler.spawn(move || {
             let ctx = ctx1_eval.read().eval(frame1);
             sink.add(ctx);
-            Ok(())
         }).map_err(|err| error.pass(err))?;
         let (ctx2, sink) = Future::new();
         let ctx2_eval = self.ctx2.clone();
         self.scheduler.spawn(move || {
             let ctx = ctx2_eval.read().eval(frame);
             sink.add(ctx);
-            Ok(())
         }).map_err(|err| error.pass(err))?;
         let ctx1 = ctx1.wait()?;
         let ctx2 = ctx2.wait()?;

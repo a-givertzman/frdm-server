@@ -181,19 +181,34 @@ impl UiApp {
         ctx.set_fonts(fonts);
     }
     ///
+    // fn configure_text_styles(ctx: &egui::Context) {
+    //     use FontFamily::{Monospace, Proportional};
+    //     let mut style = (*ctx.style()).clone();
+    //     style.text_styles = [
+    //         (TextStyle::Heading, FontId::new(24.0, Proportional)),
+    //         // (heading2(), FontId::new(22.0, Proportional)),
+    //         // (heading3(), FontId::new(19.0, Proportional)),
+    //         (TextStyle::Body, FontId::new(16.0, Proportional)),
+    //         (TextStyle::Monospace, FontId::new(12.0, Monospace)),
+    //         (TextStyle::Button, FontId::new(16.0, Proportional)),
+    //         (TextStyle::Small, FontId::new(8.0, Proportional)),
+    //     ].into();
+    //     ctx.set_style(style);
+    // }
     fn configure_text_styles(ctx: &egui::Context) {
-        use FontFamily::{Monospace, Proportional};
-        let mut style = (*ctx.style()).clone();
-        style.text_styles = [
-            (TextStyle::Heading, FontId::new(24.0, Proportional)),
-            // (heading2(), FontId::new(22.0, Proportional)),
-            // (heading3(), FontId::new(19.0, Proportional)),
-            (TextStyle::Body, FontId::new(16.0, Proportional)),
-            (TextStyle::Monospace, FontId::new(12.0, Monospace)),
-            (TextStyle::Button, FontId::new(16.0, Proportional)),
-            (TextStyle::Small, FontId::new(8.0, Proportional)),
-        ].into();
-        ctx.set_style(style);
+        use egui::{FontFamily::{Monospace, Proportional}, FontId, TextStyle};
+        let theme = ctx.theme();
+        ctx.style_mut_of(theme, |style| {
+            style.text_styles = [
+                (TextStyle::Heading, FontId::new(24.0, Proportional)),
+                // (heading2(), FontId::new(22.0, Proportional)),
+                // (heading3(), FontId::new(19.0, Proportional)),
+                (TextStyle::Body, FontId::new(16.0, Proportional)),
+                (TextStyle::Monospace, FontId::new(12.0, Monospace)),
+                (TextStyle::Button, FontId::new(16.0, Proportional)),
+                (TextStyle::Small, FontId::new(8.0, Proportional)),
+            ].into();
+        });
     }
     ///
     /// Converts string into `T` if posible
@@ -222,14 +237,14 @@ impl UiApp {
     }
     ///
     /// Adds an Image to Ui
-    fn display_image_window(&mut self, ctx: &egui::Context, title: impl Into<String>, size: impl Into<egui::Vec2>, pos: impl Into<egui::Pos2>, frame: &Image) {
+    fn display_image_window(&mut self, ui: &egui::Context, title: impl Into<String>, size: impl Into<egui::Vec2>, pos: impl Into<egui::Pos2>, frame: &Image) {
         if self.show_images {
             let title = title.into();
             egui::Window::new(format!("Image {title}"))
                 .default_pos(pos)
                 .default_size(size)
                 .scroll(true)
-                .show(ctx, |ui| {
+                .show(ui, |ui| {
                     let zoom_delta = ui.input(|i| i.zoom_delta());
                     if zoom_delta != 1.0 {
                         if zoom_delta > 1.0 {
@@ -240,7 +255,7 @@ impl UiApp {
                     }
                     // log::debug!("display_image_window | {title}: {},  delta: {zoom_delta}", self.zoom);
                     let texture_handle: TextureHandle = ui.ctx().load_texture(title, image(&frame), TextureOptions::LINEAR);
-                    let scene_rect = ctx.input(|x| {
+                    let scene_rect = ui.input(|x| {
                         x.viewport().inner_rect.unwrap_or(egui::Rect::ZERO)
                     });
                     // let scale_factor = 1.0 / ctx.zoom_factor();
@@ -394,7 +409,11 @@ impl UiApp {
 //
 //
 impl eframe::App for UiApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+    //     todo!()
+    // }
+
+    // fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let window_origin = "Orgin";
         let window_contours = "CvContours";
         let window_hist = "Hist";
@@ -402,10 +421,10 @@ impl eframe::App for UiApp {
         START.call_once(|| {
             Self::setup_opencv_windows(&self.dbg, vec![window_origin, window_result, window_hist]);
         });
-        if let Some(vp_size) = ctx.input(|i| i.viewport().inner_rect) {
+        if let Some(vp_size) = ui.input(|i| i.viewport().inner_rect) {
             let head_hight = 34.0;
             let mut path_error = None;
-            egui::TopBottomPanel::bottom("StatusBar").exact_height(32.0).show(ctx, |ui| ui.horizontal(|ui| {
+            egui::Panel::bottom("StatusBar").exact_size(32.0).show(ui, |ui| ui.horizontal(|ui| {
                 ui.add(egui::Label::new(format!("Image: {} x {}", self.frame.width(), self.frame.height())));
                 ui.separator();
                 match self.elapsed {
@@ -413,9 +432,9 @@ impl eframe::App for UiApp {
                     None => ui.add(egui::Label::new(format!("Elapse: ---"))),
                 };
             }));
-            egui::SidePanel::left("Parameters")
-                .default_width(700.0)
-                .show(ctx, |ui| {
+            egui::Panel::left("Parameters")
+                .default_size(700.0)
+                .show(ui, |ui| {
                     ui.horizontal(|ui| {
                         ui.add(egui::Label::new(format!("Image↕ ")));
                         ui.separator();
@@ -610,12 +629,12 @@ impl eframe::App for UiApp {
                 
             }
             if let Some(frame) = self.contour_frame.clone() {
-                self.display_image_window(ctx, window_contours, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 0.5 * vp_size.height()], &frame);
+                self.display_image_window(ui, window_contours, [0.45 * vp_size.width(), 0.45 * vp_size.height() - head_hight], [10.0, 0.5 * vp_size.height()], &frame);
                 opencv::highgui::imshow(window_contours, &frame.mat).unwrap();
                 opencv::highgui::wait_key(1).unwrap();
             }
             if let Some(frame) = self.result_frame.clone() {
-                self.display_image_window(ctx, window_result, [0.70 * vp_size.width(), 0.70 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
+                self.display_image_window(ui, window_result, [0.70 * vp_size.width(), 0.70 * vp_size.height() - head_hight], [10.0, 10.0], &frame);
                 opencv::highgui::imshow(window_result, &frame.mat).unwrap();
                 opencv::highgui::wait_key(1).unwrap();
             }
@@ -625,7 +644,7 @@ impl eframe::App for UiApp {
                 opencv::highgui::wait_key(1).unwrap();
             }
         }
-        ctx.request_repaint();
+        ui.request_repaint();
         // std::thread::sleep(Duration::from_millis(500));
     }
 }

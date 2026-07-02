@@ -1,11 +1,11 @@
-use circular_buffer::CircularBuffer;
+use circular_buffer::FixedCircularBuffer;
 use super::filter::Filter;
 
 ///
 /// 
 #[derive(Debug, Clone)]
 pub struct FilterLowPass<const N: usize, T> {
-    buffer: CircularBuffer<N, T>,
+    buffer: FixedCircularBuffer<T, N>,
 }
 //
 // 
@@ -15,7 +15,7 @@ impl<T: Copy, const N: usize> FilterLowPass<N, T> {
     /// - `T` - Type of the Filter Item
     #[allow(unused)]
     pub fn new(initial: Option<T>) -> Self {
-        let mut buffer = CircularBuffer::<N, T>::new();
+        let mut buffer = FixedCircularBuffer::<T, N>::new();
         initial.map(|initial| {
             buffer.push_back(initial);
             initial

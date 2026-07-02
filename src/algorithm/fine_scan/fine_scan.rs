@@ -133,7 +133,6 @@ impl Eval<Image, Future<Result<Context, Error>>> for FineScan {
                                     }
                                     Err(err) => sink1.add(Err(error.pass(err))),
                                 }
-                                Ok(())
                             });
                             handle.map(|_| ()).map_err(|err| error.pass(err))
                         }
