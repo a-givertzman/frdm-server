@@ -202,7 +202,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Выбери источник фреймов из папки или с камеры
     let source = Source::Path("src/test/unit/algorithm/temporal_filter/frames");
     // let source = Source::Path("/home/lobanov/code/rust/cma-server/src/tests/unit/services/frdm_service/frames");
-    let source = Source::Camera("src/complex-test-camera.yaml");
+    // let source = Source::Camera("src/complex-test-camera.yaml");
     //
     // Переключи Target в DefectDetection для нормального выполнения теста детекции неисправностей
     let target = std::hint::black_box(Target::DefectDetection);
@@ -210,7 +210,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Переключи Target в SaveFrames(...) для сохранения фреймов с камеры в папку
     // let path_retr = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/retrived/", exposure);
     // let path_proc = &format!("/home/ilyarizo/deffect_photos/exp_gradient_rope_2diod/exp{}_rope/processed/", exposure);
-    let target = std::hint::black_box(Target::SaveFrames("assets/frames/"));
+    // let target = std::hint::black_box(Target::SaveFrames("assets/frames/"));
     log::debug!("{dbg} | \t Source    : {:?}", source);
     log::debug!("{dbg} | \t Defination: {:?}", target);
     //

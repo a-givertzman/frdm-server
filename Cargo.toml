@@ -38,12 +38,12 @@ bincode = "~2.0"
 regex = "^1.12"                                             # , git = "https://github.com/rust-lang/regex"
 #
 #
-strum = { version = "^0.27" }                               # , git = "https://github.com/Peternator7/strum"
-strum_macros = { version = "^0.27" }                        # , git = "https://github.com/Peternator7/strum"
+strum = { version = "^0.28" }                               # , git = "https://github.com/Peternator7/strum"
+strum_macros = { version = "^0.28" }                        # , git = "https://github.com/Peternator7/strum"
 #
 #
 # OpenCV
-opencv = { version = "^0.98", features = ["clang-runtime"] }    # , git = "https://github.com/twistedfall/opencv-rust"
+opencv = { version = "^0.99", features = ["clang-runtime"] }    # , git = "https://github.com/twistedfall/opencv-rust"
 #
 #
 # Photon image processing
