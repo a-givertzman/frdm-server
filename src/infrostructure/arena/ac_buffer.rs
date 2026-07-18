@@ -13,6 +13,7 @@ pub struct AcBuffer {
     pub pixel_format: PixelFormat,
     input: acBuffer,
     decompressed: acBuffer,
+    meta: Option<usize>,
 }
 //
 //
@@ -21,7 +22,7 @@ impl AcBuffer {
     /// Returns new instance of the Device Node Map of kind:
     /// - DeviceNodeMap
     /// - TLStreamNodeMap
-    pub fn new(parent: impl Into<String>, device: acDevice, buffer: acBuffer, pixel_format: PixelFormat) -> Self {
+    pub fn new(parent: impl Into<String>, device: acDevice, buffer: acBuffer, pixel_format: PixelFormat, meta: Option<usize>) -> Self {
         let name = Name::new(parent.into(), format!("AcBuffer"));
         Self {
             name,
@@ -29,6 +30,7 @@ impl AcBuffer {
             input: buffer,
             decompressed: std::ptr::null_mut(),
             pixel_format,
+            meta,
         }
     }
     ///
@@ -104,7 +106,7 @@ impl AcBuffer {
     }
     ///
     /// Converts image format and color space from Arena SDK to OpenCv Mat
-    fn convert(&self, len: usize, width: usize, height: usize, timestamp: usize, data: *mut std::ffi::c_void) -> Result<Image, Error>{
+    fn convert(&self, width: usize, height: usize, meta: usize, data: *mut std::ffi::c_void) -> Result<Image, Error>{
         let error = Error::new(&self.name, "convert");
         let src = unsafe { opencv::core::Mat::new_rows_cols_with_data_unsafe(
             height as i32,
@@ -127,11 +129,11 @@ impl AcBuffer {
                         opencv::imgproc::COLOR_BayerRG2RGB,
                         3,
                     ) {
-                        Ok(_) => Ok(Image { width, height, timestamp: timestamp, mat: dst, bytes: len }),
+                        Ok(_) => Ok(Image { meta, mat: dst }),
                         Err(err) => Err(error.pass_with("OpenCv COLOR_BayerRG2RGB conversion Error", err.to_string())),
                     }
                 }
-                _ => Ok(Image { width, height, timestamp, mat: src, bytes: len })
+                _ => Ok(Image { meta, mat: src })
             }
             Err(err) => Err(error.pass_with("Create OpenCv Mat Error", err.to_string())),
         }
@@ -144,7 +146,7 @@ impl AcBuffer {
     /// similar to a deep copy but with an uncompressed pixel format.
     pub fn image(&mut self) -> Result<Image, Error> {
         let error = Error::new(&self.name, "image");
-        let (buffer, len) = match self.pixel_format {
+        let (buffer, _) = match self.pixel_format {
             PixelFormat::QoiBayerRG8 | PixelFormat::QoiMono8 |
             PixelFormat::QoiRGB8 | PixelFormat::QoiBGR8 |
             PixelFormat::QoiYCbCr8 => {
@@ -161,13 +163,16 @@ impl AcBuffer {
                 Ok::<(acBuffer, usize), Error>((self.input, len))
             }
         }?;
-        let (width, height, timestamp, data) = (
-            self.width(buffer)?,
-            self.height(buffer)?,
-            self.timestamp(buffer)?,
-            self.image_data(buffer)?,
+        let (width, height, meta, data) = (
+            self.width(buffer).map_err(|err| error.pass(err))?,
+            self.height(buffer).map_err(|err| error.pass(err))?,
+            match self.meta {
+                Some(meta) => meta,
+                None => self.timestamp(buffer).map_err(|err| error.pass(err))?,
+            },
+            self.image_data(buffer).map_err(|err| error.pass(err))?,
         );
-        self.convert(len, width, height, timestamp, data as _)
+        self.convert(width, height, meta, data as _)
     }
 }
 //

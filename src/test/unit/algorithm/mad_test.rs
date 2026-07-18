@@ -7,11 +7,7 @@ mod mad {
     };
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{
-        DebugSession, 
-        LogLevel, 
-        Backtrace
-    };
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use crate::{
         algorithm::Mad, 
         domain::Eval
@@ -34,7 +30,7 @@ mod mad {
     /// Testing `eval`
     #[test]
     fn eval() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         let dbg = Dbg::own("mad");
@@ -61,16 +57,8 @@ mod mad {
             )
         ];
         for (step, sample, target) in test_data {
-            let result = Mad::new()
-                .eval(sample)
-            .mad;
-            assert!(
-                result == target, 
-                "step {} \nresult: {:?}\ntarget: {:?}", 
-                step, 
-                result, 
-                target
-            );
+            let result = Mad::new().eval(sample).unwrap().mad;
+            assert!(result == target, "step {} \nresult: {:?}\ntarget: {:?}", step, result, target);
         }
         test_duration.exit();
     }

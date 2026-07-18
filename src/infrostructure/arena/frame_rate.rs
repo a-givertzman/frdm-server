@@ -1,4 +1,4 @@
-use serde::{de, Deserialize};
+use serde::Deserialize;
 
 ///
 /// Represents a setting for the camera
