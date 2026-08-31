@@ -4,7 +4,7 @@ use std::{sync::Once, time::Duration};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::math::AproxEq;
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{DebugSession, LogLevel};
+use debugging::session::{DebugSession, LogLevel};
 use crate::{
     algorithm::{Context, ContextRead, ContextWrite, FastEdgesCtx, EvalResult, InitialCtx, Edges, RopeDimensions, RopeDimensionsCtx, FastScanCtx},
     domain::{Dot, Eval, Image},
@@ -27,7 +27,7 @@ fn init_each() -> () {}
 /// Testing RopeDimensions.eval
 #[test]
 fn eval() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("RopeDimensions-test");

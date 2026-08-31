@@ -5,7 +5,7 @@ use env_logger::Builder;
 use log::LevelFilter;
 use sal_core::dbg::Dbg;
 use testing::stuff::max_test_duration::TestDuration;
-// use debugging::session::debug_session::{DebugSession, LogLevel};
+// use debugging::session::{DebugSession, LogLevel};
 use opencv::{
     highgui, prelude::*, videoio
 };
@@ -50,7 +50,7 @@ fn camera_conf() {
             serde_yaml::from_str(r#"
             camera Camera1:
                 fps: Min
-                resolution: 
+                resolution:
                     width: 1200
                     height: 800
                 index: 0
@@ -78,14 +78,14 @@ fn camera_conf() {
                 auto_packet_size: true,
                 channel_packet_size: ChannelPacketSize::Min,
                 resend_packet: false,
-            }        
+            }
         ),
         (
             2,
             serde_yaml::from_str(r#"
                 camera Camera2:
                     fps: Max
-                    resolution: 
+                    resolution:
                         width: 1200
                         height: 800
                     index: 0
@@ -113,14 +113,14 @@ fn camera_conf() {
                 auto_packet_size: true,
                 channel_packet_size: ChannelPacketSize::Max,
                 resend_packet: false,
-            }        
+            }
         ),
         (
             3,
             serde_yaml::from_str(r#"
                 camera Camera3:
                     fps: 30
-                    resolution: 
+                    resolution:
                         width: 1200
                         height: 800
                     index: 0
@@ -148,7 +148,7 @@ fn camera_conf() {
                 auto_packet_size: true,
                 channel_packet_size: ChannelPacketSize::Val(1024),
                 resend_packet: false,
-            }        
+            }
         ),
     ];
     for (step, conf, target) in test_data {

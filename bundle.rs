@@ -5671,7 +5671,7 @@ pub use camera_conf::*;
 pub use camera::*;
 }
 }
-use debugging::session::debug_session::{DebugSession, LogLevel};
+use debugging::session::{DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
@@ -5680,7 +5680,7 @@ use crate::{
 };
 
 fn main() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     let dbg = Dbg::own("main");
     let path = "./config.yaml";
     let conf = CameraConf::read(&dbg, path);

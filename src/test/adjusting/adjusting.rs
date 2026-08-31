@@ -1,4 +1,4 @@
-use debugging::session::debug_session::{Backtrace, DebugSession, LogLevel};
+use debugging::session::{Backtrace, DebugSession, LogLevel};
 use eframe::{EventLoopBuilder, UserEvent};
 use sal_core::dbg::Dbg;
 use crate::
@@ -8,11 +8,11 @@ use crate::
 /// Application entry point
 #[test]
 fn main() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     let dbg = Dbg::own("main");
-    
+
     eframe::run_native(
-        "Adjusting", 
+        "Adjusting",
         eframe::NativeOptions {
             // fullscreen: true,
             // maximized: true,
@@ -22,7 +22,7 @@ fn main() {
                 .with_inner_size([800.0, 1100.0]),
             event_loop_builder: event_loop_builder(),
             ..Default::default()
-        }, 
+        },
         Box::new(|cc| Ok(Box::new(
             UiApp::new(&dbg, "src/test/unit/algorithm/detecting_contours/testing_files/rope_0.jpeg", cc),
         )))

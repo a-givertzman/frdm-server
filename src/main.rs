@@ -3,7 +3,7 @@ mod algorithm;
 mod conf;
 mod domain;
 mod infrostructure;
-use debugging::session::debug_session::{DebugSession, LogLevel};
+use debugging::session::{DebugSession, LogLevel};
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
@@ -17,7 +17,7 @@ mod test;
 ///
 /// Application entry point
 fn main() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     let dbg = Dbg::own("main");
     let path = "./config.yaml";
     let conf = CameraConf::read(&dbg, path);

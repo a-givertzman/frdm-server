@@ -1,11 +1,11 @@
 #[cfg(test)]
 use std::{
-    sync::Once, 
+    sync::Once,
     time::Duration
 };
 use sal_core::dbg::Dbg;
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{
+use debugging::session::{
     DebugSession, LogLevel,
 };
 use crate::{
@@ -32,7 +32,7 @@ fn init_each() -> () {}
 /// Testing `eval`
 #[test]
 fn eval() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("width_emissions");
@@ -98,10 +98,10 @@ fn eval() {
                 let result = ContextRead::<RopeDistortionsCtx<FastScanCtx>>::read(&result)
                     .result.clone();
                 assert!(
-                    result == target, 
-                    "step {} \nresult: {:?}\ntarget: {:?}", 
-                    step, 
-                    result, 
+                    result == target,
+                    "step {} \nresult: {:?}\ntarget: {:?}",
+                    step,
+                    result,
                     target
                 );
             },
@@ -123,4 +123,3 @@ impl Eval<Image, EvalResult> for MocEval {
         Result::Ok(self.ctx.clone())
     }
 }
-

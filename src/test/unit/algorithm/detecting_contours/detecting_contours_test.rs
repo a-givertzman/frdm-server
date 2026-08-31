@@ -4,7 +4,7 @@ use std::{sync::Once, time::Duration};
 use photon_rs::native::{open_image, save_image};
 use sal_core::dbg::Dbg;
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{DebugSession, LogLevel};
+use debugging::session::{DebugSession, LogLevel};
 use crate::{algorithm::DetectingContours, domain::Eval};
 ///
 ///
@@ -24,7 +24,7 @@ fn init_each() -> () {}
 /// Testing 'eval' method
 #[test]
 fn eval() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("detecting_contours");

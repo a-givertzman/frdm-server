@@ -4,7 +4,7 @@ use std::{sync::Once, time::{Duration, Instant}};
 use frdm_tools::Image;
 use sal_core::dbg::Dbg;
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{DebugSession, LogLevel};
+use debugging::session::{DebugSession, LogLevel};
 ///
 ///
 static INIT: Once = Once::new();
@@ -23,7 +23,7 @@ fn init_each() -> () {}
 /// Testing such functionality / behavior
 #[test]
 fn image_save() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("image_save_test");

@@ -1,20 +1,20 @@
 #[cfg(test)]
 
 use std::{
-    sync::Once, 
+    sync::Once,
     time::Duration
 };
 use sal_core::dbg::Dbg;
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{
-    DebugSession, 
+use debugging::session::{
+    DebugSession,
     LogLevel
 };
 use crate::{
     algorithm::{
         Context, ContextRead, ContextWrite, Edges, EvalResult, FastEdgesCtx, FineScanCtx,
         RopeDefect, RopeDefectCtx, RopeDefectKind, InitialCtx, Mad, Threshold, RopeDistortions,
-    }, 
+    },
     domain::{Dot, Eval, Image},
 };
 ///
@@ -35,7 +35,7 @@ fn init_each() -> () {}
 /// Testing `eval`
 #[test]
 fn eval() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("geometry_defect");
@@ -167,7 +167,7 @@ fn eval() {
                 ],
             ),
             vec![
-                RopeDefectKind::Hill(0, 0), 
+                RopeDefectKind::Hill(0, 0),
                 RopeDefectKind::Compressing(0, 0)
             ]
         ),
@@ -187,7 +187,7 @@ fn eval() {
             *Box::new(Mad::new()),
             RopeDistortions::<FineScanCtx>::new(
                 threshold,
-                *Box::new(Mad::new()), 
+                *Box::new(Mad::new()),
                 ctx,
             ),
         ).eval(Image::default());
@@ -196,10 +196,10 @@ fn eval() {
                 let result = ContextRead::<RopeDefectCtx<FineScanCtx>>::read(&result)
                     .result.clone();
                 assert!(
-                    result == target, 
-                    "step {} \nresult: {:?}\ntarget: {:?}", 
-                    step, 
-                    result, 
+                    result == target,
+                    "step {} \nresult: {:?}\ntarget: {:?}",
+                    step,
+                    result,
                     target
                 );
             },
@@ -221,4 +221,3 @@ impl Eval<Image, EvalResult> for MocEval {
         Result::Ok(self.ctx.clone())
     }
 }
-

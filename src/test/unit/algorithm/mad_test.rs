@@ -2,14 +2,14 @@
 
 mod mad {
     use std::{
-        sync::Once, 
+        sync::Once,
         time::Duration
     };
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel};
+    use debugging::session::{DebugSession, LogLevel};
     use crate::{
-        algorithm::Mad, 
+        algorithm::Mad,
         domain::Eval
     };
     ///
@@ -30,7 +30,7 @@ mod mad {
     /// Testing `eval`
     #[test]
     fn eval() {
-        DebugSession::new().filter(LogLevel::Debug).init();
+        DebugSession::new().filter(LogLevel::Debug).init().unwrap();
         init_once();
         init_each();
         let dbg = Dbg::own("mad");
@@ -63,4 +63,3 @@ mod mad {
         test_duration.exit();
     }
 }
-

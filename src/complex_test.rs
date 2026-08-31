@@ -5,7 +5,7 @@ mod domain;
 mod infrostructure;
 use std::{any::TypeId, path::Path};
 use crossterm::event::{KeyEventKind, KeyEventState};
-use debugging::session::debug_session::{DebugSession, LogLevel};
+use debugging::session::{DebugSession, LogLevel};
 use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Rect, Vec3b}, imgproc::LineTypes};
 use sal_core::{dbg::Dbg, error::Error};
 use sal_sync::{services::conf::ConfTree, sync::Owner, thread_pool::ThreadPool};
@@ -183,19 +183,19 @@ fn draw_rope_distortions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context
 }
 ///
 /// Application entry point
-/// 
+///
 /// - For basic test execute:
-/// 
+///
 ///     `clear && cargo run --bin complex-test --release -- --nocapture`
-/// 
+///
 /// - For Pause / Resume the Camera execute:
-/// 
+///
 ///     `clear && cargo run --bin complex-test --release -- --nocapture --cam-pause`
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     DebugSession::new()
         .filter(LogLevel::Debug)
         .module("sal_sync::thread_pool", LogLevel::Info)
-        .init();
+        .init().unwrap();
     let dbg = Dbg::own("complex-test");
     log::debug!("{dbg} | Started");
     //

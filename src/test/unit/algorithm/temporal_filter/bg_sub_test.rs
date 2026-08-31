@@ -3,15 +3,15 @@ use crate::{algorithm::{Initial, InitialCtx}, domain::{Eval, Image}};
 use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{Mat, MatTraitConst}, highgui, video::BackgroundSubtractorTrait};
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{
-    DebugSession, 
+use debugging::session::{
+    DebugSession,
     LogLevel
 };
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
         AutoGamma, ContextRead, Cropping, Gray, GrayCtx
-    }, 
+    },
 };
 ///
 ///
@@ -31,7 +31,7 @@ fn init_each() -> () {}
 /// Testing 'TemporalFilter.eval'
 #[test]
 fn eval() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("bg-sub-test");
@@ -65,7 +65,7 @@ fn eval() {
     }
 
     let image_dir = "src/test/unit/algorithm/temporal_filter/frames";
-    // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
+    // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived";
 
     for path in std::fs::read_dir(image_dir).unwrap().into_iter()
         .filter_map(|e| {
@@ -126,7 +126,7 @@ fn eval() {
                 // let mut bg_sub = opencv::video::create_background_subtractor_knn(500, 400.0, false).unwrap();
                 // let mut bg_sub = opencv::video::create_background_subtractor_mog2(10, 16.0, false).unwrap();
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
-                let gray: &GrayCtx = ctx.read();    
+                let gray: &GrayCtx = ctx.read();
                 let mut fgmask = Mat::default();
                 bg_sub.apply(&gray.frame.mat, &mut fgmask, 0.8).unwrap();
                 if !gray.frame.mat.empty() { highgui::imshow(wgray, &gray.frame.mat).unwrap() };

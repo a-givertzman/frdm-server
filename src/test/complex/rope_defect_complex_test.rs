@@ -12,8 +12,8 @@ use crate::{
 use std::{sync::Once, time::Duration};
 use opencv::imgcodecs;
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{
-    DebugSession, 
+use debugging::session::{
+    DebugSession,
     LogLevel
 };
 use sal_core::dbg::Dbg;
@@ -35,7 +35,7 @@ fn init_each() -> () {}
 /// Testing 'eval'
 #[test]
 fn eval() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("eval");
@@ -90,10 +90,10 @@ fn eval() {
                 let result = ContextRead::<RopeDefectCtx<FineScanCtx>>::read(&result)
                     .result.clone();
                 assert!(
-                    result == target, 
-                    "step {} \nresult: {:?}\ntarget: {:?}", 
-                    step, 
-                    result, 
+                    result == target,
+                    "step {} \nresult: {:?}\ntarget: {:?}",
+                    step,
+                    result,
                     target
                 );
             },

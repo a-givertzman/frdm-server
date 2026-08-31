@@ -4,15 +4,15 @@ use std::{any::TypeId, sync::Once, time::{Duration, Instant}};
 use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Rect, Vec3b}, highgui, imgproc::LineTypes};
 use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{
-    DebugSession, 
+use debugging::session::{
+    DebugSession,
     LogLevel
 };
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
         AutoGamma, Bend, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastEdgesCtx, FastScanCtx, FineContoursCtx, FineEdgesCtx, FineScan, FineScanConf, FineScanCtx, FineUnionCtx, Gray, GrayCtx, MadCtx, MetaCtx, RopeDefectCtx, RopeDefectKind, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, RopeDistortionsCtx, Side
-    }, 
+    },
     domain::{Color, ColorProps, Error},
 };
 ///
@@ -186,7 +186,7 @@ fn draw_rope_defects<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context) ->
 /// Testing 'TemporalFilter.eval'
 #[test]
 fn eval() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("FineScan-test");
@@ -215,7 +215,7 @@ fn eval() {
                 # add-weighted:
                 #     weight1: 1.0            # Weight of the first array elements.
                 #     weight2: 1.0            # Weight of the second array elements.
-            rope-dimensions:        # Verifaing the rope dimensions 
+            rope-dimensions:        # Verifaing the rope dimensions
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 30.0         # Tolerance for rope width, %
                 square-tolerance: 100.0       # Tolerance for rope square, %
@@ -262,7 +262,7 @@ fn eval() {
         }
     }
     let image_dir = "src/test/unit/algorithm/temporal_filter/frames";
-    // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
+    // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived";
 
     for (meta, path) in std::fs::read_dir(image_dir).unwrap().into_iter()
         .filter_map(|e| {
@@ -284,7 +284,7 @@ fn eval() {
                 let result_meta: &MetaCtx = ctx.read();
                 assert!(*result_meta == meta, "{dbg} | \nresult: {:?}\ntarget: {:?}", result_meta, meta);
                 let gray: &GrayCtx = ctx.read();
-                let crop: &CroppingCtx = ctx.read();    
+                let crop: &CroppingCtx = ctx.read();
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
                 let contours: &FineContoursCtx = ctx.read();
                 // let temp_filter: &TemporalFilterCtx<FineScanCtx> = ctx.read();

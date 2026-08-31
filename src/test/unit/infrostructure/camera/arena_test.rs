@@ -5,7 +5,7 @@ mod arena {
     use crate::{domain::{channel_unbounded, Image}, infrostructure::arena::{AcDevice, AcSystem}, CameraConf};
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel};
+    use debugging::session::{DebugSession, LogLevel};
     ///
     ///
     static INIT: Once = Once::new();
@@ -22,11 +22,11 @@ mod arena {
     fn init_each() -> () {}
     ///
     /// Testing TRI028S-CC Image aqusion
-    /// 
+    ///
     /// [TRI028S-CC Technical spec](https://thinklucid.com/product/triton-2-8-mp-imx429/)
     #[test]
     fn listen_device() {
-        DebugSession::new().filter(LogLevel::Debug).init();
+        DebugSession::new().filter(LogLevel::Debug).init().unwrap();
         init_once();
         init_each();
         let dbg = Dbg::own("arena_test");
@@ -44,7 +44,7 @@ mod arena {
         let conf = serde_yaml::from_str(r#"
             service Camera Camera1:
                 fps: Max                    # Max / Min / 30.0
-                resolution: 
+                resolution:
                     width: 1200
                     height: 800
                 index: 0

@@ -4,15 +4,15 @@ use std::{any::TypeId, sync::Once, time::{Duration, Instant}};
 use opencv::{core::{Mat, MatTrait, MatTraitConst, Point2i, Vec3b}, highgui, imgproc::LineTypes};
 use sal_sync::{services::conf::ConfTree, thread_pool::ThreadPool};
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{
-    DebugSession, 
+use debugging::session::{
+    DebugSession,
     LogLevel
 };
 use sal_core::dbg::Dbg;
 use crate::{
     algorithm::{
         AutoGamma, Context, ContextRead, ContextWrite, Cropping, CroppingCtx, EvalResult, FastEdgesCtx, FastScan, FastScanConf, FastScanCtx, FastUnionCtx, FineEdgesCtx, FineScanCtx, Gray, GrayCtx, Initial, MetaCtx, RopeDimensions, RopeDimensionsConf, RopeDimensionsCtx, RopeDistortionsCtx, Side
-    }, 
+    },
     domain::{Color, ColorProps, Error},
 };
 ///
@@ -138,7 +138,7 @@ fn draw_rope_distortions<Branch: 'static>(dbg: &Dbg, mut img: Mat, ctx: &Context
 /// Testing 'TemporalFilter.eval'
 #[test]
 fn eval() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("FastScan-test");
@@ -164,7 +164,7 @@ fn eval() {
                 add-weighted:
                     weight1: 1.0            # Weight of the first array elements.
                     weight2: 1.0            # Weight of the second array elements.
-            rope-dimensions:        # Verifaing the rope dimensions 
+            rope-dimensions:        # Verifaing the rope dimensions
                 rope-width: 380               # Standart rope width, px
                 width-tolerance: 50.0         # Tolerance for rope width, %
                 square-tolerance: 100.0       # Tolerance for rope square, %
@@ -204,7 +204,7 @@ fn eval() {
         }
     }
     let image_dir = "src/test/unit/algorithm/temporal_filter/frames";
-    // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
+    // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived";
 
     for (meta, path) in std::fs::read_dir(image_dir).unwrap().into_iter()
         .filter_map(|e| {
@@ -226,8 +226,8 @@ fn eval() {
                 let result_meta: &MetaCtx = ctx.read();
                 assert!(*result_meta == meta, "{dbg} | \nresult: {:?}\ntarget: {:?}", result_meta, meta);
                 log::debug!("{dbg}.eval | Elapsed: {:?}", t.elapsed());
-                let gray: &GrayCtx = ctx.read();    
-                let crop: &CroppingCtx = ctx.read();    
+                let gray: &GrayCtx = ctx.read();
+                let crop: &CroppingCtx = ctx.read();
                 // let gamma: &AutoGammaCtx = ctx.read();
                 let contours: &FastUnionCtx = ctx.read();
                 let crop = if crop.result.mat.empty() {

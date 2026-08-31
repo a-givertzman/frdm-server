@@ -3,8 +3,8 @@ use std::{sync::Once, time::{Duration, Instant}};
 use opencv::{core::{self, Mat, MatTrait, Vec3b, ROTATE_90_CLOCKWISE}, highgui, imgcodecs, imgproc};
 use sal_sync::services::conf::ConfTree;
 use testing::stuff::max_test_duration::TestDuration;
-use debugging::session::debug_session::{
-    DebugSession, 
+use debugging::session::{
+    DebugSession,
     LogLevel
 };
 use sal_core::dbg::Dbg;
@@ -33,7 +33,7 @@ fn init_each() -> () {}
 /// Testing 'eval'
 #[test]
 fn eval() {
-    DebugSession::new().filter(LogLevel::Debug).init();
+    DebugSession::new().filter(LogLevel::Debug).init().unwrap();
     init_once();
     init_each();
     let dbg = Dbg::own("eval");
@@ -80,7 +80,7 @@ fn eval() {
     let conf = FastScanConf::new(&dbg, conf);
     // let cropp = Cropping::new(100, 1000, 100, 1000, Initial::new(InitialCtx::new()));
     let debug = false;
-    let scan_rope = 
+    let scan_rope =
         FastEdges::new(
             conf.fast_edges.otsu_tune,
             conf.fast_edges.threshold,
@@ -132,7 +132,7 @@ fn eval() {
     }
 
     let image_dir = "src/test/unit/algorithm/detecting_contours/testing_files";
-    // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived"; 
+    // "/home/ilyarizo/deffect_photos/rope_rotated/gap_pit/exp95/retrived";
 
     for path in std::fs::read_dir(image_dir).unwrap().into_iter()
         .filter_map(|e| {
@@ -155,7 +155,7 @@ fn eval() {
                 let time = Instant::now();
                 let ctx = scan_rope.eval(src_frame).unwrap();
                 log::warn!("{dbg}.eval | Elapsed: {:?}", time.elapsed());
-                let crop: &CroppingCtx = ctx.read();    
+                let crop: &CroppingCtx = ctx.read();
                 // let gamma: &AutoGammaCtx = ctx.read();
                 let bright: &AutoBrightnessAndContrastCtx = ctx.read();
                 let contours: &FastContoursCtx = ctx.read();
@@ -178,7 +178,7 @@ fn eval() {
                         *res.at_2d_mut::<Vec3b>(y, x).unwrap() = Vec3b::from_array([0, 255, 0]);
                     }
                 }
-                
+
                 let mut ada = Mat::default();
                 imgproc::adaptive_threshold(&contours.result.mat, &mut ada, 255.0, imgproc::ADAPTIVE_THRESH_MEAN_C, imgproc::THRESH_BINARY, 201, -20.0).unwrap();
 
