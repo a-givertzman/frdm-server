@@ -8,8 +8,10 @@
 # - Download Arena SDK v0.1.95 or later from [Downloads](https://thinklucid.com/downloads-hub/) (for Ubuntu)
 #
 # - Execute install script with the path to the Arena SDK donloaded archive
+#    -Specify the path to Arena SDK archive in the first argument 
+#    -Specify the path to the root of the project to copy lib files into 
 #
-#   ./install.sh "path/ArenaSDK_v0.1.95_Linux_x64.tar.gz"
+#   ./install.sh "path/ArenaSDK_v0.1.95_Linux_x64.tar.gz" ./
 #    
 
 if [ -z "$1" ]; then
@@ -47,6 +49,12 @@ else
 
         sudo $installPath/Arena_SDK_Linux_x64.conf -r
         sudo $installPath/Arena_SDK_Linux_x64.conf
+
+        if [ -z "$2" ]; then
+            srcPath=$($2)src/infrostructure/arena/ArenaSDK_Linux_x64/lib64/
+            cp -f $installPath/lib64/libarenac* $srcPath
+            cp -f $installPath/lib64/libarenad* $srcPath
+        fi
 
         echo "Arena SDK installed into $installPath"
     fi

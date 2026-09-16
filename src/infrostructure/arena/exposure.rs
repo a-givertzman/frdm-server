@@ -29,6 +29,7 @@ pub struct Exposure {
 impl Exposure {
     ///
     /// Returns [Exposure] new instance
+    #[allow(unused)]
     pub fn new(auto: ExposureAuto, time: f64) -> Self {
         Self {
             auto,
@@ -62,5 +63,12 @@ impl std::fmt::Display for ExposureAuto {
 impl std::fmt::Debug for ExposureAuto {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
+    }
+}
+//
+//
+impl Default for Exposure {
+    fn default() -> Self {
+        Self { auto: ExposureAuto::Continuous, time: 0.0 }
     }
 }

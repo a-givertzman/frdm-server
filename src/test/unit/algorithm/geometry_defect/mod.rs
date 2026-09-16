@@ -1,1 +1,0 @@
-mod geometry_defect_test;

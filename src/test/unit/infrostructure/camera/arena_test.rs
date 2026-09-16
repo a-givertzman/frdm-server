@@ -5,7 +5,7 @@ mod arena {
     use crate::{domain::{channel_unbounded, Image}, infrostructure::arena::{AcDevice, AcSystem}, CameraConf};
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::{DebugSession, LogLevel};
     ///
     ///
     static INIT: Once = Once::new();
@@ -22,11 +22,11 @@ mod arena {
     fn init_each() -> () {}
     ///
     /// Testing TRI028S-CC Image aqusion
-    /// 
+    ///
     /// [TRI028S-CC Technical spec](https://thinklucid.com/product/triton-2-8-mp-imx429/)
     #[test]
     fn listen_device() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init().unwrap();
         init_once();
         init_each();
         let dbg = Dbg::own("arena_test");
@@ -44,7 +44,7 @@ mod arena {
         let conf = serde_yaml::from_str(r#"
             service Camera Camera1:
                 fps: Max                    # Max / Min / 30.0
-                resolution: 
+                resolution:
                     width: 1200
                     height: 800
                 index: 0
@@ -102,7 +102,14 @@ mod arena {
                                 log::info!("Device {}: {:?} | {:?} | {:?} | {:?} | {:?}", dev, device_vendor, device_model, device_serial, device_mac, device_ip);
                             }
                             let selection = 0;
-                            let mut device = AcDevice::new(&dbg, ac_system.system, selection, conf, Some(exit_1));
+                            let mut device = AcDevice::new(
+                                &dbg,
+                                ac_system.system,
+                                selection, conf,
+                                Some(exit_1),
+                                Default::default(),
+                                None,
+                            );
                             let result = device.listen(|frame| {
                                 if let Err(err) = send.send(frame) {
                                     log::warn!("{} | Send Error; {}", dbg, err);

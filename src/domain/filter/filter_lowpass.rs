@@ -1,0 +1,44 @@
+use circular_buffer::FixedCircularBuffer;
+use super::filter::Filter;
+
+///
+/// 
+#[derive(Debug, Clone)]
+pub struct FilterLowPass<const N: usize, T> {
+    buffer: FixedCircularBuffer<T, N>,
+}
+//
+// 
+impl<T: Copy, const N: usize> FilterLowPass<N, T> {
+    ///
+    /// Creates new FilterLowPass<const N: usize, T>
+    /// - `T` - Type of the Filter Item
+    #[allow(unused)]
+    pub fn new(initial: Option<T>) -> Self {
+        let mut buffer = FixedCircularBuffer::<T, N>::new();
+        initial.map(|initial| {
+            buffer.push_back(initial);
+            initial
+        });
+        Self {
+            buffer,
+        }
+    }
+}
+//
+//
+impl<const N: usize> Filter for FilterLowPass<N, i32> {
+    type Item = i32;
+    //
+    //
+    fn add(&mut self, value: Self::Item) -> Option<Self::Item> {
+        let sum = self.buffer.iter().sum::<i32>() + value;
+        // let average = ((sum as f64) / ((self.buffer.len() + 1) as f64)).round() as i32;
+        let average = sum / ((self.buffer.len() as i32) + 1);
+        self.buffer.push_back(average);
+        match self.buffer.front() {
+            Some(v) => Some(*v),
+            None => None,
+        }
+    }
+}
